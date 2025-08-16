@@ -1,0 +1,149 @@
+---
+import "../styles/global.css";
+import ThemeToggle from "../components/ThemeToggle.astro";
+import { Icon } from "astro-icon/components";
+
+const SITE = "https://blog.swiftyjourney.com";
+
+// Props por página
+const {
+  title = "Swifty Journey Blog",
+  description = "Explorando iOS, Swift y SwiftUI a través de artículos y tutoriales",
+} = Astro.props;
+
+// Ruta actual
+const path = Astro.url.pathname || "/";
+
+// Canonical
+const canonical = new URL(path, SITE).toString();
+---
+
+<html lang="es" class="min-h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- Canonical -->
+    <link rel="canonical" href={canonical} />
+
+    <link rel="icon" href="/favicon.svg" />
+
+    <!-- Evita "flash" de tema -->
+    <script is:inline>
+      (function () {
+        const key = "theme";
+        const saved = localStorage.getItem(key);
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
+        const useDark = (saved ?? (prefersDark ? "dark" : "light")) === "dark";
+        if (useDark) document.documentElement.classList.add("dark");
+      })();
+    </script>
+
+    <!-- Open Graph / Twitter básicos -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+
+  <body
+    class="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 antialiased"
+  >
+    <!-- Header sticky + blur -->
+    <header
+      class="sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:supports-[backdrop-filter]:bg-zinc-900/70"
+    >
+      <div
+        class="max-w-6xl mx-auto px-4 py-3 md:py-4 flex items-center justify-between"
+      >
+        <a
+          href="/"
+          class="flex items-center gap-2"
+          aria-label="Swifty Journey Blog — Home"
+        >
+          <!-- Logo light/dark -->
+          <img
+            src="/logo-light.svg"
+            alt="Swifty Journey"
+            width="192"
+            height="48"
+            class="h-12 w-auto block dark:hidden"
+          />
+          <img
+            src="/logo-dark.svg"
+            alt="Swifty Journey"
+            width="192"
+            height="48"
+            class="h-12 w-auto hidden dark:block"
+          />
+          <span class="text-sm text-zinc-600 dark:text-zinc-400 ml-2">Blog</span>
+        </a>
+
+        <nav class="flex items-center gap-4">
+          <a
+            href="/"
+            class="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+          >
+            Inicio
+          </a>
+          <a
+            href="/blog"
+            class="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+          >
+            Blog
+          </a>
+          <a
+            href="https://swiftyjourney.com"
+            class="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+          >
+            Sitio Principal
+          </a>
+          <div class="ml-2">
+            <ThemeToggle />
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4">
+      <slot />
+    </main>
+
+    <footer class="max-w-6xl mx-auto px-4 py-10 opacity-80">
+      <div class="flex flex-col items-center gap-4">
+        <div class="flex gap-4 text-2xl">
+          <a
+            href="https://github.com/swiftyjourney"
+            target="_blank"
+            rel="noopener me"
+            class="hover:opacity-100 opacity-80"
+          >
+            <Icon name="mdi:github" />
+          </a>
+          <a
+            href="https://x.com/jfdoradotr"
+            target="_blank"
+            rel="noopener me"
+            class="hover:opacity-100 opacity-80"
+          >
+            <Icon name="mdi:twitter" />
+          </a>
+          <a
+            href="https://linkedin.com/in/juanfranciscodoradotorres"
+            target="_blank"
+            rel="noopener me"
+            class="hover:opacity-100 opacity-80"
+          >
+            <Icon name="mdi:linkedin" />
+          </a>
+        </div>
+        <p class="text-sm">© {new Date().getFullYear()} Swifty Journey</p>
+      </div>
+    </footer>
+  </body>
+</html>

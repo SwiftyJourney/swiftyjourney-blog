@@ -1,49 +1,69 @@
 ---
-import BaseHead from '../components/BaseHead.astro';
-import Footer from '../components/Footer.astro';
-import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
 ---
 
-<!doctype html>
-<html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-	</head>
-	<body>
-		<Header />
-		<main>
-			<h1>🧑‍🚀 Hello, Astronaut!</h1>
-			<p>
-				Welcome to the official <a href="https://astro.build/">Astro</a> blog starter template. This
-				template serves as a lightweight, minimally-styled starting point for anyone looking to build
-				a personal website, blog, or portfolio with Astro.
+<BaseLayout
+	title="Swifty Journey Blog"
+	description="Explorando iOS, Swift y SwiftUI a través de artículos y tutoriales"
+>
+	<div class="py-12">
+		<!-- Hero Section -->
+		<section class="text-center mb-16">
+			<h1 class="text-4xl md:text-6xl font-bold text-zinc-900 dark:text-zinc-100 mb-6">
+				Swifty Journey <span class="text-orange-500">Blog</span>
+			</h1>
+			<p class="text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
+				Explorando el mundo de iOS, Swift y SwiftUI a través de artículos, tutoriales y experiencias de desarrollo.
 			</p>
-			<p>
-				This template comes with a few integrations already configured in your
-				<code>astro.config.mjs</code> file. You can customize your setup with
-				<a href="https://astro.build/integrations">Astro Integrations</a> to add tools like Tailwind,
-				React, or Vue to your project.
-			</p>
-			<p>Here are a few ideas on how to get started with the template:</p>
-			<ul>
-				<li>Edit this page in <code>src/pages/index.astro</code></li>
-				<li>Edit the site header items in <code>src/components/Header.astro</code></li>
-				<li>Add your name to the footer in <code>src/components/Footer.astro</code></li>
-				<li>Check out the included blog posts in <code>src/content/blog/</code></li>
-				<li>Customize the blog post page layout in <code>src/layouts/BlogPost.astro</code></li>
-			</ul>
-			<p>
-				Have fun! If you get stuck, remember to
-				<a href="https://docs.astro.build/">read the docs</a>
-				or <a href="https://astro.build/chat">join us on Discord</a> to ask questions.
-			</p>
-			<p>
-				Looking for a blog template with a bit more personality? Check out
-				<a href="https://github.com/Charca/astro-blog-template">astro-blog-template</a>
-				by <a href="https://twitter.com/Charca">Maxi Ferreira</a>.
-			</p>
-		</main>
-		<Footer />
-	</body>
-</html>
+		</section>
+
+		<!-- Latest Posts -->
+		<section>
+			<h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-8">
+				Últimos Artículos
+			</h2>
+			<div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+				{posts.slice(0, 6).map((post) => (
+					<article class="group">
+						<a href={`/blog/${post.id}/`} class="block">
+							<div class="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-6 h-full transition-all hover:bg-zinc-100 dark:hover:bg-zinc-700">
+								<h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3 group-hover:text-orange-500 transition-colors">
+									{post.data.title}
+								</h3>
+								<p class="text-zinc-600 dark:text-zinc-400 text-sm mb-4 line-clamp-3">
+									{post.data.description}
+								</p>
+								<time class="text-xs text-zinc-500 dark:text-zinc-500">
+									{post.data.pubDate.toLocaleDateString('es-ES', {
+										year: 'numeric',
+										month: 'long',
+										day: 'numeric'
+									})}
+								</time>
+							</div>
+						</a>
+					</article>
+				))}
+			</div>
+		</section>
+
+		{posts.length > 6 && (
+			<div class="text-center mt-12">
+				<a
+					href="/blog"
+					class="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+				>
+					Ver todos los artículos
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</a>
+			</div>
+		)}
+	</div>
+</BaseLayout>
