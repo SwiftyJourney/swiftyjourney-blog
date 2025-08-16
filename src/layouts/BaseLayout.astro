@@ -11,6 +11,8 @@ const {
   title = "Swifty Journey Blog",
   description = "Explorando iOS, Swift y SwiftUI a través de artículos y tutoriales",
   lang = "es",
+  toEn: customToEn,
+  toEs: customToEs,
 } = Astro.props;
 
 // Ruta actual (e.g. /en/blog)
@@ -52,9 +54,9 @@ const isEN = path.startsWith("/en/");
 const currentLang = isES ? "es" : "en";
 const otherLang = currentLang === "es" ? "en" : "es";
 
-// URLs alternas correctas
-const toEn = isEN ? path : translateFirstSegment("es", "en", path);
-const toEs = isES ? path : translateFirstSegment("en", "es", path);
+// URLs alternas correctas (usar custom si está disponible)
+const toEn = customToEn || (isEN ? path : translateFirstSegment("es", "en", path));
+const toEs = customToEs || (isES ? path : translateFirstSegment("en", "es", path));
 
 // Canonical y hreflang
 const canonical = new URL(path, SITE).toString();

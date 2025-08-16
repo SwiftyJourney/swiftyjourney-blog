@@ -1,16 +1,30 @@
 ---
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import { getCollection } from 'astro:content';
 import BaseLayout from './BaseLayout.astro';
 
 type Props = CollectionEntry<'blog'>['data'] & {
   lang?: "en" | "es";
+  translationKey: string;
 };
 
-const { title, description, pubDate, updatedDate, heroImage, lang = "es" } = Astro.props;
+const { title, description, pubDate, updatedDate, heroImage, lang = "es", translationKey } = Astro.props;
+
+// Find the translated version of this post
+const allPosts = await getCollection('blog');
+const translatedPost = allPosts.find(post => 
+  post.data.translationKey === translationKey && 
+  post.data.lang !== lang
+);
+
+// Generate URLs for language toggle
+const currentPath = Astro.url.pathname;
+const toEn = translatedPost && lang === "es" ? `/en/blog/${translatedPost.id}/` : `/${lang}/`;
+const toEs = translatedPost && lang === "en" ? `/es/blog/${translatedPost.id}/` : `/${lang}/`;
 ---
 
-<BaseLayout title={title} description={description} lang={lang}>
+<BaseLayout title={title} description={description} lang={lang} toEn={toEn} toEs={toEs}>
 	<article class="py-12">
 		<!-- Hero Image -->
 		{heroImage && (

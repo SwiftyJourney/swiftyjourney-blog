@@ -4,6 +4,7 @@ description: 'We start this new adventure exploring the world of iOS, Swift and 
 pubDate: 'Aug 16 2025'
 heroImage: '../../assets/blog-placeholder-2.jpg'
 lang: 'en'
+translationKey: 'welcome-post'
 ---
 
 Hello and welcome to the official **Swifty Journey** blog! 🎉

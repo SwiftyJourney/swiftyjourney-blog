@@ -14,6 +14,7 @@ const blog = defineCollection({
 			updatedDate: z.coerce.date().optional(),
 			heroImage: image().optional(),
 			lang: z.enum(['es', 'en']).default('es'),
+			translationKey: z.string().optional(), // Key to link related articles across languages
 		}),
 });
 

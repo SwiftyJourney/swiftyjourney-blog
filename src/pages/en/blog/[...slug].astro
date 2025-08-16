@@ -16,6 +16,6 @@ const post = Astro.props;
 const { Content } = await render(post);
 ---
 
-<BlogPost {...post.data} lang="en">
+<BlogPost {...post.data} lang="en" translationKey={post.data.translationKey}>
 	<Content />
 </BlogPost>
