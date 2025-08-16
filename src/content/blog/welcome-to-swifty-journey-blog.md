@@ -2,7 +2,7 @@
 title: 'Welcome to Swifty Journey Blog!'
 description: 'We start this new adventure exploring the world of iOS, Swift and SwiftUI. Discover what you can expect from this blog and join our developer community.'
 pubDate: 'Aug 16 2025'
-heroImage: '../../assets/blog-placeholder-2.jpg'
+heroImage: '../../assets/2025/08/16/hero.png'
 lang: 'en'
 translationKey: 'welcome-post'
 ---
