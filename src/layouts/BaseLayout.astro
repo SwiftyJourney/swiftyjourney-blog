@@ -9,8 +9,8 @@ const SITE = "https://blog.swiftyjourney.com";
 // Props por página
 const {
   title = "Swifty Journey Blog",
-  description = "Explorando iOS, Swift y SwiftUI a través de artículos y tutoriales",
-  lang = "es",
+  description = "Exploring iOS, Swift and SwiftUI through articles, tutorials and development experiences",
+  lang = "en",
   toEn: customToEn,
   toEs: customToEs,
 } = Astro.props;
@@ -49,9 +49,9 @@ function translateFirstSegment(
   return rebuilt.endsWith("/") ? rebuilt : rebuilt + "/";
 }
 
-const isES = path.startsWith("/es/") || (!path.startsWith("/en/") && !path.startsWith("/es/"));
-const isEN = path.startsWith("/en/");
-const currentLang = isES ? "es" : "en";
+const isEN = path.startsWith("/en/") || (!path.startsWith("/en/") && !path.startsWith("/es/"));
+const isES = path.startsWith("/es/");
+const currentLang = isEN ? "en" : "es";
 const otherLang = currentLang === "es" ? "en" : "es";
 
 // URLs alternas correctas (usar custom si está disponible)
@@ -64,7 +64,7 @@ const hrefEn = new URL(toEn, SITE).toString();
 const hrefEs = new URL(toEs, SITE).toString();
 
 // Home por idioma
-const homeHref = lang === "en" ? "/en/" : "/";
+const homeHref = lang === "en" ? "/en/" : "/es/";
 ---
 
 <html lang={lang} class="min-h-full">

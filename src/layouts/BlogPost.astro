@@ -3,13 +3,24 @@ import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import { getCollection } from 'astro:content';
 import BaseLayout from './BaseLayout.astro';
+import ArticleInfo from '../components/ArticleInfo.astro';
+import readingTime from 'reading-time';
 
 type Props = CollectionEntry<'blog'>['data'] & {
   lang?: "en" | "es";
-  translationKey: string;
+  translationKey?: string;
+  rawContent?: string;
 };
 
-const { title, description, pubDate, updatedDate, heroImage, lang = "es", translationKey } = Astro.props;
+const { title, description, pubDate, updatedDate, heroImage, lang = "es", translationKey, rawContent } = Astro.props;
+
+// Calculate reading time if rawContent is provided
+const readingTimeResult = rawContent ? readingTime(rawContent) : null;
+const readingTimeText = readingTimeResult 
+  ? lang === 'en' 
+    ? readingTimeResult.text 
+    : `${readingTimeResult.minutes} min de lectura`
+  : lang === 'en' ? '5 min read' : '5 min de lectura';
 
 // Find the translated version of this post
 const allPosts = await getCollection('blog');
@@ -41,25 +52,13 @@ const toEs = translatedPost && lang === "en" ? `/es/blog/${translatedPost.id}/` 
 
 		<!-- Article Header -->
 		<header class="max-w-3xl mx-auto px-4 mb-16 text-center">
-			<div class="mb-6">
-				<time class="text-sm text-zinc-500 dark:text-zinc-500">
-					{pubDate.toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES', {
-						year: 'numeric',
-						month: 'long',
-						day: 'numeric'
-					})}
-				</time>
-				{updatedDate && (
-					<div class="text-sm text-zinc-500 dark:text-zinc-500 italic mt-1">
-						{lang === 'en' ? 'Updated on' : 'Actualizado el'} {updatedDate.toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES', {
-							year: 'numeric',
-							month: 'long',
-							day: 'numeric'
-						})}
-					</div>
-				)}
-			</div>
-			<h1 class="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-zinc-100 mb-8">
+			<ArticleInfo 
+				readingTime={readingTimeText}
+				pubDate={pubDate}
+				updatedDate={updatedDate}
+				lang={lang}
+			/>
+			<h1 class="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-zinc-100 my-8">
 				{title}
 			</h1>
 			{description && (

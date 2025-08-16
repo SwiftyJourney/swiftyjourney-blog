@@ -9,7 +9,7 @@ translationKey: 'welcome-post'
 
 Hello and welcome to the official **Swifty Journey** blog! 🎉
 
-After much work developing the main Swifty Journey platform, we're excited to launch this space dedicated exclusively to sharing knowledge, experiences, and the latest news from the Apple ecosystem.
+After much work developing the main Swifty Journey platform, we're excited to launch this completely **redesigned and enhanced blog** with powerful new features! This space is now dedicated exclusively to sharing knowledge, experiences, and the latest news from the Apple ecosystem with unprecedented code highlighting and interactive capabilities.
 
 ## What will you find here?
 
@@ -30,6 +30,57 @@ We explore real projects, challenges we've faced, and the solutions we've implem
 ### 🎓 **Learning Resources**
 Recommendations for books, courses, conferences, and tools that we consider essential for any iOS developer.
 
+## ✨ **New Blog Features**
+
+We've completely rebuilt our blog platform with cutting-edge technology to provide you with the best reading and coding experience:
+
+### 🎨 **Enhanced Code Highlighting**
+Our blog now features **Shiki-powered syntax highlighting** with dual theme support. Whether you're in light or dark mode, your code will look absolutely perfect:
+
+```swift
+import SwiftUI
+
+struct WelcomeView: View {
+    @State private var isAnimating = false
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Welcome to SwiftyJourney!")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .scaleEffect(isAnimating ? 1.1 : 1.0)
+                .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isAnimating)
+            
+            Button("Start Learning") {
+                print("Let's code something amazing!")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .onAppear {
+            isAnimating = true
+        }
+    }
+}
+```
+
+### 📋 **Copy Code Functionality**
+Every code block comes with a convenient **copy button** that appears on hover, making it easy to grab code snippets and try them in your own projects.
+
+### 🌍 **Multilingual Support**
+Our blog supports both **English and Spanish** with seamless language switching and properly linked translated articles.
+
+### 📱 **Responsive Design**
+Perfect reading experience across all devices with our **mobile-first** responsive design that adapts beautifully to any screen size.
+
+### 🚀 **Lightning Fast Performance**
+Built with **Astro** for optimal performance, featuring static site generation and minimal JavaScript for blazing-fast load times.
+
+### 🎯 **Interactive Components**
+Enhanced with **React components** for interactive demos and examples that make learning more engaging.
+
+### 📖 **Reading Time & Metadata**
+Each article displays estimated reading time and comprehensive metadata to help you plan your learning sessions.
+
 ## Our Mission
 
 At Swifty Journey we believe that learning should be accessible, practical, and fun. Our goal is to create a community where both beginners and experienced developers can:
@@ -39,15 +90,60 @@ At Swifty Journey we believe that learning should be accessible, practical, and 
 - **Grow** professionally in the Apple ecosystem
 - **Connect** with other passionate developers
 
+## 🔧 **Supported Languages & Technologies**
+
+Our enhanced code highlighting supports an extensive range of programming languages and markup formats:
+
+- **Swift** (our specialty!)
+- **TypeScript & JavaScript**
+- **JSON & YAML**
+- **HTML & CSS**
+- **Bash & Shell scripts**
+- **Markdown & XML**
+- And many more...
+
+Try our highlighting with this TypeScript example:
+
+```typescript
+interface BlogPost {
+    title: string;
+    content: string;
+    publishDate: Date;
+    author: {
+        name: string;
+        avatar: string;
+    };
+    tags: string[];
+}
+
+const createBlogPost = async (post: BlogPost): Promise<void> => {
+    try {
+        const response = await fetch('/api/posts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(post)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        console.log('✅ Blog post created successfully!');
+    } catch (error) {
+        console.error('❌ Failed to create blog post:', error);
+    }
+};
+```
+
 ## What's Coming Next?
 
 In the coming weeks, we'll be posting content regularly about:
 
-1. **Complete SwiftUI Guide** - A detailed series to master Apple's declarative UI framework
-2. **MVVM Architecture in iOS** - Practical implementation with real examples
+1. **Complete SwiftUI Guide** - A detailed series to master Apple's declarative UI framework with interactive code examples
+2. **MVVM Architecture in iOS** - Practical implementation with real examples and downloadable projects
 3. **Core Data vs SwiftData** - Comparison and migration between persistence technologies
-4. **Testing in iOS** - Strategies for unit tests, UI tests, and integration testing
-5. **Performance and Optimization** - Techniques to make your apps faster and more efficient
+4. **Testing in iOS** - Strategies for unit tests, UI tests, and integration testing with live code demos
+5. **Performance and Optimization** - Techniques to make your apps faster and more efficient with before/after benchmarks
 
 ## Join the Community
 
