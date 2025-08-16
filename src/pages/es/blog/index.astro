@@ -1,0 +1,63 @@
+---
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+---
+
+<BaseLayout
+	title="Blog — Swifty Journey"
+	description="Todos los artículos sobre iOS, Swift y SwiftUI"
+	lang="es"
+>
+	<div class="py-12">
+		<div class="mb-12">
+			<h1 class="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
+				Todos los Artículos
+			</h1>
+			<p class="text-zinc-600 dark:text-zinc-400">
+				Explora todos nuestros artículos sobre iOS, Swift y SwiftUI
+			</p>
+		</div>
+
+		<div class="grid gap-8">
+			{posts.map((post, index) => (
+				<article class={`group ${index === 0 ? 'md:col-span-full' : ''}`}>
+					<a href={`/es/blog/${post.id}/`} class="block">
+						<div class={`bg-zinc-50 dark:bg-zinc-800 rounded-lg overflow-hidden transition-all hover:bg-zinc-100 dark:hover:bg-zinc-700 ${index === 0 ? 'md:flex md:gap-8' : ''}`}>
+							{post.data.heroImage && (
+								<div class={`${index === 0 ? 'md:w-1/2' : ''}`}>
+									<Image
+										src={post.data.heroImage}
+										alt={post.data.title}
+										width={index === 0 ? 720 : 400}
+										height={index === 0 ? 360 : 200}
+										class="w-full h-48 md:h-64 object-cover"
+									/>
+								</div>
+							)}
+							<div class={`p-6 ${index === 0 && post.data.heroImage ? 'md:w-1/2 md:flex md:flex-col md:justify-center' : ''}`}>
+								<h2 class={`font-bold text-zinc-900 dark:text-zinc-100 mb-3 group-hover:text-orange-500 transition-colors ${index === 0 ? 'text-2xl md:text-3xl' : 'text-lg'}`}>
+									{post.data.title}
+								</h2>
+								<p class={`text-zinc-600 dark:text-zinc-400 mb-4 ${index === 0 ? 'text-base' : 'text-sm'}`}>
+									{post.data.description}
+								</p>
+								<time class="text-sm text-zinc-500 dark:text-zinc-500">
+									{post.data.pubDate.toLocaleDateString('es-ES', {
+										year: 'numeric',
+										month: 'long',
+										day: 'numeric'
+									})}
+								</time>
+							</div>
+						</div>
+					</a>
+				</article>
+			))}
+		</div>
+	</div>
+</BaseLayout>

@@ -1,6 +1,7 @@
 ---
 import "../styles/global.css";
 import ThemeToggle from "../components/ThemeToggle.astro";
+import LangToggle from "../components/LangToggle.astro";
 import { Icon } from "astro-icon/components";
 
 const SITE = "https://blog.swiftyjourney.com";
@@ -9,24 +10,73 @@ const SITE = "https://blog.swiftyjourney.com";
 const {
   title = "Swifty Journey Blog",
   description = "Explorando iOS, Swift y SwiftUI a través de artículos y tutoriales",
+  lang = "es",
 } = Astro.props;
 
-// Ruta actual
+// Ruta actual (e.g. /en/blog)
 const path = Astro.url.pathname || "/";
 
-// Canonical
+/** Diccionario de slugs por idioma */
+const slugMap: Record<"en" | "es", Record<string, string>> = {
+  en: {
+    blog: "blog",
+  },
+  es: {
+    blog: "blog",
+  },
+};
+
+/** Traduce el primer segmento de una ruta al otro idioma */
+function translateFirstSegment(
+  currentLang: "en" | "es",
+  otherLang: "en" | "es",
+  pathname: string,
+) {
+  // quita el prefijo /en/ o /es/
+  const bare = pathname.replace(/^\/(en|es)\//, "");
+  const parts = bare.split("/").filter(Boolean);
+
+  if (parts.length === 0) {
+    return `/${otherLang}/`;
+  }
+
+  const first = parts[0];
+  const mapped = (slugMap[currentLang] && slugMap[currentLang][first]) || first;
+
+  const rebuilt = `/${otherLang}/${[mapped, ...parts.slice(1)].join("/")}`;
+  return rebuilt.endsWith("/") ? rebuilt : rebuilt + "/";
+}
+
+const isES = path.startsWith("/es/") || (!path.startsWith("/en/") && !path.startsWith("/es/"));
+const isEN = path.startsWith("/en/");
+const currentLang = isES ? "es" : "en";
+const otherLang = currentLang === "es" ? "en" : "es";
+
+// URLs alternas correctas
+const toEn = isEN ? path : translateFirstSegment("es", "en", path);
+const toEs = isES ? path : translateFirstSegment("en", "es", path);
+
+// Canonical y hreflang
 const canonical = new URL(path, SITE).toString();
+const hrefEn = new URL(toEn, SITE).toString();
+const hrefEs = new URL(toEs, SITE).toString();
+
+// Home por idioma
+const homeHref = lang === "en" ? "/en/" : "/";
 ---
 
-<html lang="es" class="min-h-full">
+<html lang={lang} class="min-h-full">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
 
-    <!-- Canonical -->
+    <!-- Canonical + hreflang -->
     <link rel="canonical" href={canonical} />
+    <link rel="alternate" href={hrefEn} hreflang="en" />
+    <link rel="alternate" href={hrefEs} hreflang="es-mx" />
+    <link rel="alternate" href={SITE + "/"} hreflang="x-default" />
 
     <link rel="icon" href="/favicon.svg" />
 
@@ -62,7 +112,7 @@ const canonical = new URL(path, SITE).toString();
         class="max-w-6xl mx-auto px-4 py-3 md:py-4 flex items-center justify-between"
       >
         <a
-          href="/"
+          href={homeHref}
           class="flex items-center gap-2"
           aria-label="Swifty Journey Blog — Home"
         >
@@ -84,25 +134,14 @@ const canonical = new URL(path, SITE).toString();
           <span class="text-sm text-zinc-600 dark:text-zinc-400 ml-2">Blog</span>
         </a>
 
-        <nav class="flex items-center gap-4">
+        <nav class="flex items-center gap-2">
           <a
-            href="/"
-            class="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            href={lang === "en" ? "https://swiftyjourney.com/en/" : "https://swiftyjourney.com/es/"}
+            class="px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
           >
-            Inicio
+            ← {lang === "en" ? "Main Site" : "Sitio Principal"}
           </a>
-          <a
-            href="/blog"
-            class="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-          >
-            Blog
-          </a>
-          <a
-            href="https://swiftyjourney.com"
-            class="text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-          >
-            Sitio Principal
-          </a>
+          <LangToggle lang={lang} toEn={toEn} toEs={toEs} />
           <div class="ml-2">
             <ThemeToggle />
           </div>

@@ -3,12 +3,14 @@ import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import BaseLayout from './BaseLayout.astro';
 
-type Props = CollectionEntry<'blog'>['data'];
+type Props = CollectionEntry<'blog'>['data'] & {
+  lang?: "en" | "es";
+};
 
-const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
+const { title, description, pubDate, updatedDate, heroImage, lang = "es" } = Astro.props;
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout title={title} description={description} lang={lang}>
 	<article class="py-12">
 		<!-- Hero Image -->
 		{heroImage && (
@@ -27,7 +29,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 		<header class="max-w-4xl mx-auto mb-12 text-center">
 			<div class="mb-4">
 				<time class="text-sm text-zinc-500 dark:text-zinc-500">
-					{pubDate.toLocaleDateString('es-ES', {
+					{pubDate.toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES', {
 						year: 'numeric',
 						month: 'long',
 						day: 'numeric'
@@ -35,7 +37,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 				</time>
 				{updatedDate && (
 					<div class="text-sm text-zinc-500 dark:text-zinc-500 italic mt-1">
-						Actualizado el {updatedDate.toLocaleDateString('es-ES', {
+						{lang === 'en' ? 'Updated on' : 'Actualizado el'} {updatedDate.toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES', {
 							year: 'numeric',
 							month: 'long',
 							day: 'numeric'
@@ -61,13 +63,13 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 		<!-- Back to Blog -->
 		<div class="max-w-4xl mx-auto mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-700">
 			<a
-				href="/blog"
+				href={`/${lang}/blog`}
 				class="inline-flex items-center gap-2 text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 transition-colors"
 			>
 				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 				</svg>
-				Volver al blog
+				{lang === 'en' ? 'Back to blog' : 'Volver al blog'}
 			</a>
 		</div>
 	</article>
