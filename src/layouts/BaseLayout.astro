@@ -189,30 +189,70 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
     
     <!-- Copy code functionality -->
     <script>
-      // Simple copy functionality for code blocks
+      // GitHub Gist style code blocks with header
       document.addEventListener('DOMContentLoaded', function() {
         const codeBlocks = document.querySelectorAll('pre code');
+        
+        // Language to icon SVG mapping
+        const getLanguageIcon = (language) => {
+          const icons = {
+            'swift': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M7.508 0c-.287 0-.573.088-.813.264L.264 5.414c-.484.332-.75.85-.75 1.409v10.354c0 .559.266 1.077.75 1.409l6.431 5.15c.48.374 1.146.374 1.626 0l6.431-5.15c.484-.332.75-.85.75-1.409V6.823c0-.559-.266-1.077-.75-1.409L8.321.264C8.081.088 7.795 0 7.508 0z"/></svg>`,
+            'typescript': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M1.125 0C.502 0 0 .502 0 1.125v21.75C0 23.498.502 24 1.125 24h21.75c.623 0 1.125-.502 1.125-1.125V1.125C24 .502 23.498 0 22.875 0H1.125zM12.063 7.313h5.625c.345 0 .625.28.625.625v1.25c0 .345-.28.625-.625.625h-1.875v7.5c0 .345-.28.625-.625.625h-1.25c-.345 0-.625-.28-.625-.625v-7.5h-1.25c-.345 0-.625-.28-.625-.625v-1.25c0-.345.28-.625.625-.625z"/></svg>`,
+            'javascript': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M0 0h24v24H0V0zm22.034 18.276c-.175-1.095-.888-2.015-3.003-2.873-.736-.345-1.554-.585-1.797-1.14-.091-.33-.105-.51-.046-.705.15-.646.915-.84 1.515-.66.39.12.75.42.976.9 1.034-.676 1.034-.676 1.755-1.125-.27-.42-.404-.601-.586-.78-.63-.705-1.469-1.065-2.834-1.034l-.705.089c-.676.165-1.32.525-1.71 1.005-1.14 1.291-.811 3.541.569 4.471 1.365 1.02 3.361 1.244 3.616 2.205.24 1.17-.87 1.545-1.966 1.41-.811-.18-1.26-.586-1.755-1.336l-1.83 1.051c.21.48.45.689.81 1.109 1.74 1.756 6.09 1.666 6.871-1.004.029-.09.24-.705.074-1.65l.046.067zm-8.983-7.245h-2.248c0 1.938-.009 3.864-.009 5.805 0 1.232.063 2.363-.138 2.711-.33.689-1.18.601-1.566.48-.396-.196-.597-.466-.83-.855-.063-.105-.11-.196-.127-.196l-1.825 1.125c.305.63.75 1.172 1.324 1.517.855.51 2.004.675 3.207.405.783-.226 1.458-.691 1.811-1.411.51-.93.402-2.07.397-3.346.012-2.054 0-4.109 0-6.179l.004-.056z"/></svg>`,
+            'json': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M5.843 5.843h12.314v12.314H5.843V5.843zm6.157 10.471c1.339 0 2.424-1.085 2.424-2.424s-1.085-2.424-2.424-2.424-2.424 1.085-2.424 2.424 1.085 2.424 2.424 2.424z"/></svg>`,
+            'html': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M1.5 0h21l-1.91 21.563L11.977 24l-8.564-2.438L1.5 0zm7.031 9.75l-.232-2.718 10.059.003.23-2.622L5.412 4.41l.698 8.01h9.126l-.326 3.426-2.91.804-2.955-.81-.188-2.11H6.248l.33 4.171L12 19.351l5.379-1.443.744-8.157H8.531z"/></svg>`,
+            'css': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M1.5 0h21l-1.91 21.563L11.977 24l-8.564-2.438L1.5 0zm17.09 4.413L5.41 4.41l.213 2.622 10.125.002-.255 2.716h-6.64l.24 2.573h6.182l-.366 3.523-2.91.804-2.956-.81-.188-2.11h-2.61l.29 3.855L12 19.288l5.373-1.53L18.59 4.414z"/></svg>`,
+            'bash': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 2v20l16-10L4 2z"/></svg>`,
+            'python': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14.25.18l.9.2.73.26.59.3.45.32.34.34.25.34.16.33.1.3.04.26.02.2-.01.13V8.5l-.05.63-.13.55-.21.46-.26.38-.3.31-.33.25-.35.19-.35.14-.33.1-.3.07-.26.04-.21.02H8.77l-.69.05-.59.14-.5.22-.41.27-.33.32-.27.35-.2.36-.15.37-.1.35-.07.32-.04.27-.02.21v3.06H3.17l-.21-.03-.28-.07-.32-.12-.35-.18-.36-.26-.36-.36-.35-.46-.32-.59-.28-.73-.21-.88-.14-1.05-.05-1.23.06-1.22.16-1.04.24-.87.32-.71.36-.57.4-.44.42-.33.42-.24.4-.16.36-.1.32-.05.26-.02.21-.01h5.84l.69-.05.59-.14.5-.21.41-.28.33-.32.27-.35.2-.36.15-.36.1-.35.07-.32.04-.28.02-.21V6.07h2.09l.14.01zm-6.47 14.25c-.28 0-.52.09-.7.28-.18.18-.27.42-.27.7 0 .28.09.52.27.7.18.18.42.27.7.27.28 0 .52-.09.7-.27.18-.18.27-.42.27-.7 0-.28-.09-.52-.27-.7a.997.997 0 00-.7-.28z"/></svg>`,
+            'yaml': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/></svg>`,
+            'markdown': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M22.269 19.385c.13-.47.201-.959.201-1.464v-8.09c0-.476-.069-.944-.194-1.395a7.042 7.042 0 0 0-.547-1.297 6.812 6.812 0 0 0-.839-1.158 6.897 6.897 0 0 0-1.109-.938 6.948 6.948 0 0 0-1.331-.626 6.867 6.867 0 0 0-1.507-.263c-.497-.03-.994-.038-1.491-.038H7.442c-.497 0-.994.008-1.491.038a6.867 6.867 0 0 0-1.507.263c-.454.147-.885.36-1.291.626a6.897 6.897 0 0 0-1.149.938 6.812 6.812 0 0 0-.839 1.158 7.042 7.042 0 0 0-.547 1.297A7.138 7.138 0 0 0 .42 9.831v4.338c0 .505.071.993.201 1.464.151.532.376 1.039.674 1.517.298.477.668.918 1.1 1.318.433.4.921.753 1.458 1.054.537.301 1.115.534 1.732.699a8.33 8.33 0 0 0 1.898.235c.632.03 1.266.038 1.901.038h3.632c.635 0 1.269-.008 1.901-.038a8.33 8.33 0 0 0 1.898-.235c.617-.165 1.195-.398 1.732-.699.537-.301 1.025-.654 1.458-1.054.432-.4.802-.841 1.1-1.318.298-.478.523-.985.674-1.517z"/></svg>`,
+            'xml': `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9l-5.91 5.74L18 21l-6-3.16L6 21l1.91-6.26L2 9l6.91-1.74L12 2z"/></svg>`
+          };
+          return icons[language.toLowerCase()] || `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/></svg>`;
+        };
         
         codeBlocks.forEach((codeBlock) => {
           const pre = codeBlock.parentNode;
           
-          // Skip if copy button already exists
-          if (pre.querySelector('.copy-button')) return;
+          // Skip if header already exists
+          if (pre.querySelector('.code-header')) return;
           
-          // Create copy button
+          // Detect language
+          const classNames = codeBlock.className;
+          const language = classNames.match(/language-(\w+)/)?.[1] || 
+                          classNames.match(/lang-(\w+)/)?.[1] ||
+                          'code';
+          
+          // Create header
+          const header = document.createElement('div');
+          header.className = 'code-header';
+          
+          // Language info section
+          const languageInfo = document.createElement('div');
+          languageInfo.className = 'language-info';
+          
+          // Language icon
+          const languageIcon = document.createElement('div');
+          languageIcon.className = 'language-icon';
+          languageIcon.innerHTML = getLanguageIcon(language);
+          
+          // Language name
+          const languageName = document.createElement('span');
+          languageName.className = 'language-name';
+          languageName.textContent = language.charAt(0).toUpperCase() + language.slice(1);
+          
+          languageInfo.appendChild(languageIcon);
+          languageInfo.appendChild(languageName);
+          
+          // Actions section
+          const codeActions = document.createElement('div');
+          codeActions.className = 'code-actions';
+          
+          // Copy button
           const copyButton = document.createElement('button');
           copyButton.className = 'copy-button';
           copyButton.textContent = 'Copy';
           copyButton.setAttribute('aria-label', 'Copy code to clipboard');
-          
-          // Add language label if available
-          const language = codeBlock.className.match(/language-(\w+)/)?.[1];
-          if (language) {
-            const languageLabel = document.createElement('span');
-            languageLabel.className = 'language-label';
-            languageLabel.textContent = language.toUpperCase();
-            pre.appendChild(languageLabel);
-          }
           
           // Copy functionality
           copyButton.addEventListener('click', async () => {
@@ -251,8 +291,14 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
             }
           });
           
-          // Add button to pre element
-          pre.appendChild(copyButton);
+          codeActions.appendChild(copyButton);
+          
+          // Assemble header
+          header.appendChild(languageInfo);
+          header.appendChild(codeActions);
+          
+          // Insert header at the beginning of pre
+          pre.insertBefore(header, codeBlock);
         });
       });
     </script>
