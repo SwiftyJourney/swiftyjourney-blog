@@ -5,7 +5,7 @@ Official blog for [Swifty Journey](https://swiftyjourney.com) - Exploring iOS, S
 ## ✨ **Enhanced Features**
 
 🎨 **Advanced Code Highlighting** - Powered by Shiki with dual theme support (light/dark)  
-📋 **Copy Code Functionality** - One-click copy for all code blocks  
+📋 **Enhanced Copy Code Functionality** - Intelligent copy system with visual feedback, automatic language labels, and legacy browser support  
 🌍 **Multilingual Support** - Seamless English/Spanish content with linked translations  
 📱 **Mobile-First Design** - Perfect reading experience on all devices  
 🚀 **Lightning Fast** - Static generation with Astro for optimal performance  

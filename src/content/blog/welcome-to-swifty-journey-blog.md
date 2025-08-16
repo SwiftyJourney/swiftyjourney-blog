@@ -63,8 +63,13 @@ struct WelcomeView: View {
 }
 ```
 
-### 📋 **Copy Code Functionality**
-Every code block comes with a convenient **copy button** that appears on hover, making it easy to grab code snippets and try them in your own projects.
+### 📋 **Advanced Copy Code Functionality**
+Every code block features an **intelligent copy system** that includes:
+- **Copy button** that appears on hover over the code block
+- **Visual feedback** with animated icons (📄 → ✅)
+- **Automatic language labels** in the top-right corner
+- **Legacy browser support** with automatic fallback
+- **Temporal feedback** showing "Copied!" for 2 seconds
 
 ### 🌍 **Multilingual Support**
 Our blog supports both **English and Spanish** with seamless language switching and properly linked translated articles.
@@ -75,8 +80,13 @@ Perfect reading experience across all devices with our **mobile-first** responsi
 ### 🚀 **Lightning Fast Performance**
 Built with **Astro** for optimal performance, featuring static site generation and minimal JavaScript for blazing-fast load times.
 
-### 🎯 **Interactive Components**
-Enhanced with **React components** for interactive demos and examples that make learning more engaging.
+### 🎯 **Interactive Components & Specials**
+Enhanced with **React and Astro components** for superior learning experience:
+- **CodeBlock component**: Code blocks with custom titles
+- **Callout components**: Info, warning, tip, and error alerts
+- **Copy-to-clipboard components**: Universal copy functionality
+- **Language labels**: Automatic programming language tags
+- **Interactive demos**: Examples that can run in the browser
 
 ### 📖 **Reading Time & Metadata**
 Each article displays estimated reading time and comprehensive metadata to help you plan your learning sessions.
@@ -92,15 +102,22 @@ At Swifty Journey we believe that learning should be accessible, practical, and 
 
 ## 🔧 **Supported Languages & Technologies**
 
-Our enhanced code highlighting supports an extensive range of programming languages and markup formats:
+Our enhanced code highlighting uses **Shiki** (the same engine as VS Code) and supports 100+ programming languages:
 
-- **Swift** (our specialty!)
-- **TypeScript & JavaScript**
-- **JSON & YAML**
-- **HTML & CSS**
-- **Bash & Shell scripts**
-- **Markdown & XML**
-- And many more...
+### Primary Languages:
+- **Swift** (our specialty! with full iOS APIs support)
+- **TypeScript & JavaScript** (including React, Vue, Astro)
+- **JSON, YAML, XML** (with syntax validation)
+- **HTML, CSS, SCSS** (with rendered hex colors)
+- **Bash, Zsh, PowerShell** (with command highlighting)
+- **Python, Go, Rust, Java** (complete syntax)
+- **Markdown, MDX** (with markup elements)
+
+### Technical Features:
+- **Automatic dual themes**: `github-light` and `one-dark-pro`
+- **Contextual highlighting**: Variables, functions, keywords
+- **Semantic colors**: Different tones for each token type
+- **Server-side rendering**: No JavaScript required for basic highlighting
 
 Try our highlighting with this TypeScript example:
 

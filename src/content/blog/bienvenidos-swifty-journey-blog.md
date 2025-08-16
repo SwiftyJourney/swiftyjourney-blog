@@ -63,8 +63,13 @@ struct VistaWelcome: View {
 }
 ```
 
-### 📋 **Funcionalidad de Copiar Código**
-Cada bloque de código viene con un conveniente **botón de copiar** que aparece al pasar el cursor, facilitando tomar fragmentos de código y probarlos en tus propios proyectos.
+### 📋 **Funcionalidad de Copiar Código Avanzada**
+Cada bloque de código viene con un **sistema inteligente de copia** que incluye:
+- **Botón de copia** que aparece al pasar el cursor sobre el bloque
+- **Retroalimentación visual** con iconos animados (📄 → ✅)
+- **Etiqueta de idioma** automática en la esquina superior derecha
+- **Soporte para navegadores antiguos** con fallback automático
+- **Feedback temporal** que muestra "Copied!" por 2 segundos
 
 ### 🌍 **Soporte Multiidioma**
 Nuestro blog soporta tanto **inglés como español** con cambio de idioma fluido y artículos traducidos apropiadamente vinculados.
@@ -75,8 +80,13 @@ Experiencia de lectura perfecta en todos los dispositivos con nuestro diseño **
 ### 🚀 **Rendimiento Ultra Rápido**
 Construido con **Astro** para un rendimiento óptimo, con generación de sitios estáticos y JavaScript mínimo para tiempos de carga increíblemente rápidos.
 
-### 🎯 **Componentes Interactivos**
-Mejorado con **componentes React** para demos interactivos y ejemplos que hacen el aprendizaje más atractivo.
+### 🎯 **Componentes Interactivos y Especiales**
+Mejorado con **componentes React** y Astro para una experiencia de aprendizaje superior:
+- **CodeBlock component**: Bloques de código con títulos personalizados
+- **Callout components**: Alertas de información, advertencias, consejos y errores
+- **Componentes copy-to-clipboard**: Funcionalidad universal de copia
+- **Language labels**: Etiquetas automáticas de lenguaje de programación
+- **Demos interactivos**: Ejemplos que se pueden ejecutar en el navegador
 
 ### 📖 **Tiempo de Lectura y Metadatos**
 Cada artículo muestra el tiempo estimado de lectura y metadatos comprensivos para ayudarte a planificar tus sesiones de aprendizaje.
@@ -92,15 +102,22 @@ En Swifty Journey creemos que el aprendizaje debe ser accesible, práctico y div
 
 ## 🔧 **Lenguajes y Tecnologías Soportadas**
 
-Nuestro resaltado de código mejorado soporta una amplia gama de lenguajes de programación y formatos de markup:
+Nuestro resaltado de código mejorado usa **Shiki** (el mismo engine de VS Code) y soporta más de 100 lenguajes de programación:
 
-- **Swift** (¡nuestra especialidad!)
-- **TypeScript y JavaScript**
-- **JSON y YAML**
-- **HTML y CSS**
-- **Bash y scripts de Shell**
-- **Markdown y XML**
-- Y muchos más...
+### Lenguajes Principales:
+- **Swift** (¡nuestra especialidad! con soporte completo de iOS APIs)
+- **TypeScript y JavaScript** (incluyendo React, Vue, Astro)
+- **JSON, YAML, XML** (con validación de sintaxis)
+- **HTML, CSS, SCSS** (con colores hexadecimales renderizados)
+- **Bash, Zsh, PowerShell** (con destacado de comandos)
+- **Python, Go, Rust, Java** (sintaxis completa)
+- **Markdown, MDX** (con elementos de markup)
+
+### Características Técnicas:
+- **Temas duales automáticos**: `github-light` y `one-dark-pro`
+- **Resaltado contextual**: Variables, funciones, keywords
+- **Colores semánticos**: Diferentes tonos para cada tipo de token
+- **Renderizado del lado del servidor**: Sin JavaScript para el resaltado básico
 
 Prueba nuestro resaltado con este ejemplo de TypeScript:
 
