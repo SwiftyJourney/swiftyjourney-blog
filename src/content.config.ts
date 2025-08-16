@@ -15,6 +15,7 @@ const blog = defineCollection({
 			heroImage: image().optional(),
 			lang: z.enum(['es', 'en']).default('en'),
 			translationKey: z.string().optional(), // Key to link related articles across languages
+			slug: z.string().optional(), // flat URL slug (ignores folders)
 		}),
 });
 

@@ -1,71 +1,100 @@
 ---
-import { Image } from 'astro:assets';
-import type { CollectionEntry } from 'astro:content';
-import { getCollection } from 'astro:content';
-import BaseLayout from './BaseLayout.astro';
-import ArticleInfo from '../components/ArticleInfo.astro';
-import readingTime from 'reading-time';
+import { Image } from "astro:assets";
+import type { CollectionEntry } from "astro:content";
+import { getCollection } from "astro:content";
+import BaseLayout from "./BaseLayout.astro";
+import ArticleInfo from "../components/ArticleInfo.astro";
+import readingTime from "reading-time";
 
-type Props = CollectionEntry<'blog'>['data'] & {
-  lang?: "en" | "es";
-  translationKey?: string;
-  rawContent?: string;
+type Props = CollectionEntry<"blog">["data"] & {
+	lang?: "en" | "es";
+	translationKey?: string;
+	rawContent?: string;
 };
 
-const { title, description, pubDate, updatedDate, heroImage, lang = "es", translationKey, rawContent } = Astro.props;
+const {
+	title,
+	description,
+	pubDate,
+	updatedDate,
+	heroImage,
+	lang = "es",
+	translationKey,
+	rawContent,
+} = Astro.props;
 
 // Calculate reading time if rawContent is provided
 const readingTimeResult = rawContent ? readingTime(rawContent) : null;
-const readingTimeText = readingTimeResult 
-  ? lang === 'en' 
-    ? readingTimeResult.text 
-    : `${readingTimeResult.minutes} min de lectura`
-  : lang === 'en' ? '5 min read' : '5 min de lectura';
+const readingTimeText = readingTimeResult
+	? lang === "en"
+		? readingTimeResult.text
+		: `${readingTimeResult.minutes} min de lectura`
+	: lang === "en"
+		? "5 min read"
+		: "5 min de lectura";
 
 // Find the translated version of this post
-const allPosts = await getCollection('blog');
-const translatedPost = allPosts.find(post => 
-  post.data.translationKey === translationKey && 
-  post.data.lang !== lang
+const allPosts = await getCollection("blog");
+const translatedPost = allPosts.find(
+	(post) =>
+		post.data.translationKey === translationKey && post.data.lang !== lang,
 );
 
 // Generate URLs for language toggle
 const currentPath = Astro.url.pathname;
-const toEn = translatedPost && lang === "es" ? `/en/blog/${translatedPost.id}/` : `/${lang}/`;
-const toEs = translatedPost && lang === "en" ? `/es/blog/${translatedPost.id}/` : `/${lang}/`;
+const toEn =
+	translatedPost && lang === "es"
+		? `/en/blog/${translatedPost.data.slug ?? translatedPost.id.split("/").pop()}/`
+		: `/${lang}/`;
+const toEs =
+	translatedPost && lang === "en"
+		? `/es/blog/${translatedPost.data.slug ?? translatedPost.id.split("/").pop()}/`
+		: `/${lang}/`;
 ---
 
-<BaseLayout title={title} description={description} lang={lang} toEn={toEn} toEs={toEs}>
+<BaseLayout
+	title={title}
+	description={description}
+	lang={lang}
+	toEn={toEn}
+	toEs={toEs}
+>
 	<article class="py-12">
 		<!-- Hero Image -->
-		{heroImage && (
-			<div class="mb-16">
-				<Image
-					src={heroImage}
-					alt={title}
-					width={1200}
-					height={600}
-					class="w-full max-w-3xl mx-auto rounded-lg"
-				/>
-			</div>
-		)}
+		{
+			heroImage && (
+				<div class="mb-16">
+					<Image
+						src={heroImage}
+						alt={title}
+						width={1200}
+						height={600}
+						class="w-full max-w-3xl mx-auto rounded-lg"
+					/>
+				</div>
+			)
+		}
 
 		<!-- Article Header -->
 		<header class="max-w-3xl mx-auto px-4 mb-16 text-center">
-			<ArticleInfo 
+			<ArticleInfo
 				readingTime={readingTimeText}
 				pubDate={pubDate}
 				updatedDate={updatedDate}
 				lang={lang}
 			/>
-			<h1 class="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-zinc-100 my-8">
+			<h1
+				class="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-zinc-100 my-8"
+			>
 				{title}
 			</h1>
-			{description && (
-				<p class="text-xl text-zinc-600 dark:text-zinc-400 leading-relaxed">
-					{description}
-				</p>
-			)}
+			{
+				description && (
+					<p class="text-xl text-zinc-600 dark:text-zinc-400 leading-relaxed">
+						{description}
+					</p>
+				)
+			}
 		</header>
 
 		<!-- Article Content -->
@@ -74,15 +103,26 @@ const toEs = translatedPost && lang === "en" ? `/es/blog/${translatedPost.id}/` 
 		</div>
 
 		<!-- Back to Blog -->
-		<div class="max-w-3xl mx-auto px-4 mt-16 pt-8 border-t border-zinc-200 dark:border-zinc-700">
+		<div
+			class="max-w-3xl mx-auto px-4 mt-16 pt-8 border-t border-zinc-200 dark:border-zinc-700"
+		>
 			<a
 				href={`/${lang}/blog`}
 				class="inline-flex items-center gap-2 text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 transition-colors"
 			>
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+				<svg
+					class="w-4 h-4"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M15 19l-7-7 7-7"></path>
 				</svg>
-				{lang === 'en' ? 'Back to blog' : 'Volver al blog'}
+				{lang === "en" ? "Back to blog" : "Volver al blog"}
 			</a>
 		</div>
 	</article>
