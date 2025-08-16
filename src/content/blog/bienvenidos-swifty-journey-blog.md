@@ -3,6 +3,7 @@ title: '¡Bienvenidos a Swifty Journey Blog!'
 description: 'Iniciamos esta nueva aventura explorando el mundo de iOS, Swift y SwiftUI. Descubre qué puedes esperar de este blog y únete a nuestra comunidad de desarrolladores.'
 pubDate: 'Aug 16 2025'
 heroImage: '../../assets/blog-placeholder-1.jpg'
+lang: 'es'
 ---
 
 ¡Hola y bienvenidos al blog oficial de **Swifty Journey**! 🎉
