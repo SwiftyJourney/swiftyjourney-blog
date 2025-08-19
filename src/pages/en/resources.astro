@@ -2,14 +2,12 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import AffiliateCard from "../../components/AffiliateCard.astro";
 import { bmsProductsEN, bmsStoreEN, rocketSimProductsEN, rocketSimStoreEN } from "../../data/affiliates-en";
-
-const altHref = "/es/recursos/";
 ---
 
 <BaseLayout
   lang="en"
-  altHref={altHref}
-  altLang="es"
+  toEn="/en/resources/"
+  toEs="/es/recursos/"
   title="Resources — Swifty Journey Blog"
   description="Curated SwiftUI and iOS development resources from our partners."
 >

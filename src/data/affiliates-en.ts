@@ -117,13 +117,13 @@ export const rocketSimProductsEN: AffiliateProduct[] = [
     id: "rocketsim",
     title: "RocketSim",
     desc: "Supercharge your iOS Simulator with advanced debugging tools, universal links testing, device simulation, and much more.",
-    image: "/partners/rocketsim/logo.svg",
+    image: "/partners/rocketsim/logo.webp",
     price: "Free / Pro plans available",
     category: "tools",
     tags: ["iOS Simulator", "Debugging", "Development Tools"],
-    link: "https://www.rocketsim.app"
+    link: "https://join.swiftlee-weekly.com/bc5145f9/"
   }
 ];
 
 export const bmsStoreEN = "https://www.bigmountainstudio.com/a/nthu8";
-export const rocketSimStoreEN = "https://www.rocketsim.app";
+export const rocketSimStoreEN = "https://join.swiftlee-weekly.com/bc5145f9/";
