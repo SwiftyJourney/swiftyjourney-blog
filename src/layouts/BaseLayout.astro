@@ -26,7 +26,7 @@ const slugMap: Record<"en" | "es", Record<string, string>> = {
     resources: "recursos",
   },
   es: {
-    blog: "blog", 
+    blog: "blog",
     recursos: "resources",
   },
 };
@@ -52,14 +52,18 @@ function translateFirstSegment(
   return rebuilt.endsWith("/") ? rebuilt : rebuilt + "/";
 }
 
-const isEN = path.startsWith("/en/") || (!path.startsWith("/en/") && !path.startsWith("/es/"));
+const isEN =
+  path.startsWith("/en/") ||
+  (!path.startsWith("/en/") && !path.startsWith("/es/"));
 const isES = path.startsWith("/es/");
 const currentLang = isEN ? "en" : "es";
 const otherLang = currentLang === "es" ? "en" : "es";
 
 // URLs alternas correctas (usar custom si está disponible)
-const toEn = customToEn || (isEN ? path : translateFirstSegment("es", "en", path));
-const toEs = customToEs || (isES ? path : translateFirstSegment("en", "es", path));
+const toEn =
+  customToEn || (isEN ? path : translateFirstSegment("es", "en", path));
+const toEs =
+  customToEs || (isES ? path : translateFirstSegment("en", "es", path));
 
 // Canonical y hreflang
 const canonical = new URL(path, SITE).toString();
@@ -136,12 +140,15 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
             height="48"
             class="h-12 w-auto hidden dark:block"
           />
-          <span class="text-sm text-zinc-600 dark:text-zinc-400 ml-2">Blog</span>
+          <span class="text-sm text-zinc-600 dark:text-zinc-400 ml-2">Blog</span
+          >
         </a>
 
         <nav class="flex items-center gap-2">
           <a
-            href={lang === "en" ? "https://swiftyjourney.com/en/" : "https://swiftyjourney.com/es/"}
+            href={lang === "en"
+              ? "https://swiftyjourney.com/en/"
+              : "https://swiftyjourney.com/es/"}
             class="px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
           >
             ← {lang === "en" ? "Main Site" : "Sitio Principal"}
@@ -161,12 +168,18 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
     <!-- Partners/Affiliates Section -->
     <div class="max-w-6xl mx-auto px-4">
       <PartnersStrip
-        title={lang === "en" ? "Development Resources" : "Recursos de Desarrollo"}
+        title={lang === "en"
+          ? "Development Resources"
+          : "Recursos de Desarrollo"}
         ctaHref={lang === "en" ? "/en/resources/" : "/es/recursos/"}
         ctaLabel={lang === "en" ? "See resources" : "Ver recursos"}
-        logoSrc="/partners/bms/bms_logo.png"
-        desc={lang === "en" ? "Curated SwiftUI learning resources and development tools" : "Recursos seleccionados para aprender SwiftUI y herramientas de desarrollo"}
-        disclaimer={lang === "en" ? "Some links are affiliate. You pay the same price — a small commission may support this site." : "Algunos enlaces son de afiliado. Pagas lo mismo; una pequeña comisión puede apoyar este sitio."}
+        logoSrc="/partners/capi_neo.png"
+        desc={lang === "en"
+          ? "Select your dev pill — dive into curated tools and resources for iOS and beyond."
+          : "Elige tu píldora de desarrollo — sumérgete en herramientas y recursos para iOS y más allá."}
+        disclaimer={lang === "en"
+          ? "Some links are affiliate. You pay the same price — a small commission may support this site."
+          : "Algunos enlaces son de afiliado. Pagas lo mismo; una pequeña comisión puede apoyar este sitio."}
       />
     </div>
 
@@ -201,7 +214,7 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
         <p class="text-sm">© {new Date().getFullYear()} Swifty Journey</p>
       </div>
     </footer>
-    
+
     <!-- Hidden language icons for client-side use -->
     <div id="language-icons" style="display: none;">
       <div data-lang="swift"><Icon name="mdi:language-swift" /></div>
@@ -223,124 +236,139 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
     <!-- Copy code functionality -->
     <script>
       // GitHub Gist style code blocks with header
-      document.addEventListener('DOMContentLoaded', function() {
-        const codeBlocks = document.querySelectorAll('pre code');
-        
+      document.addEventListener("DOMContentLoaded", function () {
+        const codeBlocks = document.querySelectorAll("pre code");
+
         // Get language icon from pre-rendered icons
         const getLanguageIcon = (language) => {
-          const iconContainer = document.getElementById('language-icons');
-          const iconDiv = iconContainer.querySelector(`[data-lang="${language.toLowerCase()}"]`);
-          return iconDiv ? iconDiv.innerHTML : iconContainer.querySelector('[data-lang="code"]').innerHTML;
+          const iconContainer = document.getElementById("language-icons");
+          const iconDiv = iconContainer.querySelector(
+            `[data-lang="${language.toLowerCase()}"]`,
+          );
+          return iconDiv
+            ? iconDiv.innerHTML
+            : iconContainer.querySelector('[data-lang="code"]').innerHTML;
         };
-        
+
         codeBlocks.forEach((codeBlock) => {
           const pre = codeBlock.parentNode;
-          
+
           // Skip if header already exists
-          if (pre.querySelector('.code-header')) return;
-          
+          if (pre.querySelector(".code-header")) return;
+
           // Detect language
           const classNames = codeBlock.className;
-          let language = classNames.match(/language-(\w+)/)?.[1] || 
-                        classNames.match(/lang-(\w+)/)?.[1];
-          
+          let language =
+            classNames.match(/language-(\w+)/)?.[1] ||
+            classNames.match(/lang-(\w+)/)?.[1];
+
           // Fallback: check parent pre element for language class
           if (!language) {
             const preClasses = pre.className;
-            language = preClasses.match(/language-(\w+)/)?.[1] || 
-                      preClasses.match(/lang-(\w+)/)?.[1];
+            language =
+              preClasses.match(/language-(\w+)/)?.[1] ||
+              preClasses.match(/lang-(\w+)/)?.[1];
           }
-          
+
           // Final fallback: try to detect from content
           if (!language) {
-            const content = codeBlock.textContent || '';
-            if (content.includes('import SwiftUI') || content.includes('struct ') && content.includes('View')) {
-              language = 'swift';
-            } else if (content.includes('interface ') || content.includes('type ')) {
-              language = 'typescript';
-            } else if (content.includes('function ') || content.includes('const ')) {
-              language = 'javascript';
+            const content = codeBlock.textContent || "";
+            if (
+              content.includes("import SwiftUI") ||
+              (content.includes("struct ") && content.includes("View"))
+            ) {
+              language = "swift";
+            } else if (
+              content.includes("interface ") ||
+              content.includes("type ")
+            ) {
+              language = "typescript";
+            } else if (
+              content.includes("function ") ||
+              content.includes("const ")
+            ) {
+              language = "javascript";
             }
           }
-          
-          language = language || 'code';
-          console.log('Final detected language:', language);
-          
+
+          language = language || "code";
+          console.log("Final detected language:", language);
+
           // Create header
-          const header = document.createElement('div');
-          header.className = 'code-header';
-          
+          const header = document.createElement("div");
+          header.className = "code-header";
+
           // Language info section
-          const languageInfo = document.createElement('div');
-          languageInfo.className = 'language-info';
-          
+          const languageInfo = document.createElement("div");
+          languageInfo.className = "language-info";
+
           // Language icon using astro-icon
           const iconHtml = getLanguageIcon(language);
-          const languageIcon = document.createElement('div');
+          const languageIcon = document.createElement("div");
           languageIcon.innerHTML = iconHtml;
-          languageIcon.className = 'language-icon';
-          
+          languageIcon.className = "language-icon";
+
           // Language name
-          const languageName = document.createElement('span');
-          languageName.className = 'language-name';
-          languageName.textContent = language.charAt(0).toUpperCase() + language.slice(1);
-          
+          const languageName = document.createElement("span");
+          languageName.className = "language-name";
+          languageName.textContent =
+            language.charAt(0).toUpperCase() + language.slice(1);
+
           languageInfo.appendChild(languageIcon);
           languageInfo.appendChild(languageName);
-          
+
           // Actions section
-          const codeActions = document.createElement('div');
-          codeActions.className = 'code-actions';
-          
+          const codeActions = document.createElement("div");
+          codeActions.className = "code-actions";
+
           // Copy button
-          const copyButton = document.createElement('button');
-          copyButton.className = 'copy-button';
-          copyButton.textContent = 'Copy';
-          copyButton.setAttribute('aria-label', 'Copy code to clipboard');
-          
+          const copyButton = document.createElement("button");
+          copyButton.className = "copy-button";
+          copyButton.textContent = "Copy";
+          copyButton.setAttribute("aria-label", "Copy code to clipboard");
+
           // Copy functionality
-          copyButton.addEventListener('click', async () => {
+          copyButton.addEventListener("click", async () => {
             try {
-              const code = codeBlock.textContent || '';
+              const code = codeBlock.textContent || "";
               await navigator.clipboard.writeText(code);
-              
+
               // Visual feedback
               const originalText = copyButton.textContent;
-              copyButton.textContent = 'Copied!';
-              copyButton.classList.add('copied');
-              
+              copyButton.textContent = "Copied!";
+              copyButton.classList.add("copied");
+
               setTimeout(() => {
                 copyButton.textContent = originalText;
-                copyButton.classList.remove('copied');
+                copyButton.classList.remove("copied");
               }, 2000);
-              
             } catch (err) {
-              console.error('Failed to copy code:', err);
-              
+              console.error("Failed to copy code:", err);
+
               // Fallback for older browsers
-              const textArea = document.createElement('textarea');
-              textArea.value = codeBlock.textContent || '';
+              const textArea = document.createElement("textarea");
+              textArea.value = codeBlock.textContent || "";
               document.body.appendChild(textArea);
               textArea.select();
-              document.execCommand('copy');
+              document.execCommand("copy");
               document.body.removeChild(textArea);
-              
-              copyButton.textContent = 'Copied!';
-              copyButton.classList.add('copied');
-              
+
+              copyButton.textContent = "Copied!";
+              copyButton.classList.add("copied");
+
               setTimeout(() => {
-                copyButton.textContent = 'Copy';
-                copyButton.classList.remove('copied');
+                copyButton.textContent = "Copy";
+                copyButton.classList.remove("copied");
               }, 2000);
             }
           });
-          
+
           codeActions.appendChild(copyButton);
-          
+
           // Assemble header
           header.appendChild(languageInfo);
           header.appendChild(codeActions);
-          
+
           // Insert header at the beginning of pre
           pre.insertBefore(header, codeBlock);
         });
