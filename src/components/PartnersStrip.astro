@@ -1,0 +1,45 @@
+---
+type Props = {
+  title?: string;
+  ctaHref: string;
+  ctaLabel?: string;
+  logoSrc: string;
+  desc?: string;
+  disclaimer?: string;
+};
+const {
+  title = "Partners & Affiliates",
+  ctaHref,
+  ctaLabel = "See resources",
+  logoSrc,
+  desc = "",
+  disclaimer = "",
+} = Astro.props;
+---
+
+<section class="py-12 md:py-16">
+  <div
+    class="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 md:gap-8"
+  >
+    <img 
+      src={logoSrc} 
+      alt="Partner Logo" 
+      class="h-12 md:h-14 object-contain" 
+      loading="lazy"
+    />
+    <div class="flex-1 text-center md:text-left">
+      <h3 class="text-xl font-semibold">{title}</h3>
+      {desc && <p class="opacity-80 mt-1">{desc}</p>}
+    </div>
+    <a
+      href={ctaHref}
+      class="px-4 py-2 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+      rel="sponsored noopener"
+    >
+      {ctaLabel}
+    </a>
+  </div>
+  <p class="text-xs opacity-60 mt-3 text-center">
+    Disclaimer: {disclaimer}
+  </p>
+</section>

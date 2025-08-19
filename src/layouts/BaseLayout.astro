@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import ThemeToggle from "../components/ThemeToggle.astro";
 import LangToggle from "../components/LangToggle.astro";
+import PartnersStrip from "../components/PartnersStrip.astro";
 import { Icon } from "astro-icon/components";
 
 const SITE = "https://blog.swiftyjourney.com";
@@ -154,6 +155,18 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
     <main class="max-w-6xl mx-auto px-4">
       <slot />
     </main>
+
+    <!-- Partners/Affiliates Section -->
+    <div class="max-w-6xl mx-auto px-4">
+      <PartnersStrip
+        title={lang === "en" ? "Development Resources" : "Recursos de Desarrollo"}
+        ctaHref={lang === "en" ? "/en/resources/" : "/es/recursos/"}
+        ctaLabel={lang === "en" ? "See resources" : "Ver recursos"}
+        logoSrc="/partners/bms/bms_logo.png"
+        desc={lang === "en" ? "Curated SwiftUI learning resources and development tools" : "Recursos seleccionados para aprender SwiftUI y herramientas de desarrollo"}
+        disclaimer={lang === "en" ? "Some links are affiliate. You pay the same price — a small commission may support this site." : "Algunos enlaces son de afiliado. Pagas lo mismo; una pequeña comisión puede apoyar este sitio."}
+      />
+    </div>
 
     <footer class="max-w-6xl mx-auto px-4 py-10 opacity-80">
       <div class="flex flex-col items-center gap-4">

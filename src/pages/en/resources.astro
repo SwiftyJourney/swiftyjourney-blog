@@ -1,0 +1,81 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import AffiliateCard from "../../components/AffiliateCard.astro";
+import { bmsProductsEN, bmsStoreEN, rocketSimProductsEN, rocketSimStoreEN } from "../../data/affiliates-en";
+
+const altHref = "/es/recursos/";
+---
+
+<BaseLayout
+  lang="en"
+  altHref={altHref}
+  altLang="es"
+  title="Resources — Swifty Journey Blog"
+  description="Curated SwiftUI and iOS development resources from our partners."
+>
+  <section class="py-10 md:py-14">
+    <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Development Resources</h1>
+    <p class="opacity-80 mt-3 max-w-2xl">
+      Curated resources from our partners. When you purchase using these links,
+      you support SwiftyJourney at no extra cost to you.
+    </p>
+
+    <h2 class="mt-10 text-xl font-semibold">BigMountainStudio</h2>
+    <p class="opacity-80 mt-1">
+      Visual, up-to-date approach to learning SwiftUI — highly recommended for
+      visual learners.
+      <a
+        href={bmsStoreEN}
+        rel="sponsored noopener"
+        target="_blank"
+        class="underline">Visit the store</a
+      >.
+    </p>
+
+    <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {
+        bmsProductsEN.map((p) => (
+          <AffiliateCard
+            title={p.title}
+            desc={p.desc}
+            image={p.image}
+            price={p.price}
+            tags={p.tags}
+            href={p.link}
+          />
+        ))
+      }
+    </div>
+
+    <h2 class="mt-12 text-xl font-semibold">RocketSim</h2>
+    <p class="opacity-80 mt-1">
+      Supercharge your iOS Simulator with advanced debugging and testing features.
+      <a
+        href={rocketSimStoreEN}
+        rel="sponsored noopener"
+        target="_blank"
+        class="underline">Learn more</a
+      >.
+    </p>
+
+    <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {
+        rocketSimProductsEN.map((p) => (
+          <AffiliateCard
+            title={p.title}
+            desc={p.desc}
+            image={p.image}
+            price={p.price}
+            tags={p.tags}
+            href={p.link}
+          />
+        ))
+      }
+    </div>
+
+    <p class="text-xs opacity-60 mt-12">
+      Affiliate disclaimer: some links are affiliate. You pay the same price — a
+      small commission may support this site.
+    </p>
+  </section>
+</BaseLayout>
