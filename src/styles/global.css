@@ -81,79 +81,10 @@ body {
   @apply text-sm font-medium text-zinc-700 dark:text-zinc-200;
 }
 
-/* Language-specific icons using pseudo-elements */
-.prose pre[data-language="swift"]::before,
-.prose pre[data-language="gherkin"]::before,
-.prose pre[data-language="plain"]::before,
-.prose pre[data-language="javascript"]::before,
-.prose pre[data-language="typescript"]::before,
-.prose pre[data-language="json"]::before,
-.prose pre[data-language="bash"]::before {
-  content: "";
-  position: absolute;
-  top: 12px;
-  right: 60px;
-  width: 16px;
-  height: 16px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  opacity: 0.6;
-}
-
-.prose pre[data-language="swift"]::before {
-  content: "⚡";
-  font-size: 14px;
-  line-height: 16px;
-  width: auto;
-  height: auto;
-}
-
-.prose pre[data-language="gherkin"]::before {
-  content: "🥒";
-  font-size: 14px;
-  line-height: 16px;
-  width: auto;
-  height: auto;
-}
-
-.prose pre[data-language="plain"]::before {
-  content: "📄";
-  font-size: 14px;
-  line-height: 16px;
-  width: auto;
-  height: auto;
-}
-
-.prose pre[data-language="javascript"]::before {
-  content: "🟨";
-  font-size: 14px;
-  line-height: 16px;
-  width: auto;
-  height: auto;
-}
-
-.prose pre[data-language="typescript"]::before {
-  content: "🔷";
-  font-size: 14px;
-  line-height: 16px;
-  width: auto;
-  height: auto;
-}
-
-.prose pre[data-language="json"]::before {
-  content: "📋";
-  font-size: 14px;
-  line-height: 16px;
-  width: auto;
-  height: auto;
-}
-
-.prose pre[data-language="bash"]::before {
-  content: "💻";
-  font-size: 14px;
-  line-height: 16px;
-  width: auto;
-  height: auto;
+/* Improve text contrast for plain text blocks in dark mode */
+.prose pre[data-language="plain"] code,
+.prose pre[data-language="code"] code {
+  @apply !text-zinc-700 dark:!text-zinc-300;
 }
 
 .prose pre .code-header .code-actions {

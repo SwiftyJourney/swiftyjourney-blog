@@ -230,7 +230,9 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
       <div data-lang="markdown"><Icon name="mdi:language-markdown" /></div>
       <div data-lang="powershell"><Icon name="mdi:powershell" /></div>
       <div data-lang="xml"><Icon name="mdi:xml" /></div>
-      <div data-lang="code"><Icon name="mdi:code" /></div>
+      <div data-lang="gherkin"><Icon name="mdi:cucumber" /></div>
+      <div data-lang="plain"><Icon name="mdi:file-document-outline" /></div>
+      <div data-lang="code"><Icon name="mdi:file-document-outline" /></div>
     </div>
 
     <!-- Copy code functionality -->
@@ -308,11 +310,30 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
           languageIcon.innerHTML = iconHtml;
           languageIcon.className = "language-icon";
 
+          // Language name mapping
+          const languageNames = {
+            'plain': 'Plain Text',
+            'code': 'Plain Text', 
+            'gherkin': 'Gherkin',
+            'javascript': 'JavaScript',
+            'typescript': 'TypeScript',
+            'swift': 'Swift',
+            'json': 'JSON',
+            'html': 'HTML',
+            'css': 'CSS',
+            'bash': 'Bash',
+            'shell': 'Shell',
+            'python': 'Python',
+            'yaml': 'YAML',
+            'markdown': 'Markdown',
+            'xml': 'XML'
+          };
+
           // Language name
           const languageName = document.createElement("span");
           languageName.className = "language-name";
-          languageName.textContent =
-            language.charAt(0).toUpperCase() + language.slice(1);
+          languageName.textContent = languageNames[language.toLowerCase()] || 
+            (language.charAt(0).toUpperCase() + language.slice(1));
 
           languageInfo.appendChild(languageIcon);
           languageInfo.appendChild(languageName);
