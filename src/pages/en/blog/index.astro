@@ -45,6 +45,7 @@ const posts = allPosts
 											width={index === 0 ? 720 : 400}
 											height={index === 0 ? 360 : 200}
 											class="w-full h-48 md:h-64 object-cover"
+											loading={index === 0 ? "eager" : "lazy"}
 										/>
 									</div>
 								)}

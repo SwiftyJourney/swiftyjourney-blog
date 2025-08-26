@@ -19,7 +19,7 @@ export default defineConfig({
 					light: 'github-light',
 					dark: 'one-dark-pro',
 				},
-				langs: ['swift', 'typescript', 'javascript', 'json', 'bash', 'yaml', 'markdown', 'xml', 'css', 'html'],
+				langs: ['swift', 'typescript', 'javascript', 'json', 'bash', 'yaml', 'markdown', 'xml', 'css', 'html', 'gherkin'],
 				wrap: true,
 			},
 		}),
