@@ -1,12 +1,60 @@
 ---
-
+import { Icon } from "astro-icon/components";
 ---
 
 <button
   id="theme-toggle"
-  class="rounded-xl px-3 py-1 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-  aria-label="Toggle theme">🌓</button
+  class="theme-toggle-btn rounded-xl px-3 py-2 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-300 relative overflow-hidden"
+  aria-label="Toggle theme"
 >
+  <span class="theme-icon theme-icon-sun">
+    <Icon name="mdi:white-balance-sunny" class="w-5 h-5" />
+  </span>
+  <span class="theme-icon theme-icon-moon">
+    <Icon name="mdi:moon-waning-crescent" class="w-5 h-5" />
+  </span>
+</button>
+
+<style>
+  .theme-icon {
+    display: block;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .theme-icon-sun {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+
+  .theme-icon-moon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(180deg) scale(0);
+    opacity: 0;
+  }
+
+  :global(.dark) .theme-icon-sun {
+    transform: rotate(-180deg) scale(0);
+    opacity: 0;
+  }
+
+  :global(.dark) .theme-icon-moon {
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+
+  .theme-toggle-btn:hover {
+    transform: scale(1.05);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .theme-icon,
+    .theme-toggle-btn {
+      transition: none;
+    }
+  }
+</style>
 
 <script>
   const key = "theme";

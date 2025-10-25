@@ -3,6 +3,7 @@ import "../styles/global.css";
 import ThemeToggle from "../components/ThemeToggle.astro";
 import LangToggle from "../components/LangToggle.astro";
 import PartnersStrip from "../components/PartnersStrip.astro";
+import EDLogo from "../components/EDLogo.astro";
 import { Icon } from "astro-icon/components";
 
 const SITE = "https://blog.swiftyjourney.com";
@@ -193,7 +194,7 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
             href="https://github.com/swiftyjourney"
             target="_blank"
             rel="noopener me"
-            class="hover:opacity-100 opacity-80"
+            class="hover:opacity-100 opacity-80 transition-opacity"
           >
             <Icon name="mdi:github" />
           </a>
@@ -201,7 +202,7 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
             href="https://x.com/jfdoradotr"
             target="_blank"
             rel="noopener me"
-            class="hover:opacity-100 opacity-80"
+            class="hover:opacity-100 opacity-80 transition-opacity"
           >
             <Icon name="mdi:twitter" />
           </a>
@@ -209,12 +210,30 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
             href="https://linkedin.com/in/juanfranciscodoradotorres"
             target="_blank"
             rel="noopener me"
-            class="hover:opacity-100 opacity-80"
+            class="hover:opacity-100 opacity-80 transition-opacity"
           >
             <Icon name="mdi:linkedin" />
           </a>
         </div>
-        <p class="text-sm">© {new Date().getFullYear()} Swifty Journey</p>
+        <a
+          href="https://iosacademy.essentialdeveloper.com/p/ios-lead-essentials/"
+          target="_blank"
+          rel="noopener"
+          class="inline-flex rounded-full p-[1px] bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 hover:opacity-100 opacity-80 transition-opacity"
+        >
+          <span
+            class="inline-flex items-center gap-2 rounded-full px-3 py-1 bg-zinc-900 text-white text-xs leading-none"
+          >
+            <EDLogo class="h-4 w-auto" />
+            <span>Moderator — iOS Lead Essentials (2022)</span>
+          </span>
+        </a>
+        <p class="text-sm">
+          © {new Date().getFullYear()} Swifty Journey — Created by Juan F. Dorado.
+        </p>
+        <p class="text-xs opacity-60">
+          Built with Astro, Tailwind, and Swift-inspired minimalism.
+        </p>
       </div>
     </footer>
 
