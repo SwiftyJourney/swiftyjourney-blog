@@ -33,6 +33,7 @@ btc-price/
 ```
 
 Why separate modules?
+
 - Clear boundaries: Infrastructure can't pollute domain
 - Independent testing: Network tests don't need domain complexity
 - Swappable: Could replace with different networking approach later
@@ -96,6 +97,7 @@ extension URLSession: URLSessionProtocol {}
 ```
 
 **Why the protocol?**
+
 - **Testability**: Can inject stubs for testing
 - **Clean Architecture**: Abstract away framework details
 - **Sendable compliance**: Safe for concurrent access
@@ -144,6 +146,7 @@ private struct BinanceResponse: Codable {
 ```
 
 **Key patterns:**
+
 - **Domain error mapping**: `DecodingError` → `PriceLoadingError.invalidData`
 - **HTTP status validation**: Don't trust 200 is the only success
 - **Decimal parsing**: Financial precision over Double
@@ -224,6 +227,7 @@ private struct CryptoCompareResponse: Codable {
 ### Challenge 2: Floating-Point Precision Bug Discovered
 
 Test failure revealed a real bug:
+
 - **Expected**: `75500.99`
 - **Actual**: `75500.990000000001024`
 
@@ -269,6 +273,7 @@ final class URLProtocolStub: URLProtocol, @unchecked Sendable {
 ```
 
 **Modern Swift patterns:**
+
 - **Actor**: Thread-safe shared state
 - **@unchecked Sendable**: URLProtocol isn't Sendable by default
 - **Static methods**: Avoid capture issues in async contexts
@@ -400,6 +405,7 @@ public protocol URLSessionProtocol: Sendable {
 ```
 
 **Benefit:**
+
 - Unit tests use simple stubs
 - Integration tests use URLProtocolStub
 - Production uses real URLSession
@@ -462,6 +468,7 @@ Complete networking infrastructure:
 ## Production-Ready Results
 
 Our networking layer can now:
+
 - ✅ Load quotes from Binance with string-to-decimal conversion
 - ✅ Load quotes from CryptoCompare with precision-safe number handling
 - ✅ Handle all HTTP error scenarios (404, 500, timeouts)
@@ -523,6 +530,7 @@ We went from abstract domain contracts → real API integration using pure TDD. 
 4. **Clean Architecture pays off** - domain stays pure despite infrastructure complexity
 
 Our BTC/USD app networking layer can now:
+
 - Load quotes from multiple APIs with different formats
 - Handle all error scenarios gracefully
 - Integrate with any URLSession implementation

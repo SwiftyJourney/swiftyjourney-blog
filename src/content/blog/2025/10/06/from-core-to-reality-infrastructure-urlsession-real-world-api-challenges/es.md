@@ -33,6 +33,7 @@ btc-price/
 ```
 
 ¿Por qué módulos separados?
+
 - **Límites claros**: La infraestructura no puede contaminar el dominio
 - **Pruebas independientes**: Las pruebas de red no necesitan complejidad del dominio
 - **Intercambiable**: Podríamos reemplazar con un enfoque de networking diferente después
@@ -96,6 +97,7 @@ extension URLSession: URLSessionProtocol {}
 ```
 
 **¿Por qué el protocolo?**
+
 - **Testabilidad**: Podemos inyectar stubs para pruebas
 - **Clean Architecture**: Abstraer detalles del framework
 - **Cumplimiento Sendable**: Seguro para acceso concurrente
@@ -144,6 +146,7 @@ private struct BinanceResponse: Codable {
 ```
 
 **Patrones clave:**
+
 - **Mapeo de errores de dominio**: `DecodingError` → `PriceLoadingError.invalidData`
 - **Validación de estado HTTP**: No confíes en que 200 es el único éxito
 - **Parsing Decimal**: Precisión financiera sobre Double
@@ -224,6 +227,7 @@ private struct CryptoCompareResponse: Codable {
 ### Desafío 2: Bug de Precisión de Punto Flotante Descubierto
 
 La falla de la prueba reveló un bug real:
+
 - **Esperado**: `75500.99`
 - **Actual**: `75500.990000000001024`
 
@@ -269,6 +273,7 @@ final class URLProtocolStub: URLProtocol, @unchecked Sendable {
 ```
 
 **Patrones modernos de Swift:**
+
 - **Actor**: Estado compartido seguro para hilos
 - **@unchecked Sendable**: URLProtocol no es Sendable por defecto
 - **Métodos estáticos**: Evitar problemas de captura en contextos async
@@ -400,6 +405,7 @@ public protocol URLSessionProtocol: Sendable {
 ```
 
 **Beneficio:**
+
 - Las pruebas unitarias usan stubs simples
 - Las pruebas de integración usan URLProtocolStub
 - La producción usa URLSession real
@@ -462,6 +468,7 @@ Infraestructura de networking completa:
 ## Resultados Listos para Producción
 
 Nuestra capa de networking ahora puede:
+
 - ✅ Cargar cotizaciones de Binance con conversión string-to-decimal
 - ✅ Cargar cotizaciones de CryptoCompare con manejo seguro de números para precisión
 - ✅ Manejar todos los escenarios de error HTTP (404, 500, timeouts)
@@ -523,6 +530,7 @@ Pasamos de contratos de dominio abstractos → integración de API real usando T
 4. **Clean Architecture vale la pena** - el dominio se mantiene puro a pesar de la complejidad de infraestructura
 
 Nuestra capa de networking de la app BTC/USD ahora puede:
+
 - Cargar cotizaciones de múltiples APIs con diferentes formatos
 - Manejar todos los escenarios de error graciosamente
 - Integrarse con cualquier implementación de URLSession
