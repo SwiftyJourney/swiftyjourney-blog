@@ -11,8 +11,7 @@ slug: 'from-architecture-to-reality-building-real-time-btc-apps'
 
 ## Introduction
 
-In the [previous article](../persistence-decisions-userdefaults-filemanager-swiftdata) we built a persistence layer
-with UserDefaults, benchmarked three solutions, and discovered SwiftData's Decimal precision bug.
+In the [previous article](../persistence-decisions-userdefaults-filemanager-swiftdata) we built a persistence layer with UserDefaults, benchmarked three solutions, and discovered SwiftData's Decimal precision bug.
 
 Now we have:
 
@@ -35,8 +34,7 @@ This article covers the final mile:
 
 The surprise: **Building the apps took 50 lines of code. Debugging the sandbox took 2 hours.**
 
-By the end, you'll see why Composition Root matters, how @Observable simplifies state management, and why macOS apps
-need explicit network permissions while CLI tools don't.
+By the end, you'll see why Composition Root matters, how @Observable simplifies state management, and why macOS apps need explicit network permissions while CLI tools don't.
 
 ---
 
