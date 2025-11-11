@@ -8,46 +8,49 @@ translationKey: 'thread-safety-in-swift'
 slug: 'thread-safety-en-swift-de-nslock-a-actors'
 ---
 
-# Thread Safety en Swift: De NSLock a Actors
-
 ## Introducción
 
-La concurrencia es uno de los temas más desafiantes en el desarrollo de software moderno. Cuando múltiples hilos acceden y modifican datos compartidos simultáneamente, pueden ocurrir **race conditions** que producen resultados impredecibles y bugs difíciles de reproducir.
+La concurrencia es uno de esos temas que parece simple hasta que te muerde. Cuando múltiples hilos acceden y modifican datos compartidos simultáneamente, pueden ocurrir **race conditions** que producen resultados impredecibles y bugs que aparecen una vez cada mil ejecuciones. 
 
-En este artículo, exploraremos tres enfoques diferentes para lograr thread safety en Swift, usando como caso de estudio una clase `BankAccount` que simula operaciones bancarias. Veremos cómo evolucionar desde locks tradicionales hasta la solución moderna con Swift Concurrency.
+En este artículo, vamos a explorar tres enfoques diferentes para lograr thread safety en Swift, usando como caso de estudio una clase `BankAccount` que simula operaciones bancarias. Veremos cómo evolucionar desde locks tradicionales hasta la solución moderna con Swift Concurrency.
 
-> 💡 El código completo de este artículo está disponible en [GitHub](tu-repo-aqui)
+El código completo está disponible en el [repositorio de GitHub](tu-repo-aqui).
 
 ## El Caso de Estudio: BankAccount
 
-Comencemos con una implementación básica de una cuenta bancaria:
+Empecemos con una implementación básica de una cuenta bancaria:
 
 ```swift
 public final class BankAccount {
   public let owner: String
   public let accountNumber: String
   public private(set) var balance: Double
+
   public enum Error: Swift.Error {
     case insufficientFunds
     case invalidAmount
     case sameAccountTransfer
     case fraudAlert
   }
+
   public init(owner: String, accountNumber: String, balance: Double) {
     self.owner = owner
     self.accountNumber = accountNumber
     self.balance = balance
   }
+
   public func deposit(_ amount: Double) throws {
     guard amount > 0 else { throw Error.invalidAmount }
     balance += amount
   }
+
   public func withdraw(_ amount: Double) throws {
     guard amount > 0 else { throw Error.invalidAmount }
     guard amount <= balance else { throw Error.insufficientFunds }
     guard amount < 5000 else { throw Error.fraudAlert }
     balance -= amount
   }
+
   public func transfer(to receiver: BankAccount, amount: Double) throws {
     guard accountNumber != receiver.accountNumber else {
       throw Error.sameAccountTransfer
@@ -58,7 +61,7 @@ public final class BankAccount {
 }
 ```
 
-Esta implementación es simple y funciona perfectamente... **en un solo hilo**. Pero, ¿qué pasa cuando múltiples hilos intentan acceder a `balance` simultáneamente?
+Esta implementación funciona perfectamente... **en un solo hilo**. Pero cuando múltiples hilos intentan acceder a `balance` simultáneamente, todo se desmorona.
 
 ## El Problema: Race Conditions
 
@@ -66,10 +69,12 @@ Imagina este escenario:
 
 ```swift
 let account = BankAccount(owner: "Juan", accountNumber: "123", balance: 1000)
+
 // Thread 1
 DispatchQueue.global().async {
   try? account.deposit(100)
 }
+
 // Thread 2
 DispatchQueue.global().async {
   try? account.withdraw(50)
@@ -88,37 +93,41 @@ Este es un **race condition** clásico. Necesitamos sincronización.
 
 ## Solución 1: NSLock
 
-La forma más tradicional de proteger datos compartidos es usar un lock (cerrojo). `NSLock` proporciona mutual exclusion: solo un hilo puede adquirir el lock a la vez.
+La forma más tradicional de proteger datos compartidos es usar un lock (cerrojo). `NSLock` proporciona exclusión mutua: solo un hilo puede adquirir el lock a la vez.
 
-### Implementación
+### Cambios Clave
+
+Los cambios principales son:
+
+1. Cambiar `balance` de `public private(set) var` a `private var _balance`
+2. Agregar un `NSLock` privado
+3. Proteger todas las operaciones con `lock.lock()` y `defer { lock.unlock() }`
 
 ```swift
 public final class BankAccount {
-  public let owner: String
-  public let accountNumber: String
+  // ... propiedades inmutables iguales ...
   private var _balance: Double
   private let lock = NSLock()
+
   public var balance: Double {
     lock.lock()
     defer { lock.unlock() }
     return _balance
   }
+
   public func deposit(_ amount: Double) throws {
     lock.lock()
     defer { lock.unlock() }
+
     guard amount > 0 else { throw Error.invalidAmount }
     _balance += amount
   }
-  public func withdraw(_ amount: Double) throws {
-    lock.lock()
-    defer { lock.unlock() }
-    guard amount > 0 else { throw Error.invalidAmount }
-    guard amount <= _balance else { throw Error.insufficientFunds }
-    guard amount < 5000 else { throw Error.fraudAlert }
-    _balance -= amount
-  }
+
+  // withdraw similar...
 }
 ```
+
+**Patrón clave**: `defer { lock.unlock() }` garantiza que el lock se libere incluso si hay un `throw` o `return` temprano.
 
 ### El Problema del Deadlock en Transfers
 
@@ -128,12 +137,8 @@ El método `transfer` es particularmente peligroso porque necesita adquirir **do
 // ❌ PELIGRO: Puede causar deadlock
 public func transfer(to receiver: BankAccount, amount: Double) throws {
   lock.lock()
-  receiver.lock.lock()
-  defer {
-    receiver.lock.unlock()
-    lock.unlock()
-  }
-  // transfer logic...
+  receiver.lock.lock()  // Si otro thread hace lo opuesto, deadlock
+  // ...
 }
 ```
 
@@ -152,23 +157,29 @@ public func transfer(to receiver: BankAccount, amount: Double) throws {
   guard accountNumber != receiver.accountNumber else {
     throw Error.sameAccountTransfer
   }
+
   // Prevenir deadlock ordenando los locks consistentemente
   let shouldLockSelfFirst = accountNumber < receiver.accountNumber
   let firstLock = shouldLockSelfFirst ? lock : receiver.lock
   let secondLock = shouldLockSelfFirst ? receiver.lock : lock
+
   firstLock.lock()
   secondLock.lock()
   defer {
     secondLock.unlock()
     firstLock.unlock()
   }
+
   guard amount > 0 else { throw Error.invalidAmount }
   guard amount <= _balance else { throw Error.insufficientFunds }
   guard amount < 5000 else { throw Error.fraudAlert }
+
   _balance -= amount
   receiver._balance += amount
 }
 ```
+
+**Insight**: Ordenar por `accountNumber` garantiza que todos los threads adquieran locks en el mismo orden, eliminando la posibilidad de deadlock circular.
 
 ### Ventajas y Desventajas de NSLock
 
@@ -190,20 +201,18 @@ public func transfer(to receiver: BankAccount, amount: Double) throws {
 
 ## Solución 2: DispatchQueue
 
-Otra forma de lograr serialización es usando una **serial queue** de GCD (Grand Central Dispatch). Una serial queue
-garantiza que las tareas se ejecuten una a la vez.
+Otra forma de lograr serialización es usando una **serial queue** de GCD. Una serial queue garantiza que las tareas se ejecuten una a la vez, en orden.
 
-### Implementación
+### Implementación con DispatchQueue
+
+En lugar de un `NSLock`, usamos una `DispatchQueue` serial:
 
 ```swift
 public final class BankAccount {
-  public let owner: String
-  public let accountNumber: String
+  // ... propiedades inmutables iguales ...
   private var _balance: Double
   private let queue: DispatchQueue
-  public var balance: Double {
-    queue.sync { _balance }
-  }
+
   public init(owner: String, accountNumber: String, balance: Double) {
     self.owner = owner
     self.accountNumber = accountNumber
@@ -213,20 +222,19 @@ public final class BankAccount {
       qos: .userInitiated
     )
   }
+
+  public var balance: Double {
+    queue.sync { _balance }
+  }
+
   public func deposit(_ amount: Double) throws {
     try queue.sync {
       guard amount > 0 else { throw Error.invalidAmount }
       _balance += amount
     }
   }
-  public func withdraw(_ amount: Double) throws {
-    try queue.sync {
-      guard amount > 0 else { throw Error.invalidAmount }
-      guard amount <= _balance else { throw Error.insufficientFunds }
-      guard amount < 5000 else { throw Error.fraudAlert }
-      _balance -= amount
-    }
-  }
+
+  // withdraw similar...
 }
 ```
 
@@ -247,27 +255,32 @@ El label `"com.banksystem.account.\(accountNumber)"` es crucial para debugging. 
 
 ### Transfers con Queues
 
-Similar a NSLock, necesitamos prevenir deadlocks:
+Similar a NSLock, necesitamos prevenir deadlocks con el mismo patrón de ordenamiento:
 
 ```swift
 public func transfer(to receiver: BankAccount, amount: Double) throws {
   guard accountNumber != receiver.accountNumber else {
     throw Error.sameAccountTransfer
   }
+
   let shouldLockSelfFirst = accountNumber < receiver.accountNumber
   let firstQueue = shouldLockSelfFirst ? queue : receiver.queue
   let secondQueue = shouldLockSelfFirst ? receiver.queue : queue
+
   try firstQueue.sync {
     try secondQueue.sync {
       guard amount > 0 else { throw Error.invalidAmount }
       guard amount <= _balance else { throw Error.insufficientFunds }
       guard amount < 5000 else { throw Error.fraudAlert }
+
       _balance -= amount
       receiver._balance += amount
     }
   }
 }
 ```
+
+**Mismo problema, misma solución**: El ordenamiento de queues sigue siendo necesario para evitar deadlocks.
 
 ### Ventajas y Desventajas de DispatchQueue
 
@@ -292,43 +305,50 @@ public func transfer(to receiver: BankAccount, amount: Double) throws {
 
 Swift 5.5 introdujo **Actors** como parte de Swift Concurrency. Un actor es un tipo de referencia que protege automáticamente su estado mutable del acceso concurrente.
 
-### Implementación
+### Implementación con Actor
+
+El cambio más importante es cambiar `class` por `actor`:
 
 ```swift
 public actor BankAccount {
   public let owner: String
   public let accountNumber: String
   private var _balance: Double
+
   public var balance: Double {
     _balance
   }
-  public init(owner: String, accountNumber: String, balance: Double) {
-    self.owner = owner
-    self.accountNumber = accountNumber
-    self._balance = balance
-  }
+
+  // init igual...
+
   public func deposit(_ amount: Double) throws {
     guard amount > 0 else { throw Error.invalidAmount }
     _balance += amount
   }
+
   public func withdraw(_ amount: Double) throws {
     guard amount > 0 else { throw Error.invalidAmount }
     guard amount <= _balance else { throw Error.insufficientFunds }
     guard amount < 5000 else { throw Error.fraudAlert }
     _balance -= amount
   }
+
   public func transfer(to receiver: BankAccount, amount: Double) async throws {
     guard accountNumber != receiver.accountNumber else {
       throw Error.sameAccountTransfer
     }
+
     guard amount > 0 else { throw Error.invalidAmount }
     guard amount <= _balance else { throw Error.insufficientFunds }
     guard amount < 5000 else { throw Error.fraudAlert }
+
     _balance -= amount
     try await receiver.deposit(amount)
   }
 }
 ```
+
+**Observa**: No hay locks, no hay queues, no hay ordenamiento manual. El compilador y el runtime de Swift manejan todo.
 
 ### ¿Qué hace el Actor?
 
@@ -345,6 +365,7 @@ Cuando llamas a un método de un actor desde fuera, cruzas un **actor boundary**
 // Desde fuera del actor, necesitas await
 let balance = await account.balance
 try await account.deposit(100)
+
 // Dentro del actor, no necesitas await
 public func internalMethod() {
   let currentBalance = _balance  // No await necesario
@@ -361,21 +382,22 @@ public func transfer(to receiver: BankAccount, amount: Double) async throws {
   // Validaciones en nuestro actor
   guard amount > 0 else { throw Error.invalidAmount }
   guard amount <= _balance else { throw Error.insufficientFunds }
+
   // Modificamos nuestro estado
   _balance -= amount
+
   // Cruzamos al actor del receiver (await automático)
   try await receiver.deposit(amount)
 }
 ```
 
-Swift maneja la coordinación entre actors. El método es `async` porque cruza un actor boundary, pero **no hay riesgo de
- deadlock**.
+Swift maneja la coordinación entre actors. El método es `async` porque cruza un actor boundary, pero **no hay riesgo de deadlock**. El runtime de Swift previene deadlocks automáticamente.
 
 ### Actualizando los Tests
 
 Los tests necesitan actualizarse porque los actors requieren `await`:
 
-#### Antes (con NSLock o Queue)
+**Antes (con NSLock o Queue):**
 
 ```swift
 @Test func testDepositSuccess() throws {
@@ -385,7 +407,7 @@ Los tests necesitan actualizarse porque los actors requieren `await`:
 }
 ```
 
-#### Después (con Actor)
+**Después (con Actor):**
 
 ```swift
 @Test func testDepositSuccess() async throws {
@@ -406,7 +428,7 @@ Todos los métodos de test se vuelven `async`, y todos los accesos al actor requ
 - **Código más limpio**: Sin locks explícitos
 - **Mejor mantenibilidad**: Difícil cometer errores
 - **El futuro de Swift**: Integración nativa con el lenguaje
-- **Reentrancy**: Los actors pueden suspenderse y reanudar work de forma segura
+- **Reentrancy**: Los actors pueden suspenderse y reanudar trabajo de forma segura
 
 ❌ **Desventajas:**
 
@@ -441,6 +463,7 @@ Para verificar que nuestras implementaciones son thread-safe, necesitamos tests 
   let account = BankAccount(owner: "Test", accountNumber: "123", balance: 0)
   let iterations = 1000
   let depositAmount = 1.0
+
   await withTaskGroup(of: Void.self) { group in
     for _ in 0..<iterations {
       group.addTask {
@@ -448,6 +471,7 @@ Para verificar que nuestras implementaciones son thread-safe, necesitamos tests 
       }
     }
   }
+
   let expectedBalance = Double(iterations) * depositAmount
   await #expect(account.balance == expectedBalance)
 }
@@ -465,6 +489,7 @@ Para verificar que no hay deadlocks en transfers:
   let account2 = BankAccount(owner: "B", accountNumber: "222", balance: 10000)
   let iterations = 50
   let transferAmount = 10.0
+
   await withTaskGroup(of: Void.self) { group in
     // Thread 1: A -> B
     group.addTask {
@@ -472,6 +497,7 @@ Para verificar que no hay deadlocks en transfers:
         try? await account1.transfer(to: account2, amount: transferAmount)
       }
     }
+
     // Thread 2: B -> A
     group.addTask {
       for _ in 0..<iterations {
@@ -479,6 +505,7 @@ Para verificar que no hay deadlocks en transfers:
       }
     }
   }
+
   // El dinero total debe conservarse
   let totalBalance = await account1.balance + account2.balance
   #expect(totalBalance == 20000)
@@ -506,9 +533,13 @@ La evolución de thread safety en Swift refleja la evolución del lenguaje mismo
 ### Aprendizajes Clave
 
 1. **Thread safety no es opcional**: Si múltiples hilos acceden a datos compartidos, necesitas sincronización.
+
 2. **Los deadlocks son reales**: Lock ordering es crítico cuando adquieres múltiples locks.
+
 3. **El compilador es tu amigo**: Los actors convierten errores de runtime en errores de compilación.
+
 4. **Async/await no es solo para networking**: Es la base de la concurrencia segura en Swift moderno.
+
 5. **Testing es crucial**: Los bugs de concurrencia son difíciles de reproducir. Tests automatizados son esenciales.
 
 ---
@@ -523,4 +554,3 @@ La evolución de thread safety en Swift refleja la evolución del lenguaje mismo
 ---
 
 Si este artículo te fue útil, ¡compártelo! Y no olvides revisar el código completo en el repositorio.
-**Happy coding!** 🚀
