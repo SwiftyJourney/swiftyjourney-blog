@@ -2,7 +2,7 @@
   title: 'From Architecture to Reality: Building Real-Time BTC Price Apps'
   description: 'Connecting all layers with Composition Root, ViewModels, and real apps. How macOS App Sandbox almost
   killed our network calls, and why CLI apps get special privileges.'
-  pubDate: 'Oct 31 2025'
+  pubDate: 'Nov 5 2025'
   heroImage: './hero.png'
   lang: 'en'
   translationKey: 'architecture-to-reality'
