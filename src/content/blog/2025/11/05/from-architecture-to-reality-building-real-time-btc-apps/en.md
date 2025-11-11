@@ -1012,22 +1012,29 @@ Both apps:
 - Require zero duplication
 - Tested infrastructure underneath
 
-Code metrics:
-AppDependencies:      49 LOC
-BTCPriceViewModel:    76 LOC
-ContentView:          ~60 LOC (with styling)
-CLI main.swift:       39 LOC
-─────────────────────────────
-Total app code:       ~224 LOC
+### Code Metrics
 
-Infrastructure already written:
+**Application Code:**
 
-- Networking: ~150 LOC
-- Persistence: ~41 LOC
-- Use cases: ~120 LOC
-- Tests: ~500 LOC
+| Component | Lines of Code |
+|-----------|---------------|
+| AppDependencies | 49 LOC |
+| BTCPriceViewModel | 76 LOC |
+| ContentView (with styling) | ~60 LOC |
+| CLI main.swift | 39 LOC |
+| **Total app code** | **~224 LOC** |
 
-Result: 224 lines of app code leveraging 800+ lines of tested foundation.
+**Infrastructure (already written):**
+
+| Layer | Lines of Code |
+|-------|---------------|
+| Networking | ~150 LOC |
+| Persistence | ~41 LOC |
+| Use cases | ~120 LOC |
+| Tests | ~500 LOC |
+| **Total infrastructure** | **~811 LOC** |
+
+**Result:** 224 lines of app code leveraging 800+ lines of tested foundation.
 
 ---
 
