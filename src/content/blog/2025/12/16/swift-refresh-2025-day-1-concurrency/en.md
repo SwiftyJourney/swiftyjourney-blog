@@ -304,5 +304,3 @@ But you get:
 
 And for real-world projects in 2025…  
 that is worth far more than saving **two lines of code**.
-
-

@@ -304,5 +304,3 @@ Pero se paga con:
 
 Y para proyectos reales, en 2025…  
 eso vale muchísimo más que escribir **dos líneas menos**.
-
-
