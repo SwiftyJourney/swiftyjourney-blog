@@ -84,7 +84,7 @@ body {
 /* Improve text contrast for plain text blocks in dark mode */
 .prose pre[data-language="plain"] code,
 .prose pre[data-language="code"] code {
-  @apply !text-zinc-800 dark:!text-zinc-800;
+  @apply text-zinc-800 dark:text-zinc-200;
 }
 
 .prose pre .code-header .code-actions {
@@ -137,6 +137,10 @@ body {
 
 .prose img {
   @apply rounded-lg mx-auto my-10;
+  @apply shadow-md dark:shadow-lg;
+  @apply border border-zinc-200 dark:border-zinc-800;
+  @apply transition-shadow duration-300;
+  @apply p-3;
 }
 
 .prose hr {

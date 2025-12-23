@@ -25,7 +25,7 @@ Two different changes, same direction: fewer hacks, more intention.
 
 We built a real app that consumes a REST service with this configuration:
 
-```
+```bash
 SWIFT_VERSION = 6.0
 SWIFT_STRICT_CONCURRENCY = complete
 SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor
@@ -186,7 +186,7 @@ protocol EmployeeRepositoryProtocol {
 
 ### Real execution flow
 
-```
+```text
 MainActor
  └─ ViewModel.load()
      └─ await repository.fetchEmployees()

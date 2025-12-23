@@ -280,38 +280,73 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
           // Skip if header already exists
           if (pre.querySelector(".code-header")) return;
 
-          // Detect language
-          const classNames = codeBlock.className;
-          let language =
-            classNames.match(/language-(\w+)/)?.[1] ||
-            classNames.match(/lang-(\w+)/)?.[1];
+          // Detect language with multiple fallback strategies
+          let language = null;
 
-          // Fallback: check parent pre element for language class
+          // Strategy 1: Check for language class on code element
+          const codeClasses = codeBlock.className;
+          language = codeClasses.match(/language-(\w+)/)?.[1];
+
+          // Strategy 2: Check pre element classes
           if (!language) {
             const preClasses = pre.className;
-            language =
-              preClasses.match(/language-(\w+)/)?.[1] ||
-              preClasses.match(/lang-(\w+)/)?.[1];
+            language = preClasses.match(/language-(\w+)/)?.[1];
           }
 
-          // Final fallback: try to detect from content
+          // Strategy 3: Check data attributes (for future Shiki versions)
+          if (!language) {
+            language = pre.getAttribute('data-language') ||
+                       pre.getAttribute('data-lang') ||
+                       codeBlock.getAttribute('data-language') ||
+                       codeBlock.getAttribute('data-lang');
+          }
+
+          // Strategy 4: Enhanced content inspection
           if (!language) {
             const content = codeBlock.textContent || "";
-            if (
-              content.includes("import SwiftUI") ||
-              (content.includes("struct ") && content.includes("View"))
-            ) {
+            const lowerContent = content.toLowerCase();
+
+            // Swift detection - comprehensive patterns
+            if (content.includes("import SwiftUI") ||
+                content.includes("import SwiftData") ||
+                (content.includes("struct ") && content.includes("View")) ||
+                content.includes("@main") ||
+                content.includes("@State") ||
+                content.includes("@Binding") ||
+                content.includes("@Environment") ||
+                content.includes("@StateObject") ||
+                content.includes("@ObservedObject") ||
+                content.includes("@Query") ||
+                lowerContent.includes("viewbuilder") ||
+                /\bactor\s+\w+/.test(content) ||
+                /\bprotocol\s+\w+/.test(content) ||
+                /\benum\s+\w+/.test(content) ||
+                /\bclass\s+\w+/.test(content) ||
+                /\bfunc\s+\w+\s*\(/.test(content) ||
+                /\bvar\s+\w+\s*:/.test(content) ||
+                /\blet\s+\w+\s*:/.test(content) ||
+                /Sendable/.test(content) ||
+                /async\s+throws/.test(content) ||
+                /\bself\./.test(content)) {
               language = "swift";
-            } else if (
-              content.includes("interface ") ||
-              content.includes("type ")
-            ) {
+            }
+            // TypeScript detection
+            else if (content.includes("interface ") ||
+                     (content.includes("type ") && content.includes("=")) ||
+                     /:\s*(string|number|boolean|any|unknown|void)\b/.test(content)) {
               language = "typescript";
-            } else if (
-              content.includes("function ") ||
-              content.includes("const ")
-            ) {
+            }
+            // JavaScript detection
+            else if (content.includes("function ") ||
+                     content.includes("const ") ||
+                     content.includes("=>")) {
               language = "javascript";
+            }
+            // Bash detection
+            else if (content.includes("SWIFT_VERSION") ||
+                     content.includes("#!/bin/bash") ||
+                     /^\s*\$\s/.test(content)) {
+              language = "bash";
             }
           }
 
