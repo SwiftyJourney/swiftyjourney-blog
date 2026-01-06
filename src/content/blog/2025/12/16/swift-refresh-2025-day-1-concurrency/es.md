@@ -23,7 +23,7 @@ La diferencia es que antes funcionaba… **hasta que dejaba de hacerlo**.
 
 ---
 
-## El problema que Swift 6 quiere eliminar
+## 1. El problema que Swift 6 quiere eliminar
 
 Durante años, en iOS convivimos con una realidad incómoda:
 
@@ -50,7 +50,7 @@ Swift 5 lo permitía sin quejarse. Swift 6, en modo de concurrencia estricta, **
 
 ---
 
-## Concurrencia estricta: qué cambia realmente
+## 2. Concurrencia estricta: qué cambia realmente
 
 Swift 6.2 introduce lo que Apple llama **Strict Concurrency**.
 
@@ -78,7 +78,7 @@ Es **prevención**.
 
 ---
 
-## `@MainActor`: no es un hilo, es un contrato
+## 3. @MainActor: no es un hilo, es un contrato
 
 `@MainActor` es uno de los conceptos más malentendidos (y más importantes) de todo Swift 6.
 
@@ -105,7 +105,7 @@ Ahora **te cuida de ti mismo**.
 
 ---
 
-## Actores: la caja fuerte de tus datos
+## 4. Actores: la caja fuerte de tus datos
 
 Un `actor` es la forma moderna y segura de manejar **estado mutable compartido**.
 
@@ -135,7 +135,7 @@ No hay magia negra.
 
 ---
 
-## Global actors: arquitectura, no solo concurrencia
+## 5. Global actors: arquitectura, no solo concurrencia
 
 A veces necesitas algo parecido a `@MainActor`, pero aplicado a tu **dominio**:
 
@@ -176,7 +176,7 @@ Da **estructura**:
 
 ---
 
-## Approachable Concurrency: el lado humano de Swift 6
+## 6. Approachable Concurrency: el lado humano de Swift 6
 
 Swift 6 es estricto, y Apple lo sabe.
 
@@ -194,7 +194,7 @@ Es Swift diciendo:
 
 ---
 
-## El villano recurrente: `Sendable`
+## 7. El villano recurrente: Sendable
 
 Muchos errores del Día 1 comparten el mismo mensaje:
 
@@ -219,7 +219,7 @@ Quiere que **diseñes mejor tu modelo de datos**.
 
 ---
 
-## APIs legacy: cuando el pasado te alcanza
+## 8. APIs legacy: cuando el pasado te alcanza
 
 Ejemplo típico:
 
@@ -250,7 +250,7 @@ Swift te obliga a decidir:
 
 ---
 
-## Migrar a Swift 6 sin sufrir
+## 9. Migrar a Swift 6 sin sufrir
 
 La lección del Día 1 es clara:
 
@@ -270,7 +270,7 @@ Responder con honestidad a esas preguntas evita el **90% de los errores** de mig
 
 ---
 
-## Clean Architecture + Swift 6 = match perfecto
+## 10. Clean Architecture + Swift 6 = match perfecto
 
 Swift 6 favorece de forma natural:
 
@@ -286,21 +286,14 @@ Es, literalmente, **el camino de menor resistencia** que te marca el compilador.
 
 ---
 
-## Conclusión: el verdadero mensaje del Día 1
+## Conclusión
 
-El Día 1 del Swift Refresh 2025 no fue sobre aprender “concurrencia nueva”.  
-Fue sobre aceptar una verdad incómoda:
+Swift 6 no complica la vida. Te obliga a escribir el código que siempre debiste escribir.
 
-> Swift 6 no te complica la vida.  
-> Te obliga a escribir el código que **siempre debiste escribir**.
+Cuesta un poco más al inicio, pero evita bugs de concurrencia, crashes imposibles de reproducir y race conditions silenciosas.
 
-Cuesta un poco más al inicio.  
-Pero se paga con:
+Para proyectos reales en 2025, eso vale mucho más que escribir dos líneas menos.
 
-- Menos bugs de concurrencia  
-- Menos crashes imposibles de reproducir  
-- Menos noches largas persiguiendo race conditions  
-- Mucha más confianza en tu código en producción
+---
 
-Y para proyectos reales, en 2025…  
-eso vale muchísimo más que escribir **dos líneas menos**.
+*Notas tomadas durante el Swift Developer Workshop 2025 (Apple Coding Academy: https://acoding.academy/) y reinterpretadas desde una perspectiva práctica y real‑world.*

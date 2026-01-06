@@ -19,9 +19,9 @@ Two different changes, same direction: fewer hacks, more intention.
 
 ---
 
-## Part I — Swift 6 and strict concurrency (in a real app)
+## 1. Swift 6 and strict concurrency in a real app
 
-### Real workshop context
+### Workshop context
 
 We built a real app that consumes a REST service with this configuration:
 
@@ -39,7 +39,7 @@ SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor
 
 ---
 
-### Sendable: not performance, integrity
+## 2. Sendable: not performance, integrity
 
 ```swift
 protocol HTTPClientProtocol: Sendable {
@@ -58,7 +58,7 @@ This is not about performance. It is about correctness.
 
 ---
 
-### Why Sendable is required in networking
+## 3. Why Sendable is required in networking
 
 ```swift
 let (data, _) = try await URLSession.shared.data(from: url)
@@ -74,7 +74,7 @@ That boundary crossing requires `Sendable`.
 
 ---
 
-### The MainActor default problem
+## 4. The MainActor default problem
 
 An innocent struct:
 
@@ -95,7 +95,7 @@ An actor-isolated type cannot be `Sendable`.
 
 ---
 
-### nonisolated: freeing the type
+## 5. nonisolated: freeing the type
 
 ```swift
 nonisolated struct Employee: Decodable, Identifiable, Hashable {
@@ -115,7 +115,7 @@ Important: `nonisolated` does not make a type `Sendable` by itself. It only remo
 
 ---
 
-### A global actor for the data layer
+## 6. A global actor for the data layer
 
 We created a dedicated actor:
 
@@ -134,7 +134,7 @@ Goal:
 
 ---
 
-### Repository isolated to DataLayer
+## 7. Repository isolated to DataLayer
 
 ```swift
 @DataLayer
@@ -162,7 +162,7 @@ Key details:
 
 ---
 
-### Protocols also inherit isolation
+## 8. Protocols also inherit isolation
 
 Common error:
 
@@ -184,7 +184,7 @@ protocol EmployeeRepositoryProtocol {
 
 ---
 
-### Real execution flow
+## 9. Real execution flow
 
 ```text
 MainActor
@@ -201,7 +201,7 @@ MainActor
 
 ---
 
-### Previews and the isolation detail
+## 10. Previews and the isolation detail
 
 Preview data:
 
@@ -225,15 +225,13 @@ return await .preview
 
 ---
 
-### Mental rule (concurrency)
+## 11. Mental rule: await is a bridge
 
-`await` is not just waiting. It is a bridge.
+`await` is not just waiting. It is a bridge between domains.
 
 ---
 
-## Part II — Liquid Glass in iOS 26
-
-### Liquid Glass is already the default
+## 12. Liquid Glass is already the default in iOS 26
 
 In iOS 26:
 
@@ -245,7 +243,7 @@ If you use modern SwiftUI, you are already using it.
 
 ---
 
-### Where Liquid Glass lives
+## 13. Where Liquid Glass lives
 
 It lives in top-level layers:
 
@@ -263,7 +261,7 @@ It does not live in:
 
 ---
 
-### Toolbars and Labels
+## 14. Toolbars and Labels
 
 Apple pushes:
 
@@ -281,7 +279,7 @@ Because it improves:
 
 ---
 
-### ToolbarItemGroup and automatic merging
+## 15. ToolbarItemGroup and automatic merging
 
 ```swift
 ToolbarItemGroup(placement: .bottomBar) {
@@ -294,7 +292,7 @@ The system groups and applies Liquid Glass without manual stacks.
 
 ---
 
-### ToolbarSpacer (iOS 26+)
+## 16. ToolbarSpacer (iOS 26+)
 
 ```swift
 ToolbarSpacer(placement: .bottomBar)
@@ -306,7 +304,7 @@ ToolbarSpacer(placement: .bottomBar)
 
 ---
 
-### Menus = Liquid Glass by default
+## 17. Menus with Liquid Glass by default
 
 ```swift
 Menu {
@@ -324,7 +322,7 @@ Menus already ship with blur and animation.
 
 ---
 
-### Sheets and detents
+## 18. Sheets and detents
 
 - `.medium` -> translucent
 - `.large` -> more opaque
@@ -341,7 +339,7 @@ The system communicates visual hierarchy for you.
 
 ---
 
-### UIDesignRequiresCompatibility
+## 19. UIDesignRequiresCompatibility
 
 ```swift
 UIDesignRequiresCompatibility = YES
@@ -355,7 +353,7 @@ This is not a permanent opt-out.
 
 ---
 
-### New ButtonStyles (iOS 26)
+## 20. New ButtonStyles (iOS 26)
 
 - `.glass`
 - `.glassProminent`
@@ -370,7 +368,7 @@ This is not a permanent opt-out.
 
 ---
 
-### Button abstraction (recommended)
+## 21. Button abstraction (recommended)
 
 ```swift
 struct AppButton<Content: View>: View {
@@ -387,7 +385,7 @@ One component, two eras.
 
 ---
 
-### glassEffect (use with moderation)
+## 22. glassEffect (use with moderation)
 
 ```swift
 .glassEffect(.clear, in: .rect(cornerRadius: 11))
@@ -397,7 +395,7 @@ It is expensive if you spam it in long lists or heavy scrolling grids.
 
 ---
 
-### GlassEffectContainer (performance)
+## 23. GlassEffectContainer (performance)
 
 ```swift
 GlassEffectContainer {
@@ -417,7 +415,7 @@ GlassEffectContainer {
 
 ---
 
-### Button roles
+## 24. Button roles
 
 ```swift
 Button(role: .confirm) { }
@@ -428,14 +426,18 @@ Roles = correct appearance + accessibility + consistency.
 
 ---
 
-### Mental rule (Liquid Glass)
+## 25. Mental rule: Liquid Glass is a language
 
 Liquid Glass is not decoration. It is the system's visual language.
 
 ---
 
-## Conclusion: two changes, one idea
+## Conclusion
 
 Swift 6 forces explicit concurrency. iOS 26 forces trust in the visual system.
 
 Both point to the same goal: fewer hacks, more intention.
+
+---
+
+*Notes taken during the Swift Developer Workshop 2025 (Apple Coding Academy: https://acoding.academy/) and reinterpreted from a practical, real-world perspective.*
