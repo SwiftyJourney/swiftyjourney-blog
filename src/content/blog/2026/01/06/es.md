@@ -38,6 +38,7 @@ no “enciende” una animación.
 Describe una **nueva realidad**.
 
 Cuando ese estado cambia, SwiftUI:
+
 - recalcula el árbol de vistas
 - detecta qué cambió
 - decide qué puede animarse
@@ -105,6 +106,7 @@ withAnimation(.spring) {
 ```
 
 SwiftUI animará **todo lo animable**:
+
 - layout
 - opacity
 - scale
@@ -117,6 +119,7 @@ SwiftUI animará **todo lo animable**:
 ```
 
 Las transiciones solo funcionan cuando una vista:
+
 - entra
 - o sale  
 (normalmente usando `if`)
@@ -127,6 +130,7 @@ Las transiciones solo funcionan cuando una vista:
 
 Liquid Glass **no es un modifier visual más**.  
 Es un sistema que combina:
+
 - material
 - identidad
 - interacción
@@ -173,6 +177,7 @@ Crea un **espacio de identidad compartido**.
 Esto permite que el vidrio **morfée** entre estados en lugar de desaparecer y reaparecer.
 
 Para que funcione:
+
 - mismo `id`
 - mismo `namespace`
 - la vista debe existir antes y después del cambio
@@ -190,6 +195,7 @@ Esto le dice a SwiftUI:
 > “Estas superficies son **una sola pieza de vidrio**”.
 
 Visualmente:
+
 - iconos separados  
 - se convierten en una cápsula continua  
 
@@ -198,6 +204,7 @@ Visualmente:
 > Un `glassEffectUnion` = **una sola superficie de vidrio**
 
 Por eso:
+
 - solo **un tint** por union  
 - si mezclas colores, uno gana y los demás se ignoran  
 
@@ -210,6 +217,7 @@ Por eso:
 ```
 
 `@Query`:
+
 - ejecuta el fetch  
 - observa cambios  
 - refresca la UI automáticamente  
@@ -272,11 +280,13 @@ Usarlo para operaciones pesadas es un error común.
 ### `@ModelActor`
 
 Un `@ModelActor`:
+
 - tiene su propio `ModelContext`
 - ejecuta operaciones serializadas
 - respeta strict concurrency
 
 Este es el lugar correcto para:
+
 - fetch remoto
 - upserts
 - sincronización
@@ -302,6 +312,7 @@ employee.id == id // ✅
 ### Regla mental
 
 En `#Predicate`:
+
 - el lado izquierdo es el modelo  
 - el lado derecho debe ser un **valor plano**  
 
@@ -312,12 +323,14 @@ En `#Predicate`:
 Xcode 26 introduce un cambio silencioso pero profundo.
 
 Coding Intelligence:
+
 - no navega internet  
 - no hace RAG externo  
 - razona **solo sobre tu proyecto**  
 - puede aplicar cambios y revertirlos  
 
 Claude funciona mejor aquí **por diseño**, no por hype:
+
 - mejor reasoning con contexto limitado  
 - mejor lectura de código incompleto  
 

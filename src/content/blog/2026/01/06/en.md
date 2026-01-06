@@ -38,6 +38,7 @@ does not “turn on” an animation.
 It describes a **new reality**.
 
 When that state changes, SwiftUI:
+
 - recalculates the view tree
 - detects what changed
 - decides what can be animated
@@ -105,6 +106,7 @@ withAnimation(.spring) {
 ```
 
 SwiftUI will animate **everything that can be animated**:
+
 - layout
 - opacity
 - scale
@@ -117,6 +119,7 @@ SwiftUI will animate **everything that can be animated**:
 ```
 
 Transitions only work when a view:
+
 - enters
 - or exits  
 (usually using `if`)
@@ -127,6 +130,7 @@ Transitions only work when a view:
 
 Liquid Glass **is not just another visual modifier**.  
 It is a system that combines:
+
 - material
 - identity
 - interaction
@@ -173,6 +177,7 @@ It creates a **shared identity space**.
 This allows glass to **morph** between states instead of disappearing and reappearing.
 
 For it to work:
+
 - same `id`
 - same `namespace`
 - the view must exist before and after the change
@@ -190,6 +195,7 @@ This tells SwiftUI:
 > “These surfaces are **one single piece of glass**.”
 
 Visually:
+
 - separate icons  
 - turn into a continuous capsule  
 
@@ -198,6 +204,7 @@ Visually:
 > One `glassEffectUnion` = **one glass surface**
 
 That is why:
+
 - only **one tint** per union  
 - if you mix colors, one wins and the others are ignored  
 
@@ -210,6 +217,7 @@ That is why:
 ```
 
 `@Query`:
+
 - performs the fetch
 - observes changes
 - refreshes the UI automatically
@@ -272,11 +280,13 @@ Using it for heavy operations is a common mistake.
 ### `@ModelActor`
 
 A `@ModelActor`:
+
 - has its own `ModelContext`
 - executes serialized operations
 - respects strict concurrency
 
 This is the right place for:
+
 - remote fetch
 - upserts
 - synchronization
@@ -302,6 +312,7 @@ employee.id == id // ✅
 ### Mental rule
 
 In `#Predicate`:
+
 - the left side is the model  
 - the right side must be a **plain value**  
 
@@ -312,12 +323,14 @@ In `#Predicate`:
 Xcode 26 introduces a quiet but profound change.
 
 Coding Intelligence:
+
 - does not browse the internet  
 - does not use external RAG  
 - reasons **only about your project**  
 - can apply changes and roll them back  
 
 Claude works better here **by design**, not by hype:
+
 - better reasoning with limited context  
 - better reading of incomplete code  
 
