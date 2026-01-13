@@ -17,7 +17,7 @@ const posts = allPosts
 		<!-- Hero Section -->
 		<section class="text-center mb-16">
 			<h1
-				class="text-4xl md:text-6xl font-bold text-zinc-900 dark:text-zinc-100 mb-6"
+				class="text-5xl md:text-7xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 mb-6"
 			>
 				Swifty Journey <span class="text-orange-500">Blog</span>
 			</h1>
@@ -37,7 +37,7 @@ const posts = allPosts
 					posts.slice(0, 6).map((post) => (
 						<article class="group">
 							<a href={`/es/blog/${post.id}/`} class="block">
-								<div class="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-6 h-full transition-all hover:bg-zinc-100 dark:hover:bg-zinc-700">
+								<div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 h-full transition-all hover:border-orange-500/30 hover:-translate-y-1 hover:shadow-md">
 									<h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3 group-hover:text-orange-500 transition-colors">
 										{post.data.title}
 									</h3>
@@ -64,7 +64,7 @@ const posts = allPosts
 				<div class="text-center mt-12">
 					<a
 						href="/es/blog"
-						class="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+						class="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/30 hover:shadow-xl hover:scale-105 transition-all duration-300"
 					>
 						Ver todos los artículos
 						<svg
