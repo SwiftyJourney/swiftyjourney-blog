@@ -296,4 +296,4 @@ For real-world projects in 2025, that is worth far more than saving two lines of
 
 ---
 
-*Notes taken during the Swift Developer Workshop 2025 (Apple Coding Academy: https://acoding.academy/) and reinterpreted from a practical, real-world perspective.*
+*Notes taken during the Swift Developer Workshop 2025 ([Apple Coding Academy](https://acoding.academy/)) and reinterpreted from a practical, real-world perspective.*

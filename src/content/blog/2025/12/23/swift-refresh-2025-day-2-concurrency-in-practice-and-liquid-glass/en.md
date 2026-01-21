@@ -440,4 +440,4 @@ Both point to the same goal: fewer hacks, more intention.
 
 ---
 
-*Notes taken during the Swift Developer Workshop 2025 (Apple Coding Academy: https://acoding.academy/) and reinterpreted from a practical, real-world perspective.*
+*Notes taken during the Swift Developer Workshop 2025 ([Apple Coding Academy](https://acoding.academy/)) and reinterpreted from a practical, real-world perspective.*

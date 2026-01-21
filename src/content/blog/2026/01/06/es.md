@@ -374,4 +374,4 @@ y empieza a sentirse **coherente**.
 
 ---
 
-*Notas tomadas durante el Swift Developer Workshop 2025 (Apple Coding Academy: https://acoding.academy/) y reinterpretadas desde una perspectiva práctica y real‑world.*
+*Notas tomadas durante el Swift Developer Workshop 2025 ([Apple Coding Academy](https://acoding.academy/)) y reinterpretadas desde una perspectiva práctica y real‑world.*
