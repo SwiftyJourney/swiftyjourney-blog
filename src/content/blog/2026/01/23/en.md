@@ -52,9 +52,9 @@ These are two completely distinct phases:
 
 * **Inference**: weights are fixed, the model is just used
   * This is what you do when you use ChatGPT or any model
-  - Weights are already trained
-  - The model just "calculates" with those fixed weights
-  - Much faster and more efficient than training
+  * Weights are already trained
+  * The model just "calculates" with those fixed weights
+  * Much faster and more efficient than training
 
 This is crucial: **models don't learn while you use them**. When you ask an LLM a question, it's not "learning" from your question. It's using knowledge that was already trained previously. The model is static at runtime.
 
@@ -83,10 +83,11 @@ Each layer learns to recognize patterns at different levels of abstraction:
 * **Deep layers**: identify complete objects, complex relationships, abstract concepts
 
 **Visual example**: In a network that recognizes dog images:
-- Layer 1: "there's an edge here, another there"
-- Layer 3: "these edges form a circular shape (eyes)"
-- Layer 5: "these shapes suggest a dog's face"
-- Final layer: "this is a dog"
+
+* Layer 1: "there's an edge here, another there"
+* Layer 3: "these edges form a circular shape (eyes)"
+* Layer 5: "these shapes suggest a dog's face"
+* Final layer: "this is a dog"
 
 That's why a deep network can recognize "a dog" and not just pixels. Depth allows the network to build increasingly abstract and complex representations.
 
@@ -135,7 +136,7 @@ A language model doesn't see complete words like humans. It sees **tokens**, whi
 
 Tokenization example:
 
-```
+```nocode
 "chasing" → ["ch", "as", "ing"]
 "developer" → ["dev", "el", "oper"]
 ```
@@ -177,11 +178,13 @@ Today we evaluate models by three fundamental axes that determine their capacity
 Parameters are the **trained weights** of the neural network. Each connection between neurons has a weight, and these weights store the model's "knowledge".
 
 **Typical scale**:
+
 * Small models: 7B parameters (7 billion)
 * Medium models: 70B parameters
 * Large models: 175B+ parameters (GPT-4 is estimated at ~1.7T)
 
 **Why it matters**:
+
 * More parameters = more capacity to store complex patterns
 * But also = more memory, more inference time, more cost
 
@@ -201,6 +204,7 @@ Quantization is how those weights are represented in memory:
 **Trade-offs**:
 
 Fewer bits:
+
 * ✅ less memory (critical for mobile devices)
 * ✅ more speed (faster operations)
 * ✅ lower energy consumption
@@ -213,12 +217,14 @@ Fewer bits:
 The context window is **how many tokens the model can consider at once**. It's the conversation's "memory limit".
 
 **Window examples**:
+
 * GPT-3.5: 4K tokens (~3,000 words)
 * GPT-4 Turbo: 128K tokens (~100,000 words)
 * Claude 3.5 Sonnet: 200K tokens
 * On-device models: typically 4K-32K tokens
 
 **More context allows**:
+
 * Very long conversations without losing the thread
 * Analysis of complete documents
 * Deep reasoning about extensive texts
@@ -253,6 +259,7 @@ Distillation is a knowledge transfer process:
 The large model has learned subtle patterns and internal representations. The small model can learn these representations directly, without having to rediscover everything from scratch.
 
 **Advantages**:
+
 * Faster (fewer parameters = fewer calculations)
 * Cheaper (less memory, less GPU)
 * Sufficient for many use cases
@@ -269,6 +276,7 @@ Pruning removes parts of the model that contribute little to the final result:
 * **Attention heads**: in Transformers, attention heads that don't contribute are removed
 
 **Strategies**:
+
 * **Magnitude pruning**: removes small weights
 * **Structured pruning**: removes complete neurons or layers (more efficient)
 * **Gradual pruning**: removes gradually during training
@@ -310,7 +318,8 @@ Instead of a monolithic model, MoE divides the model into multiple specialized "
 
 **Analogy**: A restaurant with 50 specialized chefs (Italian, Japanese, Mexican, etc.). When a pizza order arrives, you only activate the Italian chef. You don't need all chefs working on each order.
 
-**Real example**: 
+**Real example**:
+
 * Total model: 1.4T parameters
 * Active experts per request: ~37B parameters (only ~2.6% of the model)
 * Result: giant model quality, medium model cost
@@ -346,7 +355,8 @@ LoRA solves this elegantly:
 
 Instead of adjusting all weights of a layer (which can have millions of parameters), LoRA adds two small matrices A and B. The modification is: `W' = W + BA`, where B and A are much smaller than original W.
 
-**Result**: 
+**Result**:
+
 * Train only 0.1-1% of original parameters
 * Base model maintains its general knowledge
 * You get specialization for your use case
@@ -363,6 +373,7 @@ Instead of adjusting all weights of a layer (which can have millions of paramete
 **Why Apple uses it extensively**:
 
 Apple needs on-device models that adapt to different users and contexts without retraining complete models. LoRA allows:
+
 * A shared base model
 * Lightweight adapters per user or task
 * Quick updates without retraining everything
@@ -383,18 +394,21 @@ Every time a model generates a token, it's performing millions of matrix multipl
 ### 8.1 CPU vs GPU
 
 **CPU (Central Processing Unit)**:
+
 * Designed for control and sequential logic
 * Few cores (4-16 typically), but very powerful individually
 * Excellent for tasks requiring complex decisions
 * **Not ideal for AI**: Matrix operations are too slow
 
 **GPU (Graphics Processing Unit)**:
+
 * Originally designed for graphics (many parallel operations)
 * Thousands of simple cores working in parallel
 * **Perfect for AI**: Matrix multiplications are inherently parallelizable
 * Can be 10-100x faster than CPU for AI models
 
-**Analogy**: 
+**Analogy**:
+
 * CPU = an expert chef who cooks a complex dish step by step
 * GPU = 1000 simple chefs cooking 1000 simple dishes in parallel
 
@@ -405,12 +419,14 @@ For AI, you need the massive parallelism of the GPU.
 Apple Silicon (M1, M2, M3, M4, M5) introduces architectures that completely change the local AI landscape:
 
 **Unified memory**:
+
 * CPU and GPU share the same physical memory
 * No copies between separate memory spaces
 * Lower latency (direct access)
 * More energy efficient
 
 **Specialized cores**:
+
 * **CPU cores**: For logic and control
 * **GPU cores**: For general parallel processing
 * **Neural Engine**: Specifically designed for ML/AI operations
@@ -425,6 +441,7 @@ With tensor cores in GPU (M4/M5 especially):
 * **Light training**: Train small models from scratch
 
 **Comparison**:
+
 * **Cloud (remote server)**: Powerful but with network latency, cost per token, questionable privacy
 * **Apple Silicon local**: Minimal latency, no usage cost, total privacy, sufficient for many cases
 
@@ -461,12 +478,14 @@ If you give it good prompts, it returns good responses. If you give it biased da
 ### 9.3 Why this matters
 
 **Doesn't replace human intelligence**:
+
 * Has no real critical judgment
 * Has no inherent ethical values
 * Cannot evaluate the truth of its claims
 * Has no real-world experience
 
 **Amplifies it**:
+
 * Can process information faster than humans
 * Can remember more context simultaneously
 * Can generate variations and explore wide solution spaces
@@ -526,11 +545,13 @@ An agent is a system that combines an LLM with the ability to **execute actions*
 **Why it matters**:
 
 It doesn't load everything into context. Instead of trying to put a complete repository of 10,000 files in the prompt (impossible), the agent:
+
 1. Starts with the relevant file
 2. Reads references when needed
 3. Explores only what's necessary for the task
 
 **Example**: An agent that fixes a bug:
+
 1. Reads the file with the error
 2. Follows the import to the related function
 3. Runs tests to see what fails
@@ -539,6 +560,7 @@ It doesn't load everything into context. Instead of trying to put a complete rep
 6. Runs tests again to validate
 
 **Limitations**:
+
 * Can make many calls (expensive in tokens)
 * Can get into loops if not well designed
 * Requires permissions to execute code (security risk)
@@ -571,12 +593,14 @@ They take your prompt as a **draft**, refine it internally before responding.
 
 ### 11.2 Why it matters
 
-**Traditional models**: 
+**Traditional models**:
+
 * Input → Direct output
 * Can "hallucinate" (generate responses that sound correct but are incorrect)
 * Difficulty with tasks requiring multiple steps
 
 **Reasoning models**:
+
 * Input → Internal reasoning → Output
 * Fewer hallucinations (reasoning process is verifiable)
 * Better at complex tasks requiring multiple logical steps
@@ -591,6 +615,7 @@ Reasoning models shine at tasks requiring structured thinking:
 * **Analysis**: Evaluate multiple options, weigh pros and cons
 
 **Example**: Instead of directly responding "The bug is on line 42", a reasoning model might think:
+
 1. "The error says 'nil unwrapping', so I look for force unwraps"
 2. "Found 3 force unwraps, but only one can be nil in this context"
 3. "Line 42 has a force unwrap of an optional that can be nil"
@@ -599,11 +624,13 @@ Reasoning models shine at tasks requiring structured thinking:
 ### 11.4 Trade-offs
 
 **Advantages**:
+
 * More reliable responses
 * Verifiable process (you can see the reasoning)
 * Better at complex tasks
 
 **Disadvantages**:
+
 * Slower (generates more tokens internally)
 * More expensive (more tokens = more cost)
 * Not always necessary (for simple tasks, it's overkill)
@@ -621,11 +648,13 @@ Benchmarks measure how well models can generate code. But not all benchmarks mea
 HumanEval is the best-known benchmark for evaluating coding capabilities:
 
 **Characteristics**:
+
 * **Isolated functions**: Each problem is an independent function
 * **Pass@k**: Measures how many of k generated solutions pass tests (pass@1, pass@10, pass@100)
 * **Functional correctness**: Only matters that the function passes tests, not how it's written
 
 **Typical example**:
+
 ```python
 def reverse_string(s: str) -> str:
     # Your code here
@@ -633,6 +662,7 @@ def reverse_string(s: str) -> str:
 ```
 
 **Limitations**:
+
 * Doesn't reflect real engineering work
 * Doesn't require understanding architecture
 * Doesn't test dependency handling
@@ -645,15 +675,18 @@ def reverse_string(s: str) -> str:
 SWE-bench (Software Engineering Benchmark) is more realistic:
 
 **Characteristics**:
+
 * **Real repos**: Uses real open-source repositories (Django, scikit-learn, etc.)
 * **Multi-file bugs**: Bugs require changes in multiple files
 * **Real engineering**: You must understand architecture, follow conventions, handle dependencies
 
 **Typical example**:
+
 * Real GitHub issue: "Method X fails when Y is None"
 * You must: find where the bug is, understand context, fix it without breaking other things, follow project style
 
 **Why it's better**:
+
 * Reflects real development work
 * Requires understanding existing code
 * Evaluates ability to navigate large projects
@@ -666,14 +699,17 @@ SWE-bench (Software Engineering Benchmark) is more realistic:
 ### 12.3 Practical implications
 
 **For evaluating models**:
+
 * If a model has good HumanEval but bad SWE-bench, it's good for coding challenges but not for real work
 * If a model has good SWE-bench, it's probably useful for real development
 
 **For choosing tools**:
+
 * IDEs with AI that only pass HumanEval may fail on real projects
 * Tools that navigate code (like Xcode Coding Intelligence) are designed for SWE-bench-style tasks
 
 **For your work**:
+
 * Don't trust only HumanEval metrics
 * Test the model on your real code
 * Evaluate if it can navigate your architecture, understand your conventions, and make changes that don't break things
@@ -727,6 +763,7 @@ There are no completely new IDEs designed from scratch for AI. What exists are:
 * **But**: **not recommended for Apple development**
 
 **Why not for Apple**:
+
 * No native support for Swift/SwiftUI
 * Doesn't integrate well with Apple tools (Instruments, etc.)
 * Doesn't leverage Apple-specific features (like FoundationModels)
@@ -751,6 +788,7 @@ Running language models locally (on your Mac, without internet connection) has b
 ### 14.1 Why run models locally
 
 **Advantages**:
+
 * **Total privacy**: Your data never leaves your device
 * **No cost per token**: Once the model is downloaded, using it is free
 * **No network latency**: Instant responses
@@ -758,6 +796,7 @@ Running language models locally (on your Mac, without internet connection) has b
 * **Total control**: You can use any model, adjust parameters, etc.
 
 **Disadvantages**:
+
 * **Limited resources**: Smaller models than cloud (typically 3-7B parameters vs 70B+ in cloud)
 * **Quality**: Local models are usually less capable than the best cloud models
 * **Memory**: Requires quite a bit of RAM (8-16GB minimum for decent models)
@@ -767,6 +806,7 @@ Running language models locally (on your Mac, without internet connection) has b
 ### 14.2 LM Studio
 
 **Characteristics**:
+
 * **GUI**: Friendly graphical interface, you don't need CLI
 * **MLX**: Optimized for Apple Silicon using MLX (Apple's framework for ML)
 * **Apple Silicon**: Leverages Neural Engine and GPU cores efficiently
@@ -778,6 +818,7 @@ Running language models locally (on your Mac, without internet connection) has b
 ### 14.3 Ollama
 
 **Characteristics**:
+
 * **CLI**: Command-line interface, more flexible
 * **OpenAI-compatible API**: You can use the same libraries you use for OpenAI
 * **Automation**: Easy to integrate into scripts and applications
@@ -789,21 +830,25 @@ Running language models locally (on your Mac, without internet connection) has b
 ### 14.4 Key available models
 
 **DeepSeek**:
+
 * High-quality Chinese model
 * Good balance between size and capacity
 * Specialized in code and reasoning
 
 **GPT-OSS** (open source models):
+
 * Various models inspired by GPT
 * Different sizes available
 * Active community
 
 **Devstral**:
+
 * Specialized in code
 * Based on Mistral
 * Good for development tasks
 
 **Qwen / Gemma**:
+
 * Models from Alibaba and Google respectively
 * Multilingual (especially Qwen)
 * Good general quality
@@ -814,7 +859,8 @@ Running language models locally (on your Mac, without internet connection) has b
 
 **2 years ago**: Local models were toys, quality much inferior to cloud.
 
-**Today**: 
+**Today**:
+
 * 7B parameter local models can compete with cloud models from 1-2 years ago
 * For many use cases, quality is sufficient
 * Speed and privacy compensate for quality difference
@@ -830,16 +876,19 @@ Using AI to generate code is powerful, but requires discipline and judgment. The
 ### 15.1 Fundamental principles
 
 **AI doesn't do the work for you**:
+
 * You're still responsible for the code
 * AI is a tool, not a replacement
 * Generated code must pass your review and approval
 
 **Understand and evaluate code**:
+
 * Always read generated code before using it
 * Verify it does what you need
 * Make sure it follows your standards and conventions
 
 **Treat it like a junior developer**:
+
 * Give clear and specific instructions
 * Review its work before accepting it
 * Correct errors and ask for improvements when necessary
@@ -848,11 +897,13 @@ Using AI to generate code is powerful, but requires discipline and judgment. The
 ### 15.2 Avoid common traps
 
 **Confirmation bias**:
+
 * Don't accept code just because it "works"
 * Evaluate if it's the best solution, not just if it passes tests
 * Consider alternatives before deciding
 
 **Don't copy/paste blindly**:
+
 * Each piece of code must have a clear purpose
 * Remove unnecessary code that AI might have generated
 * Make sure code fits your architecture
@@ -860,45 +911,53 @@ Using AI to generate code is powerful, but requires discipline and judgment. The
 ### 15.3 Best prompt practices
 
 **Give detailed prompts**:
+
 * Specify context (what your app does, what framework you use)
 * Indicate constraints (style, performance, dependencies)
 * Provide examples when relevant
 
 **Divide large problems**:
+
 * Instead of "make me a complete app", ask for specific features
 * Build iteratively
 * Validate each piece before continuing
 
 **Good prompt example**:
-```
+
+```nocode
 "I need a Swift function that validates emails. 
 It must use regex, return a Bool, and follow Swift conventions. 
 Include documentation comments."
 ```
 
 **Bad prompt example**:
-```
+
+```nocode
 "make me validate emails"
 ```
 
 ### 15.4 Ideal use cases for AI
 
 **Explain code**:
+
 * "What does this function do?"
 * "Why does this code fail?"
 * "How can I optimize this?"
 
 **Tests**:
+
 * Generate unit tests
 * Create edge case test cases
 * Write integration tests
 
 **Documentation**:
+
 * Generate documentation comments
 * Create READMEs
 * Write usage guides
 
 **Refactors**:
+
 * Modernize legacy code
 * Apply best practices
 * Improve readability
@@ -906,6 +965,7 @@ Include documentation comments."
 ### 15.5 When NOT to use AI
 
 **Don't use AI for**:
+
 * Learning fundamentals (learn first, then use AI to accelerate)
 * Security-critical code without exhaustive review
 * Important architectural decisions (you must understand the architecture)
@@ -947,6 +1007,7 @@ In Xcode, the **`#Playground`** macro allows executing a block as if it were a P
 **The problem with traditional Playgrounds**:
 
 `.playground` files are isolated files that:
+
 * Have their own compilation context
 * Don't have complete access to project frameworks
 * Can have different behaviors than the real app target
@@ -955,6 +1016,7 @@ In Xcode, the **`#Playground`** macro allows executing a block as if it were a P
 **Why FoundationModels needs the real context**:
 
 FoundationModels is a system framework that:
+
 * Requires specific permissions and capabilities from the app target
 * May need access to project resources
 * Behaves differently in an isolated Playground vs a real app
@@ -971,6 +1033,7 @@ FoundationModels is a system framework that:
 ```
 
 **Advantages**:
+
 * ✅ Compiles with the same environment as your app
 * ✅ Complete access to all project frameworks
 * ✅ Identical behavior to production
@@ -980,6 +1043,7 @@ FoundationModels is a system framework that:
 > In other words: `#Playground` gives you the "fast" Playground flow, without abandoning the project's real context.
 
 **Recommended workflow**:
+
 1. Experiment with FoundationModels in a `#Playground` block
 2. Once it works, move the code to your real ViewModel or service
 3. Remove the `#Playground` block (or leave it commented for reference)
@@ -1015,6 +1079,7 @@ guard SystemLanguageModel.default.isAvailable else {
 **Fallback strategies**:
 
 If the model is not available, you can:
+
 * Show a message to the user explaining the situation
 * Use an alternative local model (Ollama, LM Studio)
 * Degrade to a feature without AI
@@ -1029,6 +1094,7 @@ Apple models the interaction with the LLM as a **session**, not as individual ca
 **What a session is**:
 
 A session is an object that:
+
 * **Maintains context between calls**: Remembers what was said before
 * **Can be reused**: For "threaded" experiences (like a continuous chat)
 * **Or created new**: For isolated tasks without previous context
@@ -1048,6 +1114,7 @@ let session = LanguageModelSession()
 The session can be configured with several parameters that affect its behavior:
 
 * **Instructions** (role/style): Defines how the model should behave
+
   ```swift
   let session = LanguageModelSession(
     instructions: "You are a helpful assistant that explains code in simple terms."
@@ -1055,16 +1122,17 @@ The session can be configured with several parameters that affect its behavior:
   ```
 
 * **Tools** (if applicable): Functions the model can call
-  - Allows the model to execute actions (search information, calculate, etc.)
-  - Similar to function calling in other models
+
+  * Allows the model to execute actions (search information, calculate, etc.)
+  * Similar to function calling in other models
 
 * **Transcripts** (history/context): Previous conversation context
-  - You can inject previous messages
-  - Useful for restoring a conversation or giving initial context
+  * You can inject previous messages
+  * Useful for restoring a conversation or giving initial context
 
 * **Model/adapters** (specialized variants):
-  - You can specify which model variant to use
-  - Or use adapters (LoRAs) for specialization
+  * You can specify which model variant to use
+  * Or use adapters (LoRAs) for specialization
 
 **When to create a new session**:
 
@@ -1081,6 +1149,7 @@ The session can be configured with several parameters that affect its behavior:
 **Memory management**:
 
 Sessions consume memory (they maintain the transcript). If your app handles many conversations, consider:
+
 * Limiting the number of active sessions
 * Closing old sessions when not used
 * Using ephemeral sessions for one-off tasks
@@ -1092,6 +1161,7 @@ The framework includes **guardrails** that filter or block outputs according to 
 **What guardrails are**:
 
 Guardrails are filters that Apple applies automatically for:
+
 * **Inappropriate content**: Blocks generation of offensive, violent content, etc.
 * **Sensitive information**: May block generation of personal information if detected
 * **Malicious use**: Prevents certain types of prompts that could be problematic
@@ -1099,6 +1169,7 @@ Guardrails are filters that Apple applies automatically for:
 **How they work**:
 
 Guardrails operate transparently:
+
 * Execute during generation
 * Can completely block a response
 * Or can modify/redact parts of the response
@@ -1141,6 +1212,7 @@ let response = try await session.respond(to: "Explain Swift concurrency")
 * ❌ **Noticeable if slow**: For long responses, it can feel slow
 
 **When to use `respond`**:
+
 * Quick tasks where the response is short
 * Background processing where the user doesn't wait
 * When you need the complete response before continuing
@@ -1162,6 +1234,7 @@ for try await partial in stream {
 * ❌ **More complex UI**: You must update UI incrementally
 
 **When to use `streamResponse`**:
+
 * Real-time user interactions
 * Responses that may be long
 * When you want the best possible user experience
@@ -1180,12 +1253,13 @@ One of the most elegant parts of FoundationModels is that it doesn't just genera
 
 When you generate free text, you get something like:
 
-```
+```nocode
 "To make a pizza you need flour, water, salt, yeast, 
 tomato, mozzarella cheese, oregano..."
 ```
 
 **Problems**:
+
 * You have to parse the text manually
 * Format can vary
 * No type validation
@@ -1203,6 +1277,7 @@ To:
 * "generate a valid `Recipe` following this contract"
 
 **Advantages**:
+
 * ✅ Type safe: The compiler verifies it's a valid `Recipe`
 * ✅ No parsing: You already have the structure ready to use
 * ✅ Automatic validation: Constraints are applied automatically
@@ -1252,16 +1327,19 @@ struct Ingredient {
 ### 16.6.3 How it works internally
 
 **`@Generable`**:
+
 * Marks a structure as "generable" by the model
 * Tells the model what type of data it should produce
 * Automatically generates a `PartiallyGenerated` for streaming
 
 **`@Guide`**:
+
 * Provides instructions to the model about each field
 * Can include constraints (`.count`, `.range`, `.anyOf`)
 * Helps the model understand what values are valid
 
 **The process**:
+
 1. The model receives the prompt + the `@Generable` structure
 2. Generates data that tries to fulfill the contract
 3. The framework validates that data meets constraints
@@ -1274,24 +1352,28 @@ The model doesn't "understand" better, but has much more specific instructions a
 ### 16.6.4 Available constraints
 
 **`.count(min...max)`**: Limits the number of elements in arrays
+
 ```swift
 @Guide(.count(4...20))
 let ingredients: [Ingredient]
 ```
 
 **`.range(min...max)`**: Limits numerical values
+
 ```swift
 @Guide(.range(5...180))
 let preparationTime: Int
 ```
 
 **`.anyOf([...])`**: Restricts to specific values
+
 ```swift
 @Guide(.anyOf(["Easy", "Medium", "Difficult"]))
 let difficulty: String
 ```
 
 **When to use each**:
+
 * `.count`: When you need to control list sizes
 * `.range`: For numerical values with reasonable limits
 * `.anyOf`: For enums or discrete values your UI can handle
@@ -1299,12 +1381,14 @@ let difficulty: String
 ### 16.6.5 Limitations and when not to use it
 
 **Don't use `@Generable` when**:
+
 * You need extensive free text (articles, long stories)
 * Format is completely open
 * You need multiple possible formats
 * Structure is too complex or deeply nested
 
 **Use free text when**:
+
 * User needs to edit the result directly
 * Format is completely flexible
 * You need creative generation without constraints
@@ -1472,6 +1556,7 @@ FoundationModels can fail in various ways. Understanding and handling these case
 ### 16.9.1 Common error types
 
 **Model not available**:
+
 ```swift
 guard SystemLanguageModel.default.isAvailable else {
   // Handle the case where the model is not available
@@ -1480,6 +1565,7 @@ guard SystemLanguageModel.default.isAvailable else {
 ```
 
 **Guardrails activated**:
+
 ```swift
 do {
   let response = try await session.respond(to: prompt)
@@ -1496,16 +1582,19 @@ do {
 ### 16.9.2 Handling strategies
 
 **Proactive verification**:
+
 * Always verify `isAvailable` before using the model
 * Validate input size before sending it
 * Set reasonable timeouts
 
 **Fallbacks**:
+
 * If the model fails, degrade to a feature without AI
 * Offer alternatives to the user
 * Save state to retry later
 
 **User feedback**:
+
 * Explain clearly what went wrong
 * Offer actions the user can take
 * Don't fail silently
@@ -1513,12 +1602,14 @@ do {
 ### 16.9.3 Guardrails: what they block
 
 Guardrails block:
+
 * Offensive or inappropriate content
 * Sensitive personal information
 * Prompts that try to evade restrictions
 * Content that violates Apple policies
 
 **You can't disable them**, but you can:
+
 * Design prompts that avoid activating them
 * Handle errors gracefully when they activate
 * Provide additional context if necessary
@@ -1526,12 +1617,14 @@ Guardrails block:
 ### 16.9.4 On-device model limits
 
 **Known limits**:
+
 * **Limited context**: Typically 4K-32K tokens (less than cloud models)
 * **Capacity**: Smaller models than cloud (3-7B vs 70B+)
 * **Speed**: May be slower on older devices
 * **Memory**: Consumes device RAM
 
 **How to work within limits**:
+
 * Truncate long inputs before sending them
 * Use summaries for historical context
 * Limit array sizes in `@Generable`
@@ -1546,17 +1639,20 @@ Using FoundationModels efficiently requires understanding how to measure and opt
 ### 16.10.1 Token measurement
 
 **Why it matters**:
+
 * Tokens determine computational cost
 * More tokens = more generation time
 * More tokens = more memory consumed
 * More tokens = higher latency
 
 **How to estimate**:
+
 * 1 token ≈ 0.75 words in English
 * 1 token ≈ 1-2 words in Spanish
 * Long strings = more tokens
 
 **What to measure**:
+
 * Input tokens (prompt + transcript)
 * Output tokens (generated response)
 * Total tokens per session
@@ -1575,11 +1671,13 @@ Using FoundationModels efficiently requires understanding how to measure and opt
 ### 16.10.3 Session caching
 
 **When to cache**:
+
 * Sessions that are reused frequently
 * Conversations the user can resume
 * Context that doesn't change much
 
 **When not to cache**:
+
 * Ephemeral sessions for one-off tasks
 * When context is very large
 * When memory is limited
@@ -1587,6 +1685,7 @@ Using FoundationModels efficiently requires understanding how to measure and opt
 ### 16.10.4 Monitoring and metrics
 
 **What to monitor**:
+
 * Average generation time
 * Error rate
 * Memory usage
@@ -1699,6 +1798,7 @@ This is a very strong recommendation from Apple: **if you can, use `@Generable`*
 **Problem with free text**:
 
 When you generate long free text, you typically spend more tokens because:
+
 * The model has to "explain" more
 * It repeats information
 * Adds filler and transition words
@@ -1719,6 +1819,7 @@ When you generate long free text, you typically spend more tokens because:
 Instead of the model generating HTML or markdown, generate data structures and you render the UI. This gives you more control and is more efficient.
 
 **When to use free text**:
+
 * Extensive creative content (articles, stories)
 * When format must be completely flexible
 * When user needs to edit the result directly
@@ -1752,11 +1853,13 @@ Everything involving translation consumes additional tokens.
 **Strategies**:
 
 **Option 1: Normalize to user's language**
+
 * Detect user's language
 * Always work in that language
 * Simpler, but requires detection
 
 **Option 2: Base language + translation at the end**
+
 * Work in a base language (e.g., English)
 * Translate at the end if necessary
 * More control, but more complex
@@ -1771,58 +1874,58 @@ This checklist helps ensure your FoundationModels integration is ready for produ
 
 ### 18.1 Prototyping and validation
 
-- [ ] You experimented with `#Playground` before implementing
-- [ ] You tested different prompts and structures
-- [ ] You validated that `@Generable` works for your use case
-- [ ] You compared `respond` vs `streamResponse` and chose the best option
-- [ ] You identified what guardrails may affect your app
+* [ ] You experimented with `#Playground` before implementing
+* [ ] You tested different prompts and structures
+* [ ] You validated that `@Generable` works for your use case
+* [ ] You compared `respond` vs `streamResponse` and chose the best option
+* [ ] You identified what guardrails may affect your app
 
 ### 18.2 Measurement and limits
 
-- [ ] You measure tokens (or estimate based on words)
-- [ ] You know the limits of your target device
-- [ ] You did stress testing of context
-- [ ] You defined comfortable operational limits
-- [ ] You implemented validations before calling the model
+* [ ] You measure tokens (or estimate based on words)
+* [ ] You know the limits of your target device
+* [ ] You did stress testing of context
+* [ ] You defined comfortable operational limits
+* [ ] You implemented validations before calling the model
 
 ### 18.3 Optimization
 
-- [ ] You use `@Generable` when appropriate (not unnecessary free text)
-- [ ] You configured instructions in the session (don't repeat them in each prompt)
-- [ ] You implemented truncation strategies for long inputs
-- [ ] You have a plan to handle growing historical context
-- [ ] You considered session caching if applicable
+* [ ] You use `@Generable` when appropriate (not unnecessary free text)
+* [ ] You configured instructions in the session (don't repeat them in each prompt)
+* [ ] You implemented truncation strategies for long inputs
+* [ ] You have a plan to handle growing historical context
+* [ ] You considered session caching if applicable
 
 ### 18.4 Error handling
 
-- [ ] You check `isAvailable` before using the model
-- [ ] You handle the case where the model is not available
-- [ ] You have fallbacks when generation fails
-- [ ] You handle gracefully when guardrails block content
-- [ ] You provide clear feedback to the user when something fails
+* [ ] You check `isAvailable` before using the model
+* [ ] You handle the case where the model is not available
+* [ ] You have fallbacks when generation fails
+* [ ] You handle gracefully when guardrails block content
+* [ ] You provide clear feedback to the user when something fails
 
 ### 18.5 UX and performance
 
-- [ ] You use `streamResponse` for user interactions (not `respond`)
-- [ ] UI shows progress during generation
-- [ ] You implemented reasonable timeouts
-- [ ] You monitor generation time and errors
-- [ ] Experience is fluid even when the model is slow
+* [ ] You use `streamResponse` for user interactions (not `respond`)
+* [ ] UI shows progress during generation
+* [ ] You implemented reasonable timeouts
+* [ ] You monitor generation time and errors
+* [ ] Experience is fluid even when the model is slow
 
 ### 18.6 Internationalization
 
-- [ ] You decided on a strategy for language handling
-- [ ] You tested with users of different languages
-- [ ] You considered token cost for translation
-- [ ] You validated that prompts work in all supported languages
+* [ ] You decided on a strategy for language handling
+* [ ] You tested with users of different languages
+* [ ] You considered token cost for translation
+* [ ] You validated that prompts work in all supported languages
 
 ### 18.7 Testing
 
-- [ ] You tested with real inputs (not just demos)
-- [ ] You validated edge cases (empty inputs, very long, etc.)
-- [ ] You tested on different devices (if applicable)
-- [ ] You verified it works offline (on-device)
-- [ ] You have automated tests for critical cases
+* [ ] You tested with real inputs (not just demos)
+* [ ] You validated edge cases (empty inputs, very long, etc.)
+* [ ] You tested on different devices (if applicable)
+* [ ] You verified it works offline (on-device)
+* [ ] You have automated tests for critical cases
 
 **Summary in one sentence**:
 

@@ -85,10 +85,11 @@ Cada capa aprende a reconocer patrones en diferentes niveles de abstracción:
 * **Capas profundas**: identifican objetos completos, relaciones complejas, conceptos abstractos
 
 **Ejemplo visual**: En una red que reconoce imágenes de perros:
-- Capa 1: "hay un borde aquí, otro allá"
-- Capa 3: "estos bordes forman una forma circular (ojos)"
-- Capa 5: "estas formas sugieren la cara de un perro"
-- Capa final: "esto es un perro"
+
+* Capa 1: "hay un borde aquí, otro allá"
+* Capa 3: "estos bordes forman una forma circular (ojos)"
+* Capa 5: "estas formas sugieren la cara de un perro"
+* Capa final: "esto es un perro"
 
 Por eso una red profunda puede reconocer "un perro" y no solo píxeles. La profundidad permite que la red construya representaciones cada vez más abstractas y complejas.
 
@@ -135,7 +136,7 @@ Un modelo de lenguaje no ve palabras completas como los humanos. Ve **tokens**, 
 
 Ejemplo de tokenización:
 
-```
+```nocode
 "perseguía" → ["per", "segu", "ía"]
 "desarrollador" → ["des", "arroll", "ador"]
 ```
