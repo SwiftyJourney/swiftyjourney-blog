@@ -13,8 +13,6 @@ slug: 'swift-refresh-2025-day-5-modern-ai-foundation-models-ai-powered-developme
 > **Goal of this series**
 >
 > Explain what's *really* behind modern AI —from neural networks to Vibe Coding— in a **technical but understandable** way, with **friendly examples**, without hype and with **professional judgment**.
->
-> This **Part 1** is conceptual. We're not going to implement models or write papers. We're going to **understand**. In Part 2 (if you do it) we dive into code and real flows.
 
 ---
 

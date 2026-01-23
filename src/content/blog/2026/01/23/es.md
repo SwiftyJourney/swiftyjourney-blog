@@ -13,8 +13,6 @@ slug: 'swift-refresh-2025-dia-5-ia-moderna-foundation-models-inteligencia-artifi
 > **Objetivo de esta serie**
 >
 > Explicar qué hay *realmente* detrás de la IA moderna —desde las redes neuronales hasta el Vibe Coding— de forma **técnica pero entendible**, con **ejemplos amigables**, sin hype y con **criterio profesional**.
->
-> Esta **Parte 1** es conceptual. No vamos a implementar modelos ni a escribir papers. Vamos a **entender**. En la Parte 2 (si la haces) bajamos a código y flujos reales.
 
 ---
 
