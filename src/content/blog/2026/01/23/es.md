@@ -1462,7 +1462,6 @@ Es:
 
 Si entiendes esto, **ya estás muy por delante de la media**.
 
-
 ---
 
 ## 17. Metodología de desarrollo con FoundationModels
@@ -1636,58 +1635,58 @@ Este checklist ayuda a asegurar que tu integración de FoundationModels esté li
 
 ### 18.1 Prototipado y validación
 
-- [ ] Experimentaste con `#Playground` antes de implementar
-- [ ] Probaste diferentes prompts y estructuras
-- [ ] Validaste que `@Generable` funciona para tu caso de uso
-- [ ] Comparaste `respond` vs `streamResponse` y elegiste la mejor opción
-- [ ] Identificaste qué guardrails pueden afectar tu app
+* [ ] Experimentaste con `#Playground` antes de implementar
+* [ ] Probaste diferentes prompts y estructuras
+* [ ] Validaste que `@Generable` funciona para tu caso de uso
+* [ ] Comparaste `respond` vs `streamResponse` y elegiste la mejor opción
+* [ ] Identificaste qué guardrails pueden afectar tu app
 
 ### 18.2 Medición y límites
 
-- [ ] Mides tokens (o estimas basado en palabras)
-- [ ] Conoces los límites de tu dispositivo objetivo
-- [ ] Hiciste stress testing del contexto
-- [ ] Definiste límites operativos cómodos
-- [ ] Implementaste validaciones antes de llamar al modelo
+* [ ] Mides tokens (o estimas basado en palabras)
+* [ ] Conoces los límites de tu dispositivo objetivo
+* [ ] Hiciste stress testing del contexto
+* [ ] Definiste límites operativos cómodos
+* [ ] Implementaste validaciones antes de llamar al modelo
 
 ### 18.3 Optimización
 
-- [ ] Usas `@Generable` cuando es apropiado (no texto libre innecesario)
-- [ ] Configuraste instrucciones en la sesión (no las repitas en cada prompt)
-- [ ] Implementaste estrategias de truncamiento para inputs largos
-- [ ] Tienes un plan para manejar contexto histórico creciente
-- [ ] Consideraste caching de sesiones si aplica
+* [ ] Usas `@Generable` cuando es apropiado (no texto libre innecesario)
+* [ ] Configuraste instrucciones en la sesión (no las repitas en cada prompt)
+* [ ] Implementaste estrategias de truncamiento para inputs largos
+* [ ] Tienes un plan para manejar contexto histórico creciente
+* [ ] Consideraste caching de sesiones si aplica
 
 ### 18.4 Manejo de errores
 
-- [ ] Verificas `isAvailable` antes de usar el modelo
-- [ ] Manejas el caso donde el modelo no está disponible
-- [ ] Tienes fallbacks cuando la generación falla
-- [ ] Manejas gracefully cuando los guardrails bloquean contenido
-- [ ] Proporcionas feedback claro al usuario cuando algo falla
+* [ ] Verificas `isAvailable` antes de usar el modelo
+* [ ] Manejas el caso donde el modelo no está disponible
+* [ ] Tienes fallbacks cuando la generación falla
+* [ ] Manejas gracefully cuando los guardrails bloquean contenido
+* [ ] Proporcionas feedback claro al usuario cuando algo falla
 
 ### 18.5 UX y performance
 
-- [ ] Usas `streamResponse` para interacciones de usuario (no `respond`)
-- [ ] La UI muestra progreso durante la generación
-- [ ] Implementaste timeouts razonables
-- [ ] Monitoreas tiempo de generación y errores
-- [ ] La experiencia es fluida incluso cuando el modelo es lento
+* [ ] Usas `streamResponse` para interacciones de usuario (no `respond`)
+* [ ] La UI muestra progreso durante la generación
+* [ ] Implementaste timeouts razonables
+* [ ] Monitoreas tiempo de generación y errores
+* [ ] La experiencia es fluida incluso cuando el modelo es lento
 
 ### 18.6 Internacionalización
 
-- [ ] Decidiste una estrategia para manejo de idiomas
-- [ ] Probaste con usuarios de diferentes idiomas
-- [ ] Consideraste costo de tokens por traducción
-- [ ] Validaste que los prompts funcionan en todos los idiomas soportados
+* [ ] Decidiste una estrategia para manejo de idiomas
+* [ ] Probaste con usuarios de diferentes idiomas
+* [ ] Consideraste costo de tokens por traducción
+* [ ] Validaste que los prompts funcionan en todos los idiomas soportados
 
 ### 18.7 Testing
 
-- [ ] Probaste con inputs reales (no solo demos)
-- [ ] Validaste edge cases (inputs vacíos, muy largos, etc.)
-- [ ] Probaste en diferentes dispositivos (si aplica)
-- [ ] Verificaste que funciona offline (on-device)
-- [ ] Tienes tests automatizados para casos críticos
+* [ ] Probaste con inputs reales (no solo demos)
+* [ ] Validaste edge cases (inputs vacíos, muy largos, etc.)
+* [ ] Probaste en diferentes dispositivos (si aplica)
+* [ ] Verificaste que funciona offline (on-device)
+* [ ] Tienes tests automatizados para casos críticos
 
 **Resumen en una frase**:
 
