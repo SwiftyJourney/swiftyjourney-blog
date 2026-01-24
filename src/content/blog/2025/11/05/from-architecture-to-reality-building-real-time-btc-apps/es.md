@@ -157,7 +157,7 @@ public final class AppDependencies: Sendable {
 
 ### Grafo de Dependencias
 
-```nocode
+```plaintext
 AppDependencies
 ├── priceStore: UserDefaultsPriceStore
 │   └── UserDefaults
@@ -498,7 +498,7 @@ Realidad: La app muestra -- para siempre.
 
 ### La Salida de la Consola 🚨
 
-```nocode
+```plaintext
 networkd_settings_read_from_file Sandbox está impidiendo que este proceso
 lea el archivo de configuración de networkd en
 "/Library/Preferences/com.apple.networkd.plist", por favor agrega una excepción.
@@ -788,7 +788,7 @@ Lección: Siempre limpia recursos en .onDisappear.
 
 Mira cómo fluyen las dependencias:
 
-```nocode
+```plaintext
 BTCPriceApp (Presentación)
   ↓ imports
 BTCPriceComposer (Composition Root)

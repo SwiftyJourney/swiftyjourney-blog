@@ -134,7 +134,7 @@ Un modelo de lenguaje no ve palabras completas como los humanos. Ve **tokens**, 
 
 Ejemplo de tokenización:
 
-```nocode
+```plaintext
 "perseguía" → ["per", "segu", "ía"]
 "desarrollador" → ["des", "arroll", "ador"]
 ```
@@ -922,7 +922,7 @@ Usar IA para generar código es poderoso, pero requiere disciplina y criterio. E
 
 **Ejemplo de buen prompt**:
 
-```nocode
+```plaintext
 "Necesito una función en Swift que valide emails. 
 Debe usar regex, retornar un Bool, y seguir las convenciones de Swift. 
 Incluye comentarios de documentación."
@@ -930,7 +930,7 @@ Incluye comentarios de documentación."
 
 **Ejemplo de mal prompt**:
 
-```nocode
+```plaintext
 "hazme validar emails"
 ```
 

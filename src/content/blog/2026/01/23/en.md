@@ -134,7 +134,7 @@ A language model doesn't see complete words like humans. It sees **tokens**, whi
 
 Tokenization example:
 
-```nocode
+```plaintext
 "chasing" → ["ch", "as", "ing"]
 "developer" → ["dev", "el", "oper"]
 ```
@@ -922,7 +922,7 @@ Using AI to generate code is powerful, but requires discipline and judgment. The
 
 **Good prompt example**:
 
-```nocode
+```plaintext
 "I need a Swift function that validates emails. 
 It must use regex, return a Bool, and follow Swift conventions. 
 Include documentation comments."
@@ -930,7 +930,7 @@ Include documentation comments."
 
 **Bad prompt example**:
 
-```nocode
+```plaintext
 "make me validate emails"
 ```
 
@@ -1251,7 +1251,7 @@ One of the most elegant parts of FoundationModels is that it doesn't just genera
 
 When you generate free text, you get something like:
 
-```nocode
+```plaintext
 "To make a pizza you need flour, water, salt, yeast, 
 tomato, mozzarella cheese, oregano..."
 ```
