@@ -7,7 +7,9 @@
     "prebuild": "rm -rf .astro node_modules/.astro",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "new:post": "node src/scripts/new-post.mjs",
+    "check:content": "node src/scripts/check-content.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.4",

@@ -14,9 +14,12 @@ const blog = defineCollection({
 			updatedDate: z.coerce.date().optional(),
 			heroImage: image().optional(),
 			lang: z.enum(['es', 'en']).default('en'),
-			translationKey: z.string().optional(), // Key to link related articles across languages
-			slug: z.string(), // flat URL slug (ignores folders)
-			tags: z.array(z.string()).optional(),
+			translationKey: z
+				.string()
+				.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+				.optional(), // Key to link related articles across languages
+			slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), // flat URL slug (ignores folders)
+			tags: z.array(z.string().min(1)).optional(),
 		}),
 });
 

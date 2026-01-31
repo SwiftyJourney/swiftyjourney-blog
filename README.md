@@ -59,6 +59,14 @@ The blog supports both English and Spanish with automatic language detection:
 
 ## ✍️ Creating New Blog Posts
 
+### Quick Create (Recommended)
+Generate the date folders and starter files:
+```bash
+npm run new:post -- --slug my-article --title "My Article Title" --date 2026-01-31
+```
+- Creates `src/content/blog/YYYY/MM/DD/en.md` and `es.md`
+- Generates a tiny placeholder `hero.png`
+
 ### 1. File Location
 Place your markdown files in:
 ```
@@ -100,6 +108,12 @@ Your article content here...
 - `heroImage`: Path to hero image (relative to the markdown file)
 - `translationKey`: Links related articles across languages
 - `tags`: List of topic tags (used for related posts and tag pages)
+
+### Content Checks
+Run a quick validation pass before commit or deploy:
+```bash
+npm run check:content
+```
 
 ### 5. Translation Key System
 To link English and Spanish versions of the same article:
