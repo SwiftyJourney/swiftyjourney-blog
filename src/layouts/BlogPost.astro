@@ -45,11 +45,11 @@ const currentPath = Astro.url.pathname;
 const toEn =
 	translatedPost && lang === "es"
 		? `/en/blog/${translatedPost.data.slug ?? translatedPost.id.split("/").pop()}/`
-		: `/${lang}/`;
+		: "/en/";
 const toEs =
 	translatedPost && lang === "en"
 		? `/es/blog/${translatedPost.data.slug ?? translatedPost.id.split("/").pop()}/`
-		: `/${lang}/`;
+		: "/es/";
 ---
 
 <BaseLayout
