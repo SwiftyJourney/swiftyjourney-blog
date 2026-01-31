@@ -16,6 +16,7 @@ const blog = defineCollection({
 			lang: z.enum(['es', 'en']).default('en'),
 			translationKey: z.string().optional(), // Key to link related articles across languages
 			slug: z.string(), // flat URL slug (ignores folders)
+			tags: z.array(z.string()).optional(),
 		}),
 });
 

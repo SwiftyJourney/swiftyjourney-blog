@@ -21,6 +21,8 @@ const {
 	lang = "es",
 	translationKey,
 	rawContent,
+	tags,
+	slug,
 } = Astro.props;
 
 const siteUrl = Astro.site?.toString() ?? "https://blog.swiftyjourney.com";
@@ -46,11 +48,42 @@ const translatedPost = allPosts.find(
 		post.data.translationKey === translationKey && post.data.lang !== lang,
 );
 
+const normalizeTag = (tag: string) =>
+	tag
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
+const currentTagSlugs = tags?.map(normalizeTag) ?? [];
+const relatedByTags =
+	currentTagSlugs.length > 0
+		? allPosts.filter(
+				(post) =>
+					post.data.lang === lang &&
+					post.data.slug !== slug &&
+					(post.data.tags ?? []).some((tag) =>
+						currentTagSlugs.includes(normalizeTag(tag)),
+					),
+			)
+		: [];
+
+const relatedPosts =
+	relatedByTags.length > 0
+		? relatedByTags
+		: allPosts
+				.filter(
+					(post) => post.data.lang === lang && post.data.slug !== slug,
+				)
+				.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+				.slice(0, 3);
+
 const jsonLd = {
 	"@context": "https://schema.org",
 	"@type": "Article",
 	headline: title,
 	description,
+	keywords: tags?.join(", "),
 	inLanguage: lang,
 	datePublished: pubDate.toISOString(),
 	dateModified: (updatedDate ?? pubDate).toISOString(),
@@ -129,12 +162,54 @@ const toEs =
 					</p>
 				)
 			}
+			{
+				tags && tags.length > 0 && (
+					<div class="mt-6 flex flex-wrap justify-center gap-2">
+						{tags.map((tag) => (
+							<a
+								href={`/${lang}/tags/${normalizeTag(tag)}/`}
+								class="text-xs uppercase tracking-wide px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-orange-500 hover:border-orange-300 dark:hover:text-orange-300 transition-colors"
+							>
+								{tag}
+							</a>
+						))}
+					</div>
+				)
+			}
 		</header>
 
 		<!-- Article Content -->
 		<div class="max-w-3xl mx-auto px-4 prose">
 			<slot />
 		</div>
+
+		{
+			relatedPosts.length > 0 && (
+				<div class="max-w-3xl mx-auto px-4 mt-16">
+					<h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-6">
+						{lang === "en" ? "Related posts" : "Artículos relacionados"}
+					</h2>
+					<div class="grid gap-6 md:grid-cols-3">
+						{relatedPosts.map((post) => (
+							<a
+								href={`/${lang}/blog/${post.data.slug}/`}
+								class="block rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 hover:border-orange-300 dark:hover:border-orange-500/50 transition-colors"
+							>
+								<div class="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
+									{post.data.pubDate.toLocaleDateString(
+										lang === "en" ? "en-US" : "es-ES",
+										{ year: "numeric", month: "short", day: "numeric" },
+									)}
+								</div>
+								<div class="font-semibold text-zinc-900 dark:text-zinc-100">
+									{post.data.title}
+								</div>
+							</a>
+						))}
+					</div>
+				</div>
+			)
+		}
 
 		<!-- Back to Blog -->
 		<div

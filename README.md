@@ -82,6 +82,7 @@ heroImage: './hero.png'  # Optional
 lang: 'en'  # or 'es'
 translationKey: 'unique-article-key'  # Links translations together
 slug: 'your-article-slug'
+tags: ['swift', 'swiftui']  # Optional
 ---
 
 Your article content here...
@@ -98,6 +99,7 @@ Your article content here...
 - `updatedDate`: When the article was last updated
 - `heroImage`: Path to hero image (relative to the markdown file)
 - `translationKey`: Links related articles across languages
+- `tags`: List of topic tags (used for related posts and tag pages)
 
 ### 5. Translation Key System
 To link English and Spanish versions of the same article:
