@@ -30,6 +30,13 @@ npm run build
 npm run preview
 ```
 
+### Troubleshooting
+- If `astro build` fails with an `ImageNotFound` error after moving content, clear Astro's content cache:
+  ```bash
+  rm -rf .astro node_modules/.astro
+  npm run build
+  ```
+
 ## 🌐 Multilingual Support
 
 The blog supports both English and Spanish with automatic language detection:
