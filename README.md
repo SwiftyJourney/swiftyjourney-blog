@@ -55,8 +55,10 @@ The blog supports both English and Spanish with automatic language detection:
 Place your markdown files in:
 ```
 src/content/blog/
-├── my-new-article-en.md    # English version
-└── mi-nuevo-articulo-es.md # Spanish version
+└── 2026/01/31/
+    ├── en.md               # English version
+    ├── es.md               # Spanish version
+    └── hero.png            # Optional local assets
 ```
 
 ### 2. Frontmatter Structure
@@ -68,9 +70,10 @@ title: 'Your Article Title'
 description: 'A brief description of your article for SEO and social sharing'
 pubDate: 'Dec 15 2025'
 updatedDate: 'Dec 16 2025'  # Optional
-heroImage: '../../assets/hero-image.jpg'  # Optional
+heroImage: './hero.png'  # Optional
 lang: 'en'  # or 'es'
 translationKey: 'unique-article-key'  # Links translations together
+slug: 'your-article-slug'
 ---
 
 Your article content here...
@@ -81,6 +84,7 @@ Your article content here...
 - `description`: SEO description (used in meta tags)
 - `pubDate`: Publication date
 - `lang`: Language code (`'en'` or `'es'`)
+- `slug`: URL slug used in `/en/blog/<slug>/` and `/es/blog/<slug>/`
 
 ### 4. Optional Fields
 - `updatedDate`: When the article was last updated
@@ -91,18 +95,20 @@ Your article content here...
 To link English and Spanish versions of the same article:
 
 ```markdown
-# English version (my-article-en.md)
+# English version (YYYY/MM/DD/en.md)
 ---
 title: 'Building iOS Apps with SwiftUI'
 lang: 'en'
 translationKey: 'swiftui-ios-apps'
+slug: 'building-ios-apps-with-swiftui'
 ---
 
-# Spanish version (mi-articulo-es.md)  
+# Spanish version (YYYY/MM/DD/es.md)  
 ---
 title: 'Construyendo Apps iOS con SwiftUI'
 lang: 'es'
 translationKey: 'swiftui-ios-apps'  # Same key!
+slug: 'construyendo-apps-ios-con-swiftui'
 ---
 ```
 
@@ -111,37 +117,19 @@ This enables the language toggle to work correctly on individual articles.
 ## 🖼️ Image Management
 
 ### Hero Images
-Store hero images in `src/assets/` and reference them relatively:
+Store hero images in the same post folder and reference them relatively:
 
 ```markdown
 ---
-heroImage: '../../assets/my-hero-image.jpg'
+heroImage: './hero.png'
 ---
 ```
 
 ### Content Images
-For images within your article content:
+For images within your article content, keep assets in the same folder:
 
 ```markdown
-![Alt text](../../assets/my-content-image.jpg)
-```
-
-### Recommended Image Organization
-```
-src/assets/
-├── hero/
-│   ├── swiftui-tutorial-hero.jpg
-│   └── ios-architecture-hero.jpg
-├── content/
-│   ├── swiftui-tutorial/
-│   │   ├── step-1.jpg
-│   │   └── step-2.jpg
-│   └── ios-architecture/
-│       ├── diagram-1.jpg
-│       └── diagram-2.jpg
-└── general/
-    ├── swift-logo.png
-    └── xcode-screenshot.jpg
+![Alt text](./my-content-image.jpg)
 ```
 
 ### Image Best Practices

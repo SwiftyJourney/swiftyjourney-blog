@@ -10,7 +10,7 @@ slug: 'persistence-decisions-userdefaults-filemanager-swiftdata'
 
 ## Introduction
 
-In the [previous article](../from-core-to-reality-infrastructure-urlsession-real-world-api-challenges) we built a production-ready networking layer that fetches BTC prices from real APIs. We had loaders, error handling, and integration tests.
+In the [previous article](/en/blog/from-core-to-reality-infrastructure-urlsession-real-world-api-challenges/) we built a production-ready networking layer that fetches BTC prices from real APIs. We had loaders, error handling, and integration tests.
 
 But there's a problem: **every app launch requires a network call**.
 

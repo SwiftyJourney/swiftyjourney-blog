@@ -11,7 +11,7 @@ slug: 'de-arquitectura-a-realidad-construyendo-apps-de-precio-btc-en-tiempo-real
 
 ## Introducción
 
-En el [artículo anterior](../persistence-decisions-userdefaults-filemanager-swiftdata) construimos una capa de persistencia con UserDefaults, comparamos tres soluciones y descubrimos el bug de precisión Decimal de SwiftData.
+En el [artículo anterior](/es/blog/persistence-decisions-userdefaults-filemanager-swiftdata/) construimos una capa de persistencia con UserDefaults, comparamos tres soluciones y descubrimos el bug de precisión Decimal de SwiftData.
 
 Ahora tenemos:
 
@@ -1193,10 +1193,10 @@ Para más información sobre App Sandbox de macOS y entitlements:
 
 ### Artículos Relacionados en Esta Serie
 
-1. [De Requerimientos a Casos de Uso: Construyendo una App de Precio BTC de la Forma Correcta](../desde-requerimientos-hasta-casos-de-uso-construyendo-una-aplicacion-para-precio-de-btc-de-la-forma-correcta) - Convirtiendo requerimientos en casos de uso claros
-2. [De Casos de Uso a Código: Construyendo el Core con TDD](../from-use-cases-to-code-building-the-core-with-tdd) - Capa de dominio y casos de uso con TDD
-3. [De Core a Realidad: Infraestructura, URLSession y Desafíos de APIs del Mundo Real](../from-core-to-reality-infrastructure-urlsession-real-world-api-challenges) - Implementación de capa de networking
-4. [Decisiones de Persistencia: UserDefaults vs FileManager vs SwiftData](../persistence-decisions-userdefaults-filemanager-swiftdata) - Comparación e implementación de capa de persistencia
+1. [De Requerimientos a Casos de Uso: Construyendo una App de Precio BTC de la Forma Correcta](/es/blog/desde-requerimientos-hasta-casos-de-uso-construyendo-una-aplicacion-para-precio-de-btc-de-la-forma-correcta/) - Convirtiendo requerimientos en casos de uso claros
+2. [De Casos de Uso a Código: Construyendo el Core con TDD](/es/blog/from-use-cases-to-code-building-the-core-with-tdd/) - Capa de dominio y casos de uso con TDD
+3. [De Core a Realidad: Infraestructura, URLSession y Desafíos de APIs del Mundo Real](/es/blog/from-core-to-reality-infrastructure-urlsession-real-world-api-challenges/) - Implementación de capa de networking
+4. [Decisiones de Persistencia: UserDefaults vs FileManager vs SwiftData](/es/blog/persistence-decisions-userdefaults-filemanager-swiftdata/) - Comparación e implementación de capa de persistencia
 
 ---
 

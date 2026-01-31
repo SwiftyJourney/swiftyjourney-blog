@@ -10,7 +10,7 @@ slug: 'from-use-cases-to-code-building-the-core-with-tdd'
 
 ## Introduction
 
-In the [previous](../from-requirements-to-use-cases-building-a-btc-price-app-the-right-way) we transformed vague requirements into **user stories**, **narratives** and **use cases**.
+In the [previous](/en/blog/from-requirements-to-use-cases-building-a-btc-price-app-the-right-way/) we transformed vague requirements into **user stories**, **narratives** and **use cases**.
 Now it's time to show how those use cases turn into **code**.
 
 But here's the twist: we won't start with networking or persistence. Instead, we'll focus on **the Core** - the heart of the app where contracts and behaviors live. Everything else (infrastructure) will come later.

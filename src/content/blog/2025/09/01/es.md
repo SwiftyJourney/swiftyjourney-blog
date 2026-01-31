@@ -10,7 +10,7 @@ slug: 'de-casos-de-uso-a-codigo-construyendo-el-core-con-tdd'
 
 ## Introducción
 
-En el [artículo anterior](../from-requirements-to-use-cases-building-a-btc-price-app-the-right-way) transformamos requisitos vagos en **historias de usuario**, **narrativas** y **casos de uso**.
+En el [artículo anterior](/es/blog/from-requirements-to-use-cases-building-a-btc-price-app-the-right-way/) transformamos requisitos vagos en **historias de usuario**, **narrativas** y **casos de uso**.
 Ahora toca mostrar cómo esos casos de uso se convierten en **código**.
 
 Pero aquí viene el giro: no empezaremos con networking ni persistencia. En su lugar, nos enfocaremos en **el Core**: el corazón de la app donde viven los contratos y los comportamientos. Todo lo demás (infraestructura) vendrá después.

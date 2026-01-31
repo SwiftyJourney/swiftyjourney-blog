@@ -11,7 +11,7 @@ slug: 'from-architecture-to-reality-building-real-time-btc-apps'
 
 ## Introduction
 
-In the [previous article](../persistence-decisions-userdefaults-filemanager-swiftdata) we built a persistence layer with UserDefaults, benchmarked three solutions, and discovered SwiftData's Decimal precision bug.
+In the [previous article](/en/blog/persistence-decisions-userdefaults-filemanager-swiftdata/) we built a persistence layer with UserDefaults, benchmarked three solutions, and discovered SwiftData's Decimal precision bug.
 
 Now we have:
 
@@ -1191,10 +1191,10 @@ For more information about macOS App Sandbox and entitlements:
 
 ### Related Articles in This Series
 
-1. [From Requirements to Use Cases: Building a BTC Price App the Right Way](../from-requirements-to-use-cases-building-a-btc-price-app-the-right-way) - Converting requirements into clear use cases
-2. [From Use Cases to Code: Building the Core with TDD](../from-use-cases-to-code-building-the-core-with-tdd) - Domain layer and use cases with TDD
-3. [From Core to Reality: Infrastructure, URLSession, and Real-World API Challenges](../from-core-to-reality-infrastructure-urlsession-real-world-api-challenges) - Networking layer implementation
-4. [Persistence Decisions: UserDefaults vs FileManager vs SwiftData](../persistence-decisions-userdefaults-filemanager-swiftdata) - Persistence layer comparison and implementation
+1. [From Requirements to Use Cases: Building a BTC Price App the Right Way](/en/blog/from-requirements-to-use-cases-building-a-btc-price-app-the-right-way/) - Converting requirements into clear use cases
+2. [From Use Cases to Code: Building the Core with TDD](/en/blog/from-use-cases-to-code-building-the-core-with-tdd/) - Domain layer and use cases with TDD
+3. [From Core to Reality: Infrastructure, URLSession, and Real-World API Challenges](/en/blog/from-core-to-reality-infrastructure-urlsession-real-world-api-challenges/) - Networking layer implementation
+4. [Persistence Decisions: UserDefaults vs FileManager vs SwiftData](/en/blog/persistence-decisions-userdefaults-filemanager-swiftdata/) - Persistence layer comparison and implementation
 
 ---
 

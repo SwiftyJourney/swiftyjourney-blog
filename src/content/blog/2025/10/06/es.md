@@ -10,7 +10,7 @@ slug: 'del-core-a-la-realidad-infraestructura-urlsession-desafios-apis-mundo-rea
 
 ## Introducción
 
-En el [artículo anterior](../from-use-cases-to-code-building-the-core-with-tdd) construimos un Core sólido con casos de uso, entidades y protocolos usando TDD. Teníamos contratos de `PriceLoader` y lógica de dominio, pero todo eran abstracciones puras.
+En el [artículo anterior](/es/blog/from-use-cases-to-code-building-the-core-with-tdd/) construimos un Core sólido con casos de uso, entidades y protocolos usando TDD. Teníamos contratos de `PriceLoader` y lógica de dominio, pero todo eran abstracciones puras.
 
 Ahora viene la prueba de realidad: **conectar nuestro hermoso Core a APIs reales**.
 

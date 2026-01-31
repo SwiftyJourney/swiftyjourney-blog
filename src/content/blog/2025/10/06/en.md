@@ -10,7 +10,7 @@ slug: 'from-core-to-reality-infrastructure-urlsession-real-world-api-challenges'
 
 ## Introduction
 
-In the [previous article](../from-use-cases-to-code-building-the-core-with-tdd) we built a solid Core with use cases, entities, and protocols using TDD. We had `PriceLoader` contracts and domain logic, but everything was pure abstractions.
+In the [previous article](/en/blog/from-use-cases-to-code-building-the-core-with-tdd/) we built a solid Core with use cases, entities, and protocols using TDD. We had `PriceLoader` contracts and domain logic, but everything was pure abstractions.
 
 Now comes the reality check: **connecting our beautiful Core to actual APIs**.
 

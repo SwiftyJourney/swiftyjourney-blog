@@ -10,7 +10,7 @@ slug: 'persistence-decisions-userdefaults-filemanager-swiftdata'
 
 ## Introducción
 
-En el [artículo anterior](../from-core-to-reality-infrastructure-urlsession-real-world-api-challenges) construimos una capa de networking lista para producción que obtiene precios de BTC de APIs reales. Tuvimos loaders, manejo de errores y pruebas de integración.
+En el [artículo anterior](/es/blog/from-core-to-reality-infrastructure-urlsession-real-world-api-challenges/) construimos una capa de networking lista para producción que obtiene precios de BTC de APIs reales. Tuvimos loaders, manejo de errores y pruebas de integración.
 
 Pero hay un problema: **cada lanzamiento de la app requiere una llamada de red**.
 
