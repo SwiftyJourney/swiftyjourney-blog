@@ -23,6 +23,12 @@ const {
 	rawContent,
 } = Astro.props;
 
+const siteUrl = Astro.site?.toString() ?? "https://blog.swiftyjourney.com";
+const canonical = new URL(Astro.url.pathname, siteUrl).toString();
+const ogImage = heroImage ? new URL(heroImage.src, siteUrl).toString() : undefined;
+const ogImageWidth = heroImage?.width;
+const ogImageHeight = heroImage?.height;
+
 // Calculate reading time if rawContent is provided
 const readingTimeResult = rawContent ? readingTime(rawContent) : null;
 const readingTimeText = readingTimeResult
@@ -39,6 +45,26 @@ const translatedPost = allPosts.find(
 	(post) =>
 		post.data.translationKey === translationKey && post.data.lang !== lang,
 );
+
+const jsonLd = {
+	"@context": "https://schema.org",
+	"@type": "Article",
+	headline: title,
+	description,
+	inLanguage: lang,
+	datePublished: pubDate.toISOString(),
+	dateModified: (updatedDate ?? pubDate).toISOString(),
+	mainEntityOfPage: canonical,
+	author: {
+		"@type": "Organization",
+		name: "Swifty Journey",
+	},
+	publisher: {
+		"@type": "Organization",
+		name: "Swifty Journey",
+	},
+	image: ogImage ? [ogImage] : undefined,
+};
 
 // Generate URLs for language toggle
 const currentPath = Astro.url.pathname;
@@ -58,6 +84,13 @@ const toEs =
 	lang={lang}
 	toEn={toEn}
 	toEs={toEs}
+	ogType="article"
+	ogImage={ogImage}
+	ogImageWidth={ogImageWidth}
+	ogImageHeight={ogImageHeight}
+	articlePublishedTime={pubDate.toISOString()}
+	articleModifiedTime={updatedDate ? updatedDate.toISOString() : undefined}
+	jsonLd={jsonLd}
 >
 	<article class="py-12">
 		<!-- Hero Image -->
