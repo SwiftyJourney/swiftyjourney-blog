@@ -36,6 +36,7 @@ npm run preview
   rm -rf .astro node_modules/.astro
   npm run build
   ```
+- CI/CD note: `npm run build` runs `prebuild` to clear Astro caches automatically (helps on Vercel).
 
 ## 🌐 Multilingual Support
 
