@@ -67,6 +67,13 @@ npm run new:post -- --slug my-article --title "My Article Title" --date 2026-01-
 - Creates `src/content/blog/YYYY/MM/DD/en.md` and `es.md`
 - Generates a tiny placeholder `hero.png`
 
+You can also run it without flags for an interactive prompt:
+```bash
+npm run new:post
+```
+- Predefined tags are stored in `src/data/tags.json` and updated when you add new tags in the prompt.
+ - Prompts include: title → slug (auto from title) → date (defaults to today) → translationKey → tags.
+
 ### 1. File Location
 Place your markdown files in:
 ```
@@ -270,6 +277,28 @@ src/
 1. **New Components**: Add to `src/components/`
 2. **New Pages**: Add to appropriate language folder in `src/pages/`
 3. **Styling**: Extend `src/styles/global.css` or use Tailwind classes
+
+## 🧭 Authoring Workflow
+
+### Create a New Post
+Use the interactive generator:
+```bash
+npm run new:post
+```
+Prompts will guide you through title, slug, date, translationKey, and tags. The script creates:
+- `src/content/blog/YYYY/MM/DD/en.md`
+- `src/content/blog/YYYY/MM/DD/es.md`
+- `hero.png` placeholder for the post
+
+### Add or Reuse Tags
+- Predefined tags live in `src/data/tags.json`.
+- When you enter a new custom tag in the prompt, it is appended to the list automatically.
+
+### Validate Content Before Deploy
+```bash
+npm run check:content
+```
+This checks slug format, translationKey format, pubDate validity, and hero image paths.
 
 ### Content Collections
 The blog uses Astro's Content Collections for type-safe content management. The schema is defined in `src/content.config.ts`.
