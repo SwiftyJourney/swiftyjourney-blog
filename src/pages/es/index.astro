@@ -6,6 +6,13 @@ const allPosts = await getCollection("blog");
 const posts = allPosts
 	.filter((post) => post.data.lang === "es")
 	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const slugify = (tag) =>
+	tag
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
 ---
 
 <BaseLayout
@@ -36,7 +43,7 @@ const posts = allPosts
 				{
 					posts.slice(0, 6).map((post) => (
 						<article class="group">
-							<a href={`/es/blog/${post.id}/`} class="block">
+							<a href={`/es/blog/${post.data.slug}/`} class="block">
 								<div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 h-full transition-all hover:border-orange-500/30 hover:-translate-y-1 hover:shadow-md">
 									<h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3 group-hover:text-orange-500 transition-colors">
 										{post.data.title}
@@ -44,6 +51,18 @@ const posts = allPosts
 									<p class="text-zinc-600 dark:text-zinc-400 text-sm mb-4 line-clamp-3">
 										{post.data.description}
 									</p>
+									{post.data.tags && post.data.tags.length > 0 && (
+										<div class="mb-4 flex flex-wrap gap-2">
+											{post.data.tags.map((tag) => (
+												<a
+													href={`/es/tags/${slugify(tag)}/`}
+													class="text-[11px] uppercase tracking-wide px-2.5 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-orange-500 hover:border-orange-300 dark:hover:text-orange-300 transition-colors"
+												>
+													{tag}
+												</a>
+											))}
+										</div>
+									)}
 									<time class="text-xs text-zinc-500 dark:text-zinc-500">
 										{post.data.pubDate.toLocaleDateString("es-ES", {
 											year: "numeric",
