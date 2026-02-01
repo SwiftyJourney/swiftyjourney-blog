@@ -6,6 +6,7 @@ heroImage: './hero.png'
 lang: 'en'
 translationKey: 'swift-refresh-2025-day2-concurrency-liquid-glass'
 slug: 'swift-refresh-2025-day-2-concurrency-liquid-glass'
+tags: ['swift', 'concurrency', 'swiftui']
 ---
 
 ## Introduction

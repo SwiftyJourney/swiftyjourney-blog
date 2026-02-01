@@ -6,6 +6,7 @@ heroImage: './hero.png'
 lang: 'es'
 translationKey: 'swift-refresh-2025-day5-ai-foundation-models-intelligence'
 slug: 'swift-refresh-2025-dia-5-ia-moderna-foundation-models-inteligencia-artificial'
+tags: ['swift', 'ai']
 ---
 
 ## De redes neuronales a Vibe Coding (sin humo, con criterio)

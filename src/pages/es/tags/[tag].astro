@@ -2,14 +2,14 @@
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { getCollection } from "astro:content";
 
-const slugify = (tag) =>
-	tag
-		.trim()
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
-
 export async function getStaticPaths() {
+	const slugify = (tag) =>
+		tag
+			.trim()
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-+|-+$/g, "");
+
 	const allPosts = await getCollection("blog");
 	const posts = allPosts.filter((post) => post.data.lang === "es");
 	const tagMap = new Map();
@@ -29,6 +29,13 @@ export async function getStaticPaths() {
 		props: { tagSlug: slug, tagLabel: label },
 	}));
 }
+
+const slugify = (tag) =>
+	tag
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
 
 const { tagSlug, tagLabel } = Astro.props;
 const allPosts = await getCollection("blog");

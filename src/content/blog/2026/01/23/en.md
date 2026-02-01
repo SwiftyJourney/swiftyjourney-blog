@@ -6,6 +6,7 @@ heroImage: './hero.png'
 lang: 'en'
 translationKey: 'swift-refresh-2025-day5-ai-foundation-models-intelligence'
 slug: 'swift-refresh-2025-day-5-modern-ai-foundation-models-ai-powered-development'
+tags: ['swift', 'ai']
 ---
 
 ## From neural networks to Vibe Coding (no hype, with judgment)

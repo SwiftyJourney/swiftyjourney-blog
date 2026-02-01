@@ -1,7 +1,10 @@
 [
+  "ai",
+  "animations",
   "architecture",
   "concurrency",
   "swift",
+  "swiftdata",
   "swiftui",
   "testing",
   "uikit"

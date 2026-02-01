@@ -6,6 +6,7 @@ heroImage: './hero.png'
 lang: 'es'
 translationKey: 'swift-refresh-2025-day4-part2-observation-uikit-reactive'
 slug: 'swift-refresh-2025-dia-4-parte-2-observation-uikit-reactivo'
+tags: ['swift', 'concurrency', 'uikit']
 ---
 
 ## Introducción

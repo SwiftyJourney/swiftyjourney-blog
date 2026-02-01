@@ -6,6 +6,7 @@ heroImage: './hero.png'
 lang: 'en'
 translationKey: 'swift-refresh-2025-day4-part1-memory-concurrency-synchronization'
 slug: 'swift-refresh-2025-day-4-part-1-memory-concurrency-synchronization'
+tags: ['swift', 'concurrency']
 ---
 
 ## Introduction

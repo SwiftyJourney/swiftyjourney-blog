@@ -6,6 +6,7 @@ heroImage: './hero.png'
 lang: 'en'
 translationKey: 'swift-refresh-2025-day3-liquid-glass-animations-swiftdata-xcode-ai'
 slug: 'swift-refresh-2025-day-3-liquid-glass-animations-swiftdata-xcode-ai'
+tags: ['swift', 'swiftui', 'swiftdata', 'animations']
 ---
 
 ## Introduction

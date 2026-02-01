@@ -6,6 +6,7 @@ heroImage: './hero.png'
 lang: 'es'
 translationKey: 'swift-refresh-2025-day1-concurrency'
 slug: 'swift-refresh-2025-dia-1-concurrencia-con-swift-6-2'
+tags: ['swift', 'concurrency']
 ---
 
 ## Introducción
