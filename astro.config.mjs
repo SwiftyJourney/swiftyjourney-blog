@@ -7,6 +7,7 @@ import icon from 'astro-icon';
 import react from '@astrojs/react';
 import partytown from '@astrojs/partytown';
 import { defineConfig } from 'astro/config';
+import rehypeMermaid from 'rehype-mermaid';
 
 // https://astro.build/config
 export default defineConfig({
@@ -19,9 +20,10 @@ export default defineConfig({
 					light: 'github-light',
 					dark: 'one-dark-pro',
 				},
-				langs: ['swift', 'typescript', 'javascript', 'json', 'bash', 'yaml', 'markdown', 'xml', 'css', 'html', 'gherkin'],
+				langs: ['swift', 'typescript', 'javascript', 'json', 'bash', 'yaml', 'markdown', 'xml', 'css', 'html', 'gherkin', 'mermaid'],
 				wrap: true,
 			},
+			rehypePlugins: [[rehypeMermaid, { strategy: 'img-svg' }]],
 		}),
 		sitemap(),
 		icon(),
@@ -42,8 +44,9 @@ export default defineConfig({
 				light: 'github-light',
 				dark: 'one-dark-pro',
 			},
-			langs: ['swift', 'typescript', 'javascript', 'json', 'bash', 'yaml', 'markdown', 'xml', 'css', 'html'],
+			langs: ['swift', 'typescript', 'javascript', 'json', 'bash', 'yaml', 'markdown', 'xml', 'css', 'html', 'mermaid'],
 			wrap: true,
 		},
+		rehypePlugins: [[rehypeMermaid, { strategy: 'img-svg' }]],
 	},
 });

@@ -89,12 +89,19 @@ const jsonLd = {
 	dateModified: (updatedDate ?? pubDate).toISOString(),
 	mainEntityOfPage: canonical,
 	author: {
-		"@type": "Organization",
-		name: "Swifty Journey",
+		"@type": "Person",
+		name: "Juan Francisco Dorado Torres",
+		url: "https://swiftyjourney.com",
+		sameAs: [
+			"https://x.com/jfdoradotr",
+			"https://github.com/swiftyjourney",
+			"https://linkedin.com/in/juanfranciscodoradotorres"
+		]
 	},
 	publisher: {
-		"@type": "Organization",
-		name: "Swifty Journey",
+		"@type": "Person",
+		name: "Juan Francisco Dorado Torres",
+		url: "https://swiftyjourney.com"
 	},
 	image: ogImage ? [ogImage] : undefined,
 };

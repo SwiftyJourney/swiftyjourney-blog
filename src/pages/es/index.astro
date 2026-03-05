@@ -27,6 +27,26 @@ const tagColors = {
 };
 const fallbackTagColor =
 	"bg-zinc-700/40 border-zinc-600/60 text-zinc-200";
+
+const jsonLd = {
+	"@context": "https://schema.org",
+	"@type": "WebSite",
+	name: "Swifty Journey Blog",
+	description: "Explorando iOS, Swift y SwiftUI a través de artículos, tutoriales y experiencias de desarrollo",
+	url: "https://blog.swiftyjourney.com/es/",
+	inLanguage: "es",
+	publisher: {
+		"@type": "Person",
+		name: "Juan Francisco Dorado Torres",
+		url: "https://swiftyjourney.com",
+		sameAs: [
+			"https://x.com/jfdoradotr",
+			"https://github.com/swiftyjourney",
+			"https://linkedin.com/in/juanfranciscodoradotorres"
+		]
+	}
+};
+
 const allTags = Array.from(
 	new Set(
 		posts.flatMap((post) => post.data.tags ?? []).map((tag) => slugify(tag)),
@@ -39,6 +59,7 @@ const allTags = Array.from(
 	title="Swifty Journey Blog"
 	description="Explorando iOS, Swift y SwiftUI a través de artículos y tutoriales"
 	lang="es"
+	jsonLd={jsonLd}
 >
 	<div class="py-12">
 		<!-- Hero Section -->

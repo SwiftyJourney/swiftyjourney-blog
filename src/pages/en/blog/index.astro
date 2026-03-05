@@ -14,12 +14,29 @@ const slugify = (tag) =>
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-+|-+$/g, "");
+
+const jsonLd = {
+	"@context": "https://schema.org",
+	"@type": "CollectionPage",
+	name: "Blog — Swifty Journey",
+	description: "All articles about iOS, Swift and SwiftUI",
+	url: "https://blog.swiftyjourney.com/en/blog/",
+	inLanguage: "en",
+	publisher: { "@type": "Person", name: "Juan Francisco Dorado Torres" },
+	itemListElement: posts.map((post, i) => ({
+		"@type": "ListItem",
+		position: i + 1,
+		url: `https://blog.swiftyjourney.com/en/blog/${post.data.slug}/`,
+		name: post.data.title,
+	}))
+};
 ---
 
 <BaseLayout
 	title="Blog — Swifty Journey"
 	description="All articles about iOS, Swift and SwiftUI"
 	lang="en"
+	jsonLd={jsonLd}
 >
 	<div class="py-12">
 		<div class="mb-12">
