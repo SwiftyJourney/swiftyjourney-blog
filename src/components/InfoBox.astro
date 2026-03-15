@@ -1,0 +1,50 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<div class="info-box-component my-7 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 md:p-6">
+  <div class="flex items-center gap-1.5 mb-3 text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+    <span class="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0"></span>
+    {title}
+  </div>
+  <div class="info-box-grid grid grid-cols-1 sm:grid-cols-2 gap-2">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .info-box-grid :global(li),
+  .info-box-grid :global(p) {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    color: var(--color-zinc-900);
+  }
+
+  :global(.dark) .info-box-grid :global(li),
+  :global(.dark) .info-box-grid :global(p) {
+    color: var(--color-zinc-100);
+  }
+
+  .info-box-grid :global(li)::before {
+    content: '\2192';
+    color: #f97316;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .info-box-grid :global(ul) {
+    list-style: none;
+    display: contents;
+    padding: 0;
+    margin: 0;
+  }
+</style>

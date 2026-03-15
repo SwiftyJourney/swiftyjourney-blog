@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude 1M Context — iOS Developer Edition</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;600;700&family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --swift-orange: #F05138;
+    --swift-orange-light: #FF6B50;
+    --bg-dark: #0A0A0F;
+    --bg-card: #111118;
+    --bg-card2: #16161E;
+    --accent-blue: #0A84FF;
+    --accent-teal: #30D5C8;
+    --accent-purple: #BF5AF2;
+    --text-primary: #F5F5F7;
+    --text-secondary: #98989E;
+    --border: rgba(255,255,255,0.07);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    width: 900px;
+    margin: 0 auto;
+    padding: 48px 40px 60px;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    position: relative;
+    margin-bottom: 44px;
+    padding: 40px 44px;
+    background: linear-gradient(135deg, #0D0D14 0%, #12121C 100%);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    overflow: hidden;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(240,81,56,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 40%;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(10,132,255,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(240,81,56,0.15);
+    border: 1px solid rgba(240,81,56,0.3);
+    color: var(--swift-orange-light);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 100px;
+    margin-bottom: 16px;
+  }
+
+  .tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--swift-orange);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .header h1 {
+    font-size: 42px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 10px;
+    letter-spacing: -1px;
+  }
+
+  .header h1 span {
+    background: linear-gradient(90deg, var(--swift-orange), var(--swift-orange-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header .subtitle {
+    font-size: 15px;
+    color: var(--text-secondary);
+    max-width: 520px;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .swift-logo {
+    position: absolute;
+    top: 32px; right: 44px;
+    font-size: 72px;
+    opacity: 0.15;
+    filter: drop-shadow(0 0 30px rgba(240,81,56,0.5));
+  }
+
+  /* Hero token number */
+  .token-hero {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 28px 0 0;
+  }
+
+  .token-big {
+    font-size: 68px;
+    font-weight: 900;
+    letter-spacing: -3px;
+    background: linear-gradient(135deg, var(--swift-orange) 0%, #FF8C6B 50%, var(--swift-orange-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  .token-label {
+    display: flex;
+    flex-direction: column;
+    margin-left: 16px;
+    justify-content: center;
+  }
+
+  .token-label .tl1 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .token-label .tl2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  /* GA Badge */
+  .ga-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(48,213,200,0.15), rgba(10,132,255,0.15));
+    border: 1px solid rgba(48,213,200,0.3);
+    color: var(--accent-teal);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-left: 14px;
+    vertical-align: middle;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .stat-card.orange::before { background: linear-gradient(90deg, var(--swift-orange), transparent); }
+  .stat-card.blue::before   { background: linear-gradient(90deg, var(--accent-blue), transparent); }
+  .stat-card.teal::before   { background: linear-gradient(90deg, var(--accent-teal), transparent); }
+
+  .stat-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .stat-number {
+    font-size: 44px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -2px;
+    margin-bottom: 4px;
+  }
+
+  .stat-card.orange .stat-number { color: var(--swift-orange); }
+  .stat-card.blue .stat-number   { color: var(--accent-blue); }
+  .stat-card.teal .stat-number   { color: var(--accent-teal); }
+
+  .stat-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .stat-desc {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Two-column section */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px 24px;
+  }
+
+  .section-card .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-orange { background: var(--swift-orange); }
+  .dot-blue   { background: var(--accent-blue); }
+  .dot-teal   { background: var(--accent-teal); }
+  .dot-purple { background: var(--accent-purple); }
+
+  /* Use cases */
+  .use-case-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .use-case-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .use-case-item:first-child { padding-top: 0; }
+
+  .uc-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .uc-icon.org  { background: rgba(240,81,56,0.15); }
+  .uc-icon.blue { background: rgba(10,132,255,0.15); }
+  .uc-icon.teal { background: rgba(48,213,200,0.15); }
+  .uc-icon.purp { background: rgba(191,90,242,0.15); }
+
+  .uc-text strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .uc-text span {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  /* Code snippet */
+  .code-block {
+    background: #0D0D14;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    margin-top: 8px;
+  }
+
+  .code-comment { color: #636369; }
+  .code-keyword { color: #FF79C6; }
+  .code-string  { color: #F1FA8C; }
+  .code-type    { color: #8BE9FD; }
+  .code-func    { color: #50FA7B; }
+  .code-num     { color: var(--swift-orange-light); }
+  .code-plain   { color: #F8F8F2; }
+
+  /* File list */
+  .file-tree {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 2;
+  }
+
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+  }
+
+  .file-row .file-icon { font-size: 12px; }
+  .file-row .file-name { color: var(--text-primary); }
+  .file-row .file-size {
+    margin-left: auto;
+    font-size: 10px;
+    color: #444;
+  }
+
+  .file-row.loaded .file-icon { color: var(--accent-teal); }
+  .file-row.loaded .file-name { color: var(--accent-teal); }
+  .file-row.total  {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    color: var(--swift-orange);
+  }
+
+  /* Big comparison card */
+  .compare-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px 28px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .compare-side { }
+
+  .compare-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .compare-label.before { color: #636369; }
+  .compare-label.after  { color: var(--accent-teal); }
+
+  .compare-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 12.5px;
+  }
+
+  .ci-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .before .ci-dot { background: #3A3A40; }
+  .after  .ci-dot { background: var(--accent-teal); }
+
+  .before .compare-item { color: #555560; text-decoration: line-through; }
+  .after  .compare-item { color: var(--text-primary); }
+
+  .compare-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .arrow-circle {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--swift-orange), var(--swift-orange-light));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 900;
+  }
+
+  /* Pricing */
+  .pricing-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px 28px;
+    margin-bottom: 20px;
+  }
+
+  .pricing-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pricing-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+
+  .pricing-row:last-child { margin-bottom: 0; }
+
+  .pricing-row.opus   { background: rgba(240,81,56,0.08); border: 1px solid rgba(240,81,56,0.15); }
+  .pricing-row.sonnet { background: rgba(10,132,255,0.08); border: 1px solid rgba(10,132,255,0.15); }
+
+  .pricing-model {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .pricing-row.opus   .pricing-model { color: var(--swift-orange); }
+  .pricing-row.sonnet .pricing-model { color: var(--accent-blue); }
+
+  .pricing-detail {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .pricing-detail strong {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-right: 4px;
+  }
+
+  /* Bottom banner */
+  .bottom-banner {
+    background: linear-gradient(135deg, rgba(240,81,56,0.12) 0%, rgba(10,132,255,0.08) 100%);
+    border: 1px solid rgba(240,81,56,0.2);
+    border-radius: 18px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .banner-text h3 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .banner-text p {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .banner-text p strong {
+    color: var(--swift-orange);
+  }
+
+  .banner-icons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .bi {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* Full width card */
+  .full-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px 28px;
+    margin-bottom: 20px;
+  }
+
+  .workflow-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  .step {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+  }
+
+  .step-num {
+    width: 24px; height: 24px;
+    background: linear-gradient(135deg, var(--swift-orange), var(--swift-orange-light));
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 10px;
+  }
+
+  .step-icon {
+    font-size: 22px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .step h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .step p {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  /* Footer credit */
+  .footer {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 11px;
+    color: #333;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .footer strong { color: var(--swift-orange); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="swift-logo">🐦</div>
+  <div class="tag">iOS Developers Edition</div>
+  <h1>Claude 1M Context Window <span class="ga-badge">GA</span><br><span>is Here for Swift Devs</span></h1>
+  <p class="subtitle">Your entire Xcode project — all .swift files, dependencies, assets — now fits in a single prompt. No chunking. No context loss. No manual management.</p>
+  <div class="token-hero">
+    <div class="token-big">1,000,000</div>
+    <div class="token-label">
+      <span class="tl1">Token</span>
+      <span class="tl2">Context Window</span>
+    </div>
+  </div>
+</div>
+
+<!-- STATS ROW -->
+<div class="stats-row">
+  <div class="stat-card orange">
+    <span class="stat-icon">📁</span>
+    <div class="stat-number">~750K</div>
+    <div class="stat-title">Lines of Swift Code</div>
+    <div class="stat-desc">Fits comfortably within 1M tokens — enough for any real iOS app codebase</div>
+  </div>
+  <div class="stat-card blue">
+    <span class="stat-icon">🖼️</span>
+    <div class="stat-number">600</div>
+    <div class="stat-title">Images or PDFs</div>
+    <div class="stat-desc">6× more media per request — load your design assets, PDFs & screenshots at once</div>
+  </div>
+  <div class="stat-card teal">
+    <span class="stat-icon">📊</span>
+    <div class="stat-number">78.3%</div>
+    <div class="stat-title">Score on MRCR v2</div>
+    <div class="stat-desc">Industry-leading recall across the full 1M context window — details don't get lost</div>
+  </div>
+</div>
+
+<!-- BEFORE / AFTER -->
+<div class="compare-card">
+  <div class="compare-side before">
+    <div class="compare-label before">⛓ Before 1M Context</div>
+    <div class="compare-item"><div class="ci-dot"></div>Manually chunk .swift files per request</div>
+    <div class="compare-item"><div class="ci-dot"></div>Lose cross-file dependencies context</div>
+    <div class="compare-item"><div class="ci-dot"></div>Claude forgets early code after compaction</div>
+    <div class="compare-item"><div class="ci-dot"></div>Multiple review passes for large PRs</div>
+    <div class="compare-item"><div class="ci-dot"></div>Lossy summaries of your architecture</div>
+  </div>
+  <div class="compare-divider">
+    <div class="arrow-circle">→</div>
+  </div>
+  <div class="compare-side after">
+    <div class="compare-label after">✦ With 1M Context</div>
+    <div class="compare-item"><div class="ci-dot"></div>Load entire Xcode project at once</div>
+    <div class="compare-item"><div class="ci-dot"></div>Full cross-file awareness across modules</div>
+    <div class="compare-item"><div class="ci-dot"></div>15% fewer compaction events in agents</div>
+    <div class="compare-item"><div class="ci-dot"></div>Full diff review — no chunks needed</div>
+    <div class="compare-item"><div class="ci-dot"></div>Complete architecture stays in context</div>
+  </div>
+</div>
+
+<!-- TWO COLUMNS -->
+<div class="two-col">
+
+  <!-- iOS Use Cases -->
+  <div class="section-card">
+    <div class="card-title"><div class="card-title-dot dot-orange"></div>iOS Use Cases That Now Shine</div>
+
+    <div class="use-case-item">
+      <div class="uc-icon org">📱</div>
+      <div class="uc-text">
+        <strong>Full Xcode Project Review</strong>
+        <span>Load all your .swift, .xcodeproj, and Podfile at once for architecture feedback</span>
+      </div>
+    </div>
+    <div class="use-case-item">
+      <div class="uc-icon blue">🔗</div>
+      <div class="uc-text">
+        <strong>SwiftUI + UIKit Migration</strong>
+        <span>Analyze mixed codebases holistically — see every UIKit screen to migrate at once</span>
+      </div>
+    </div>
+    <div class="use-case-item">
+      <div class="uc-icon teal">📦</div>
+      <div class="uc-text">
+        <strong>SPM Dependency Audit</strong>
+        <span>Review all Package.swift, dependencies, and usage patterns in a single pass</span>
+      </div>
+    </div>
+    <div class="use-case-item">
+      <div class="uc-icon purp">🧪</div>
+      <div class="uc-text">
+        <strong>Test Coverage Analysis</strong>
+        <span>Map all XCTest files against source to spot untested ViewModels and services</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Code Example -->
+  <div class="section-card">
+    <div class="card-title"><div class="card-title-dot dot-blue"></div>What Fits in 1M Tokens</div>
+    <div class="file-tree">
+      <div class="file-row loaded">
+        <span class="file-icon">📁</span>
+        <span class="file-name">MyApp/Sources/</span>
+        <span class="file-size">—</span>
+      </div>
+      <div class="file-row loaded" style="padding-left:14px">
+        <span class="file-icon">🐦</span>
+        <span class="file-name">ContentView.swift</span>
+        <span class="file-size">4.2K</span>
+      </div>
+      <div class="file-row loaded" style="padding-left:14px">
+        <span class="file-icon">🐦</span>
+        <span class="file-name">AppViewModel.swift</span>
+        <span class="file-size">8.1K</span>
+      </div>
+      <div class="file-row loaded" style="padding-left:14px">
+        <span class="file-icon">🐦</span>
+        <span class="file-name">NetworkLayer/</span>
+        <span class="file-size">22K</span>
+      </div>
+      <div class="file-row loaded" style="padding-left:14px">
+        <span class="file-icon">🐦</span>
+        <span class="file-name">DataModels/</span>
+        <span class="file-size">31K</span>
+      </div>
+      <div class="file-row loaded" style="padding-left:14px">
+        <span class="file-icon">🐦</span>
+        <span class="file-name">UIComponents/ (47 files)</span>
+        <span class="file-size">110K</span>
+      </div>
+      <div class="file-row loaded" style="padding-left:14px">
+        <span class="file-icon">🧪</span>
+        <span class="file-name">Tests/ (83 files)</span>
+        <span class="file-size">98K</span>
+      </div>
+      <div class="file-row loaded" style="padding-left:0">
+        <span class="file-icon">📦</span>
+        <span class="file-name">Package.swift + deps</span>
+        <span class="file-size">15K</span>
+      </div>
+      <div class="file-row total">
+        <span class="file-icon">✓</span>
+        <span class="file-name" style="color:var(--swift-orange);font-weight:700">Entire Project Loaded</span>
+        <span class="file-size" style="color:var(--swift-orange)">~290K</span>
+      </div>
+    </div>
+    <div style="margin-top:12px; padding: 10px 12px; background: rgba(48,213,200,0.08); border: 1px solid rgba(48,213,200,0.2); border-radius: 10px; font-size: 11.5px; color: var(--accent-teal);">
+      ✓ Leaves <strong>~710K tokens</strong> for conversation, iterations, and Claude's output
+    </div>
+  </div>
+
+</div>
+
+<!-- WORKFLOW -->
+<div class="full-card">
+  <div class="card-title" style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-secondary);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+    <div class="card-title-dot dot-purple"></div>iOS Dev Workflow with Claude Code + 1M Context
+  </div>
+  <div class="workflow-steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <span class="step-icon">📂</span>
+      <h4>Load Full Project</h4>
+      <p>Claude Code reads your entire Xcode workspace — all Swift files, assets, tests</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <span class="step-icon">🔍</span>
+      <h4>Cross-File Analysis</h4>
+      <p>Spot MVVM violations, retain cycles, missing protocols — across ALL files at once</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <span class="step-icon">🛠️</span>
+      <h4>Iterate Freely</h4>
+      <p>Multi-turn debugging without context loss — Claude remembers line 1 after 200 turns</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <span class="step-icon">🚀</span>
+      <h4>Ship with Confidence</h4>
+      <p>App Store submission review — privacy, guidelines, crashlytics patterns all in scope</p>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div class="pricing-card">
+  <div class="pricing-title"><div class="card-title-dot dot-orange"></div>Standard API Pricing — No Long-Context Premium</div>
+  <div class="pricing-row opus">
+    <div class="pricing-model">Claude Opus 4.6</div>
+    <div class="pricing-detail"><strong>$5.00</strong>Input / M tokens</div>
+    <div class="pricing-detail"><strong>$25.00</strong>Output / M tokens</div>
+  </div>
+  <div class="pricing-row sonnet">
+    <div class="pricing-model">Claude Sonnet 4.6</div>
+    <div class="pricing-detail"><strong>$3.00</strong>Input / M tokens</div>
+    <div class="pricing-detail"><strong>$15.00</strong>Output / M tokens</div>
+  </div>
+</div>
+
+<!-- BOTTOM BANNER -->
+<div class="bottom-banner">
+  <div class="banner-text">
+    <h3>Zero Code Changes Required</h3>
+    <p>Already using the API? No beta headers needed. Requests over 200K tokens work <strong>automatically</strong>. Standard rate limits apply at all context lengths.</p>
+  </div>
+  <div class="banner-icons">
+    <div class="bi">🐦</div>
+    <div class="bi">⚙️</div>
+    <div class="bi">🧠</div>
+  </div>
+</div>
+
+<div class="footer">SwiftyJourney.com &nbsp;·&nbsp; <strong>Claude 1M Context</strong> &nbsp;·&nbsp; March 2026</div>
+
+</body>
+</html>

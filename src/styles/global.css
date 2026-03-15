@@ -191,3 +191,41 @@ body {
 .prose blockquote {
   @apply border-l-4 border-orange-500 pl-6 italic text-zinc-700 dark:text-zinc-300 my-8 py-2;
 }
+
+/* Table styles */
+.prose table {
+  @apply w-full border-collapse my-6 text-sm;
+}
+
+.prose th {
+  @apply bg-zinc-100 dark:bg-zinc-800 px-3 py-2.5 text-left font-bold text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wide;
+}
+
+.prose td {
+  @apply px-3 py-3 border-b border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100;
+}
+
+.prose tr:last-child td {
+  @apply border-b-0;
+}
+
+.prose tr:hover td {
+  @apply bg-zinc-50 dark:bg-zinc-800/50;
+}
+
+/* Pull Quote */
+.pull-quote {
+  font-family: Georgia, 'Times New Roman', serif;
+  @apply text-xl md:text-2xl font-semibold italic text-zinc-900 dark:text-zinc-100 text-center py-8 my-9 leading-relaxed;
+  position: relative;
+}
+
+.pull-quote::before,
+.pull-quote::after {
+  content: '';
+  display: block;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #f97316, transparent);
+  margin: 16px auto;
+  width: 80px;
+}
