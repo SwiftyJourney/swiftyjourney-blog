@@ -229,3 +229,9 @@ body {
   margin: 16px auto;
   width: 80px;
 }
+
+/* Reset prose styles for interactive React components */
+.prose .interactive-content,
+.prose .interactive-content * {
+  all: revert;
+}

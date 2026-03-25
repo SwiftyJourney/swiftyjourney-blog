@@ -33,13 +33,13 @@ const ogImageHeight = heroImage?.height;
 
 // Calculate reading time if rawContent is provided
 const readingTimeResult = rawContent ? readingTime(rawContent) : null;
-const readingTimeText = readingTimeResult
-	? lang === "en"
-		? readingTimeResult.text
-		: `${readingTimeResult.minutes} min de lectura`
-	: lang === "en"
-		? "5 min read"
-		: "5 min de lectura";
+const readingMinutes = readingTimeResult
+	? Math.max(1, Math.ceil(readingTimeResult.minutes))
+	: 5;
+const readingTimeText =
+	lang === "en"
+		? `${readingMinutes} min read`
+		: `${readingMinutes} min de lectura`;
 
 // Find the translated version of this post
 const allPosts = await getCollection("blog");
