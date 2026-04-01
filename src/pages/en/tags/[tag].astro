@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { getCollection } from "astro:content";
+import { getPublishedPosts } from "../../../utils/posts";
 
 export async function getStaticPaths() {
 	const slugify = (tag) =>
@@ -10,7 +10,7 @@ export async function getStaticPaths() {
 			.replace(/[^a-z0-9]+/g, "-")
 			.replace(/^-+|-+$/g, "");
 
-	const allPosts = await getCollection("blog");
+	const allPosts = await getPublishedPosts();
 	const posts = allPosts.filter((post) => post.data.lang === "en");
 	const tagMap = new Map();
 
@@ -38,7 +38,7 @@ const slugify = (tag) =>
 		.replace(/^-+|-+$/g, "");
 
 const { tagSlug, tagLabel } = Astro.props;
-const allPosts = await getCollection("blog");
+const allPosts = await getPublishedPosts();
 const posts = allPosts
 	.filter((post) => post.data.lang === "en")
 	.filter((post) =>

@@ -1,7 +1,7 @@
 ---
 import { Image } from "astro:assets";
 import type { CollectionEntry } from "astro:content";
-import { getCollection } from "astro:content";
+import { getPublishedPosts } from "../utils/posts";
 import BaseLayout from "./BaseLayout.astro";
 import ArticleInfo from "../components/ArticleInfo.astro";
 import readingTime from "reading-time";
@@ -42,7 +42,7 @@ const readingTimeText =
 		: `${readingMinutes} min de lectura`;
 
 // Find the translated version of this post
-const allPosts = await getCollection("blog");
+const allPosts = await getPublishedPosts();
 const translatedPost = allPosts.find(
 	(post) =>
 		post.data.translationKey === translationKey && post.data.lang !== lang,
