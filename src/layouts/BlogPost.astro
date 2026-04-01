@@ -71,6 +71,8 @@ const relatedByTags =
 const relatedPosts =
 	relatedByTags.length > 0
 		? relatedByTags
+				.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+				.slice(0, 3)
 		: allPosts
 				.filter(
 					(post) => post.data.lang === lang && post.data.slug !== slug,
