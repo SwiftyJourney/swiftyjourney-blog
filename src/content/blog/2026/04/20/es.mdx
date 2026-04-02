@@ -13,7 +13,7 @@ import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
 import StackMemoryVisualizer from '../../../../../components/blog/StackMemoryVisualizer';
 
-¿Cuántos años llevas escribiendo Swift? ¿Dos, cinco, ocho? Ahora déjame hacerte otra pregunta: ¿sabes exactamente qué pasa cuando escribes `let nombre = "Juan"`? No me refiero a "se crea una constante". Me refiero a *dónde* vive esa constante en memoria, *por qué* el compilador elige ponerla ahí, y *qué implicaciones* tiene esa decisión para el rendimiento de tu app.
+¿Cuántos años llevas escribiendo Swift? ¿Dos, cinco, ocho? Ahora déjame hacerte otra pregunta: ¿sabes exactamente qué pasa cuando escribes `let name = "Juan"`? No me refiero a "se crea una constante". Me refiero a *dónde* vive esa constante en memoria, *por qué* el compilador elige ponerla ahí, y *qué implicaciones* tiene esa decisión para el rendimiento de tu app.
 
 Si no puedes responder con confianza, no te preocupes. La mayoría de los desarrolladores iOS — incluso seniors — usan Swift sin entender realmente cómo piensa el lenguaje por debajo. Y eso no es un problema... hasta que lo es. Hasta que tu app se traba, consume memoria sin control, o tienes un memory leak que no logras rastrear.
 
@@ -42,8 +42,8 @@ En Swift, todo empieza con una declaración. Tienes dos opciones:
 
 ```swift
 let pi = 3.14159       // Constante — no puede cambiar
-var contador = 0       // Variable — puede cambiar
-contador += 1          // ✅ Esto funciona
+var counter = 0        // Variable — puede cambiar
+counter += 1           // ✅ Esto funciona
 // pi = 3.14           // ❌ Error de compilación
 ```
 
@@ -63,18 +63,18 @@ Swift es un lenguaje **fuertemente tipado** — cada valor tiene un tipo, sin ex
 
 ```swift
 // Type annotation — tú declaras el tipo
-let edad: Int = 30
-let nombre: String = "Swift"
+let age: Int = 30
+let name: String = "Swift"
 
 // Type inference — el compilador deduce el tipo
-let edad = 30          // El compilador infiere Int
-let nombre = "Swift"   // El compilador infiere String
+let age = 30           // El compilador infiere Int
+let name = "Swift"     // El compilador infiere String
 ```
 
 Ambas formas producen exactamente el mismo resultado. La inferencia de tipos no es magia ni tiene costo en rendimiento — sucede completamente en **tiempo de compilación**. Para cuando tu código se ejecuta en el dispositivo, el compilador ya sabe el tipo exacto de cada variable. No hay ambigüedad, no hay decisiones en runtime.
 
 <Callout type="info" title="¿Cuándo usar type annotation?">
-Usa type annotations cuando el tipo no sea obvio a simple vista, cuando quieras ser explícito para legibilidad, o cuando necesites un tipo diferente al que el compilador inferiría por defecto (por ejemplo, `let precio: Float = 9.99` en lugar de `Double`).
+Usa type annotations cuando el tipo no sea obvio a simple vista, cuando quieras ser explícito para legibilidad, o cuando necesites un tipo diferente al que el compilador inferiría por defecto (por ejemplo, `let price: Float = 9.99` en lugar de `Double`).
 </Callout>
 
 ## Los tipos de datos fundamentales
@@ -84,8 +84,8 @@ Swift tiene un conjunto de tipos primitivos que forman la base de todo lo demás
 ### Enteros: `Int`
 
 ```swift
-let usuarios = 1_000_000    // Los guiones bajos mejoran legibilidad
-let temperatura = -15        // Los enteros pueden ser negativos
+let users = 1_000_000       // Los guiones bajos mejoran legibilidad
+let temperature = -15        // Los enteros pueden ser negativos
 ```
 
 `Int` en Swift se adapta a la plataforma: en un dispositivo de 64 bits (todos los iPhones desde el 5s), `Int` es un entero de 64 bits. Eso significa que puede almacenar valores desde -9,223,372,036,854,775,808 hasta 9,223,372,036,854,775,807.
@@ -112,7 +112,7 @@ Ese último ejemplo es importante. En C o C++, un overflow como ese compilaría 
 
 ```swift
 let pi = 3.14159             // El compilador infiere Double
-let gravedad: Float = 9.8    // Explícitamente Float
+let gravity: Float = 9.8     // Explícitamente Float
 ```
 
 `Double` tiene precisión de 64 bits (al menos 15 dígitos decimales). `Float` tiene precisión de 32 bits (6 dígitos). Swift infiere `Double` por defecto cuando escribes un número con punto decimal — y esa es la opción correcta en la mayoría de los casos. No uses `Float` a menos que tengas una razón específica (como interoperar con APIs gráficas que esperan `Float`).
@@ -120,8 +120,8 @@ let gravedad: Float = 9.8    // Explícitamente Float
 ### Booleanos: `Bool`
 
 ```swift
-let estaActivo = true
-let tienePermiso = false
+let isActive = true
+let hasPermission = false
 ```
 
 Un `Bool` ocupa **1 byte** en memoria, aunque técnicamente solo necesita 1 bit. ¿Por qué? Porque la unidad mínima que el procesador puede direccionar es un byte. Es un trade-off entre eficiencia de memoria y eficiencia de acceso.
@@ -129,12 +129,12 @@ Un `Bool` ocupa **1 byte** en memoria, aunque técnicamente solo necesita 1 bit.
 ### Strings (introducción)
 
 ```swift
-let saludo = "Hola, Swift"
-let interpolado = "Tengo \(edad) años"
-let multilinea = """
-    Este es un string
-    que ocupa varias líneas
-    y respeta la indentación
+let greeting = "Hola, Swift"
+let interpolated = "I'm \(age) years old"
+let multiline = """
+    This is a string
+    that spans multiple lines
+    and respects indentation
     """
 ```
 
@@ -145,11 +145,11 @@ Los strings merecen su propio artículo — y lo tendrán en el #3 de esta serie
 Swift no te deja mezclar tipos sin ser explícito:
 
 ```swift
-let entero = 42
+let integer = 42
 let decimal = 3.14
-// let suma = entero + decimal  // ❌ Error: no puedes sumar Int + Double
+// let sum = integer + decimal  // ❌ Error: no puedes sumar Int + Double
 
-let suma = Double(entero) + decimal  // ✅ Conversión explícita
+let sum = Double(integer) + decimal  // ✅ Conversión explícita
 ```
 
 ¿Esto es molesto? A veces. ¿Es intencional? Absolutamente. Swift prefiere que seas explícito sobre las conversiones porque las conversiones implícitas son una fuente constante de bugs sutiles en otros lenguajes.
@@ -169,13 +169,13 @@ Swift incluye los operadores que esperas de cualquier lenguaje moderno, pero con
 ### Operadores aritméticos
 
 ```swift
-let suma = 10 + 3        // 13
-let resta = 10 - 3       // 7
-let producto = 10 * 3    // 30
-let division = 10 / 3    // 3 (división entera)
-let residuo = 10 % 3     // 1
+let sum = 10 + 3          // 13
+let difference = 10 - 3   // 7
+let product = 10 * 3      // 30
+let division = 10 / 3     // 3 (división entera)
+let remainder = 10 % 3    // 1
 
-let divisionReal = 10.0 / 3.0  // 3.333... (división decimal)
+let realDivision = 10.0 / 3.0  // 3.333... (división decimal)
 ```
 
 Un detalle clave: la división entre enteros **descarta el decimal**. `10 / 3` es `3`, no `3.333`. Esto no es un bug — es el comportamiento correcto para la aritmética de enteros. Si quieres el resultado decimal, al menos uno de los operandos debe ser `Double`.
@@ -210,15 +210,15 @@ Los operadores lógicos `&&` y `||` usan **evaluación en cortocircuito** (short
 
 ```swift
 // El segundo check solo se ejecuta si el primero es true
-if usuario != nil && usuario!.estaActivo {
-    // Seguro — nunca llegamos al force unwrap si usuario es nil
+if user != nil && user!.isActive {
+    // Seguro — nunca llegamos al force unwrap si user es nil
 }
 ```
 
 ### El operador ternario
 
 ```swift
-let acceso = edad >= 18 ? "Permitido" : "Denegado"
+let access = age >= 18 ? "Allowed" : "Denied"
 ```
 
 Compacto y útil, pero no abuses. Si la condición o los resultados son complejos, un `if/else` es más legible.
@@ -226,9 +226,9 @@ Compacto y útil, pero no abuses. Si la condición o los resultados son complejo
 ### Nil-Coalescing: `??`
 
 ```swift
-let nombre: String? = nil
-let saludo = "Hola, \(nombre ?? "visitante")"
-// "Hola, visitante"
+let name: String? = nil
+let greeting = "Hello, \(name ?? "visitor")"
+// "Hello, visitor"
 ```
 
 Este operador merece un preview porque lo vas a usar constantemente. Dice: "usa el valor si existe, si no, usa este valor por defecto". Profundizaremos en opcionales en el artículo #11, pero vale la pena que lo veas desde ahora.
@@ -247,9 +247,9 @@ for i in 0..<5 {
 }
 
 // Rango parcial
-let nombres = ["Ana", "Beto", "Carlos", "Diana"]
-let primerosDos = nombres[..<2]   // ["Ana", "Beto"]
-let desdeTercero = nombres[2...]  // ["Carlos", "Diana"]
+let names = ["Ana", "Bob", "Carlos", "Diana"]
+let firstTwo = names[..<2]    // ["Ana", "Bob"]
+let fromThird = names[2...]   // ["Carlos", "Diana"]
 ```
 
 El rango semi-abierto (`0..<array.count`) es particularmente útil para iterar arrays — y es tan común que Swift ofrece alternativas aún más expresivas que veremos en artículos futuros.
@@ -259,16 +259,16 @@ El rango semi-abierto (`0..<array.count`) es particularmente útil para iterar a
 Las tuplas permiten agrupar múltiples valores en uno solo — sin necesidad de crear un struct o una clase:
 
 ```swift
-let coordenada = (latitud: 19.4326, longitud: -99.1332)
-print(coordenada.latitud)   // 19.4326
+let coordinate = (latitude: 19.4326, longitude: -99.1332)
+print(coordinate.latitude)   // 19.4326
 
 // Descomposición
-let (lat, lon) = coordenada
+let (lat, lon) = coordinate
 print(lat)  // 19.4326
 
 // Ignorar valores con _
-let respuestaHTTP = (200, "OK")
-let (statusCode, _) = respuestaHTTP
+let httpResponse = (200, "OK")
+let (statusCode, _) = httpResponse
 print(statusCode)  // 200
 ```
 
@@ -281,11 +281,11 @@ Las tuplas son perfectas para retornos temporales de funciones. Pero si vas a re
 ## Type Aliases: nombres que comunican
 
 ```swift
-typealias Velocidad = Double
-typealias Coordenada = (latitud: Double, longitud: Double)
+typealias Speed = Double
+typealias Coordinate = (latitude: Double, longitude: Double)
 
-let maxima: Velocidad = 120.0
-let ubicacion: Coordenada = (19.4326, -99.1332)
+let maxSpeed: Speed = 120.0
+let location: Coordinate = (19.4326, -99.1332)
 ```
 
 Un `typealias` no crea un tipo nuevo — es simplemente otro nombre para un tipo existente. No tiene costo en memoria ni en rendimiento. Es azúcar sintáctica para mejorar la legibilidad de tu código.
