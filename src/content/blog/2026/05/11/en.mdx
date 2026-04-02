@@ -1,0 +1,526 @@
+---
+title: "Swift from Zero to Expert #4: Control Flow — from if/else to pattern matching"
+description: "if/else, exhaustive switch with pattern matching, guard as a philosophy, and how the compiler optimizes your decisions into jump tables."
+pubDate: 'May 11 2026'
+heroImage: './hero.png'
+lang: 'en'
+translationKey: 'swift-zero-expert-control-flow'
+slug: 'swift-zero-expert-control-flow'
+tags: ['swift', 'swift-zero-expert', 'basics']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+import JumpTableVisualizer from '../../../../../components/blog/JumpTableVisualizer';
+
+In the [previous article](/blog/swift-zero-expert-strings-characters) we discovered that Strings in Swift are much more than text — they're collections of grapheme clusters with deep memory implications. Today we'll explore how Swift makes decisions: control flow.
+
+And don't think this is boring just because every language has `if` and `for`. Swift's `switch` is a completely different beast from C's. `guard` is a design philosophy, not just a keyword. And the compiler turns your decisions into machine code in ways worth understanding.
+
+<div class="pull-quote">
+Control flow is where a language shows its personality. And Swift has plenty of personality.
+</div>
+
+![The Swift bird as an air traffic controller directing the flow of code](./resources/control-flow-intro.png)
+
+## For-In Loops: iterating over everything
+
+`for-in` is the most natural way to traverse sequences in Swift — arrays, dictionaries, ranges, strings, anything that conforms to `Sequence`.
+
+```swift
+// Iterating an array
+let names = ["Anna", "Alex", "Brian", "Jack"]
+for name in names {
+    print("Hello, \(name)!")
+}
+
+// Iterating a dictionary
+let legs = ["spider": 8, "ant": 6, "cat": 4]
+for (animal, count) in legs {
+    print("\(animal)s have \(count) legs")
+}
+
+// Iterating a range
+for index in 1...5 {
+    print("\(index) times 5 is \(index * 5)")
+}
+```
+
+If you don't need the iteration value, use `_`:
+
+```swift
+let base = 3
+var power = 1
+for _ in 1...10 {
+    power *= base
+}
+// power = 59049 (3^10)
+```
+
+With `stride` you can control the iteration step:
+
+```swift
+// From 0 to 60, by 5 (not including 60)
+for minute in stride(from: 0, to: 60, by: 5) {
+    print(minute) // 0, 5, 10, 15, ... 55
+}
+
+// From 3 to 0, by -1 (including 0)
+for countdown in stride(from: 3, through: 0, by: -1) {
+    print(countdown) // 3, 2, 1, 0
+}
+```
+
+## While and Repeat-While
+
+```swift
+// while — evaluates the condition BEFORE
+var counter = 0
+while counter < 5 {
+    print(counter)
+    counter += 1
+}
+
+// repeat-while — evaluates the condition AFTER (like do-while in C)
+var attempts = 0
+repeat {
+    attempts += 1
+    print("Attempt \(attempts)")
+} while attempts < 3
+```
+
+`repeat-while` guarantees the body executes at least once. Useful for validations where you need a first attempt before checking.
+
+## If/Else: the foundation
+
+```swift
+let temperature = 35
+
+if temperature > 30 {
+    print("It's really hot!")
+} else if temperature > 20 {
+    print("Nice weather")
+} else {
+    print("A bit cold")
+}
+```
+
+### If as an expression (Swift 5.9+)
+
+Since Swift 5.9, `if` can be used as an **expression** that returns a value:
+
+```swift
+let weather = if temperature > 30 {
+    "hot"
+} else if temperature > 20 {
+    "warm"
+} else {
+    "cold"
+}
+// weather = "hot"
+```
+
+This eliminates the need to declare a variable and then assign it inside each branch. It's cleaner, more concise, and the compiler verifies that all branches return a value of the same type.
+
+<Callout type="tip" title="If expression vs ternary operator">
+For simple conditions, the ternary is still more compact: `let status = isReady ? "go" : "wait"`. For logic with more than two branches, if expression is more readable.
+</Callout>
+
+## Switch: Swift's superpower
+
+This is where Swift really shines. The `switch` isn't just "compare a value against constants" — it's a **full pattern matching engine**. The official documentation describes it in [Control Flow](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/controlflow#Switch).
+
+### The basics
+
+```swift
+let character: Character = "z"
+switch character {
+case "a":
+    print("The first letter")
+case "z":
+    print("The last letter")
+default:
+    print("Some other character")
+}
+```
+
+Two fundamental differences from C:
+
+1. **No implicit fallthrough.** In C, if you forget `break`, execution "falls" into the next case. In Swift, each case ends automatically. Safer by default.
+2. **Must be exhaustive.** The compiler forces you to cover all possible cases, or include `default`. This eliminates an entire class of bugs.
+
+<Callout type="info" title="No implicit fallthrough">
+Each case must have at least one executable statement. If you need C's fallthrough behavior, the `fallthrough` keyword exists — but you'll rarely need it. It's opt-in, not opt-out.
+</Callout>
+
+### Switch as an expression
+
+```swift
+let description = switch character {
+case "a":
+    "The first letter of the Latin alphabet"
+case "z":
+    "The last letter of the Latin alphabet"
+default:
+    "Some other character"
+}
+```
+
+### Interval matching
+
+Switch can compare against **ranges**:
+
+```swift
+let score = 85
+switch score {
+case 0..<60:
+    print("Fail")
+case 60..<70:
+    print("D")
+case 70..<80:
+    print("C")
+case 80..<90:
+    print("B")
+case 90...100:
+    print("A")
+default:
+    print("Invalid score")
+}
+// "B"
+```
+
+### Tuples
+
+You can match against **tuples**, using `_` to ignore values:
+
+```swift
+let point = (1, -1)
+switch point {
+case (0, 0):
+    print("At the origin")
+case (_, 0):
+    print("On the x-axis")
+case (0, _):
+    print("On the y-axis")
+case (-2...2, -2...2):
+    print("Inside the box")
+default:
+    print("Outside the box")
+}
+// "Inside the box"
+```
+
+![The capybara looking at a coordinate plane where the bird marks the switch regions](./resources/switch-tuples.png)
+
+### Value bindings
+
+You can **capture** values within a case:
+
+```swift
+let anotherPoint = (2, 0)
+switch anotherPoint {
+case (let x, 0):
+    print("On the x-axis with x = \(x)")
+case (0, let y):
+    print("On the y-axis with y = \(y)")
+case let (x, y):
+    print("At (\(x), \(y))")
+}
+// "On the x-axis with x = 2"
+```
+
+The last case with `let (x, y)` captures both values and always matches — it works like a `default` but with access to the values.
+
+### Where clauses
+
+Add extra conditions to a case:
+
+```swift
+let point3D = (1, -1, 0)
+switch point3D {
+case let (x, y, _) where x == y:
+    print("On the line x == y")
+case let (x, y, _) where x == -y:
+    print("On the line x == -y")
+case let (x, y, z):
+    print("Arbitrary point (\(x), \(y), \(z))")
+}
+// "On the line x == -y"
+```
+
+### Compound cases
+
+Multiple patterns in a single case:
+
+```swift
+let letter: Character = "e"
+switch letter {
+case "a", "e", "i", "o", "u":
+    print("\(letter) is a vowel")
+case "b", "c", "d", "f", "g", "h", "j", "k", "l", "m",
+     "n", "p", "q", "r", "s", "t", "v", "w", "x", "y", "z":
+    print("\(letter) is a consonant")
+default:
+    print("Not a letter")
+}
+```
+
+<Callout type="tip" title="Exhaustiveness and enums">
+When you switch over an enum that covers all cases, you don't need `default`. This is powerful: if you add a new case to the enum, the compiler flags an error in every switch that doesn't handle it. We'll cover this in detail in article #7.
+</Callout>
+
+## Guard: the early exit philosophy
+
+`guard` is one of Swift's most underrated features. Its purpose is to validate conditions at the beginning of a scope and exit early if they're not met:
+
+```swift
+func processOrder(item: String?, quantity: Int) {
+    guard let item = item else {
+        print("No item provided")
+        return
+    }
+
+    guard quantity > 0 else {
+        print("Invalid quantity")
+        return
+    }
+
+    // Here we know for certain that item exists and quantity > 0
+    print("Processing \(quantity)x \(item)")
+}
+```
+
+The key difference from `if`:
+
+```swift
+// With if — nesting hell
+func processWithIf(item: String?, quantity: Int) {
+    if let item = item {
+        if quantity > 0 {
+            // Actual code buried in indentation
+            print("Processing \(quantity)x \(item)")
+        } else {
+            print("Invalid quantity")
+        }
+    } else {
+        print("No item provided")
+    }
+}
+
+// With guard — linear flow
+func processWithGuard(item: String?, quantity: Int) {
+    guard let item = item else { return }
+    guard quantity > 0 else { return }
+
+    // Actual code at the main indentation level — clean
+    print("Processing \(quantity)x \(item)")
+}
+```
+
+![The capybara comparing nested if code (tangled) vs guard (clean and linear)](./resources/guard-vs-if.png)
+
+<div class="pull-quote">
+Guard isn't just syntactic sugar — it's a philosophy: validate your preconditions, exit early if they fail, and keep the happy path at the main indentation level.
+</div>
+
+<Callout type="info" title="Guard and the compiler">
+When you use `guard let`, the unwrapped variable is available *after* the guard — in the rest of the scope. This tells the compiler that from that point forward, the variable definitely has a value. The compiler can use that information to optimize the stack frame layout and eliminate redundant checks.
+</Callout>
+
+## Defer: execute code on exit
+
+`defer` guarantees that a block of code runs when the current scope ends, no matter how:
+
+```swift
+func readFile(at path: String) throws -> String {
+    let file = open(path)
+    defer {
+        close(file) // Runs when leaving the function, no matter what
+    }
+
+    guard let content = try? read(file) else {
+        return "" // defer closes the file
+    }
+
+    return content // defer closes the file
+}
+```
+
+Multiple defers execute in **reverse** order (LIFO):
+
+```swift
+func example() {
+    defer { print("First defer") }
+    defer { print("Second defer") }
+    defer { print("Third defer") }
+    print("Function body")
+}
+// Function body
+// Third defer
+// Second defer
+// First defer
+```
+
+<Callout type="tip" title="When to use defer?">
+For resource cleanup: closing files, releasing locks, restoring state. Place it right after acquiring the resource — that way it's impossible to forget cleanup.
+</Callout>
+
+## Control Transfer: break, continue, fallthrough
+
+```swift
+// continue — skip to the next iteration
+for number in 1...10 {
+    if number % 2 == 0 { continue }
+    print(number) // Only odds: 1, 3, 5, 7, 9
+}
+
+// break — exit the loop
+for number in 1...100 {
+    if number > 5 { break }
+    print(number) // 1, 2, 3, 4, 5
+}
+
+// fallthrough — force falling into the next case (rarely used)
+let value = 5
+switch value {
+case 5:
+    print("Five")
+    fallthrough
+case 6:
+    print("Five or six")
+default:
+    break
+}
+// "Five"
+// "Five or six"
+```
+
+### Labeled Statements
+
+When you have nested loops, you can label a loop to `break` or `continue` on it specifically:
+
+```swift
+let matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+
+outerLoop: for row in matrix {
+    for value in row {
+        if value == 5 {
+            print("Found 5!")
+            break outerLoop // Exits BOTH loops
+        }
+    }
+}
+```
+
+## Checking API Availability
+
+Swift has a built-in way to check API availability:
+
+```swift
+if #available(iOS 17, macOS 14, *) {
+    // Code that uses iOS 17+ APIs
+} else {
+    // Fallback for older versions
+}
+
+// With guard
+guard #available(iOS 17, *) else {
+    return
+}
+// Code that uses iOS 17+ APIs
+```
+
+## The compiler and control flow
+
+Let's talk about what happens under the hood — the memory and compiler thread of this series.
+
+### Switch and jump tables — what is a jump table?
+
+When you write a `switch` with if/else, the processor has to evaluate each condition one by one. "Is it 200? No. Is it 301? No. Is it 404? Yes." That's O(n) — with 50 cases, it might need 50 comparisons.
+
+A **jump table** is an elegant compiler trick. Instead of comparing, it creates an **array of memory addresses** at compile time. Each position in the array corresponds to a case, and its value is the address of the code that should execute.
+
+Here's how it works:
+
+1. The compiler creates an internal array: `table[200] = address_handleSuccess, table[301] = address_handleRedirect, ...`
+2. At runtime, when `statusCode = 404` arrives, the processor simply does `table[404]` — a direct index access
+3. The processor **jumps** to that memory address without evaluating any conditions
+4. Result: **O(1)** regardless of how many cases there are
+
+It's like the difference between searching for a name in a list (you check one by one) vs looking it up in an indexed dictionary (you go straight to the letter).
+
+```swift
+// The compiler can optimize this into a jump table
+switch statusCode {
+case 200: handleSuccess()
+case 301: handleRedirect()
+case 404: handleNotFound()
+case 500: handleServerError()
+default: handleUnknown()
+}
+```
+
+Try it yourself — select a status code and compare how if/else vs jump table resolves it:
+
+<div class="interactive-content">
+  <JumpTableVisualizer client:load lang="en" />
+</div>
+
+<Callout type="info" title="When does the compiler generate a jump table?">
+Not always. The compiler decides based on the values:
+- **Close integer values** (0, 1, 2, 3...) → Perfect jump table
+- **Enums without associated values** → Jump table (cases are 0, 1, 2... internally)
+- **Sparse values** (200, 301, 404, 500) → The compiler may use a hash table or an optimized comparison chain
+- **Ranges or where clauses** → Comparison chain, no jump table possible
+
+The key point: `switch` gives the compiler all the information upfront (all cases, exhaustiveness), and the compiler chooses the best strategy. A chained if/else doesn't give it that global view.
+</Callout>
+
+### Guard and variable lifetime
+
+When you write `guard let value = optional else { return }`, the compiler knows that after the guard, `value` exists with certainty. This has direct implications:
+
+- It can reserve stack frame space for `value` only once
+- It doesn't need to maintain nil checks after the guard
+- It can optimize the stack layout knowing exactly which variables are alive at each point
+
+### Exhaustiveness at compile time
+
+Switch exhaustiveness is a **compile-time** check. It generates no extra code at runtime. The compiler simply verifies that every possible value of the type is covered. If one is missing, your code doesn't compile. If you cover them all, the result is as efficient as if you'd written a chain of `if/else`.
+
+<InfoBox title="Compiler optimizations in control flow">
+- **Switch with integers/enums** → Jump table O(1)
+- **Switch with ranges** → Binary search or ordered comparisons
+- **Switch with where** → Optimized comparison chain
+- **Guard** → Guaranteed variable after guard, zero overhead
+- **Exhaustiveness** → Compile-time verification, zero runtime cost
+- **Defer** → Translated to cleanup code inserted at each exit point
+</InfoBox>
+
+<div class="pull-quote">
+Every if, guard, and switch you write is a conversation with the compiler. The more information you give it — exhaustiveness, early exit, concrete types — the better code it generates.
+</div>
+
+## Recap
+
+Today we covered all of Swift's control flow:
+
+- **For-in** — iterates arrays, dictionaries, ranges, strings, with stride for custom steps
+- **While / Repeat-while** — conditional loops, repeat guarantees at least one execution
+- **If/else** — classic conditionals, now also as expressions (Swift 5.9+)
+- **Switch** — exhaustive pattern matching with interval matching, tuples, value bindings, where clauses, compound cases
+- **Guard** — early exit as a philosophy, unwrapped variables available afterward
+- **Defer** — guaranteed cleanup when leaving scope (LIFO)
+- **Control transfer** — break, continue, fallthrough, labeled statements
+- **API availability** — `#available` for version checks
+- **Compiler** — jump tables for switch, lifetime optimization with guard, exhaustiveness at zero runtime cost
+
+## What's next
+
+In the next article we enter **functions** — first-class citizens in Swift. Parameters with labels, `inout`, function types, functions as values, nested functions, and why all of this is the gateway to closures. We'll start seeing how Swift treats code as data.
+
+See you next week.
+
+<div class="pull-quote">
+Swift's switch isn't an if/else in disguise — it's a pattern matching engine that the compiler turns into efficient machine code. When you master it, you write code that's both more expressive and faster.
+</div>
