@@ -1,0 +1,370 @@
+---
+title: "Swift from Zero to Expert #1: Data types, operators, and how Swift thinks about memory"
+description: "First article in the Swift from Zero to Expert series. We explore fundamental data types, operators, and why Swift decides to put things on the stack."
+pubDate: 'Apr 20 2026'
+heroImage: './hero.png'
+lang: 'en'
+translationKey: 'swift-zero-expert-data-types'
+slug: 'swift-zero-expert-data-types-operators'
+tags: ['swift', 'swift-zero-expert', 'basics']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+
+How many years have you been writing Swift? Two, five, eight? Now let me ask you a different question: do you know exactly what happens when you write `let name = "Juan"`? I don't mean "a constant is created." I mean *where* that constant lives in memory, *why* the compiler chooses to put it there, and *what implications* that decision has for your app's performance.
+
+If you can't answer with confidence, don't worry. Most iOS developers — even seniors — use Swift without truly understanding how the language thinks under the hood. And that's not a problem... until it is. Until your app stutters, consumes memory out of control, or you have a memory leak you just can't track down.
+
+<div class="pull-quote">
+Using Swift without understanding its memory model is like driving a car without knowing it has mirrors. It works, until you need to change lanes.
+</div>
+
+## Welcome to Swift from Zero to Expert
+
+This is the first article in a 20-part series where we'll walk through **all** of the Swift language — from the most basic data types to advanced functional programming. But this won't be a surface-level tour. In each article, we'll weave a common thread: **how Swift manages memory and how the compiler benefits from the language's design**.
+
+Why? Because understanding this transforms you from someone who *uses* Swift into someone who *masters* Swift. And the difference between those two profiles shows in interviews, in the code you produce, and in the bugs you never end up creating.
+
+<InfoBox title="What we'll cover in this series">
+- Phase 1: Foundations — types, collections, strings, control flow, functions
+- Phase 2: OO Swift — closures, enums, structs vs classes, inheritance, init/deinit
+- Phase 3: Advanced — optionals, error handling, protocols, generics, macros
+- Phase 4: Expert — ARC, memory safety, access control, advanced operators, functional programming
+</InfoBox>
+
+Today we start with the foundations: constants, variables, data types, and operators. And at the end, we'll ground everything in memory — because even something as simple as an `Int` has a story to tell.
+
+## Constants and variables: `let` vs `var`
+
+In Swift, everything begins with a declaration. You have two options:
+
+```swift
+let pi = 3.14159       // Constant — cannot change
+var counter = 0        // Variable — can change
+counter += 1           // ✅ This works
+// pi = 3.14           // ❌ Compile-time error
+```
+
+`let` declares a constant. `var` declares a variable. Simple. But there's something deeper here worth understanding.
+
+When you use `let`, you're not just communicating your intent to the team — you're giving the **compiler information**. You're telling it: "this value will never change." And the compiler uses that promise to make optimization decisions. It can store the value directly in a processor register, eliminate unnecessary checks, or even substitute references to the value with the value itself (constant folding).
+
+<Callout type="tip" title="Golden rule">
+Always start with `let`. Only switch to `var` when you actually need to mutate the value. It's not just good practice — it's giving the compiler the best possible information to optimize your code.
+</Callout>
+
+### Type annotations vs type inference
+
+Swift is a **strongly typed** language — every value has a type, no exceptions. But you don't always need to write it explicitly:
+
+```swift
+// Type annotation — you declare the type
+let age: Int = 30
+let name: String = "Swift"
+
+// Type inference — the compiler figures out the type
+let age = 30          // The compiler infers Int
+let name = "Swift"    // The compiler infers String
+```
+
+Both forms produce exactly the same result. Type inference isn't magic and has no runtime cost — it happens entirely at **compile time**. By the time your code runs on the device, the compiler already knows the exact type of every variable. No ambiguity, no runtime decisions.
+
+<Callout type="info" title="When to use type annotations?">
+Use type annotations when the type isn't obvious at a glance, when you want to be explicit for readability, or when you need a different type than what the compiler would infer by default (for example, `let price: Float = 9.99` instead of `Double`).
+</Callout>
+
+## Fundamental data types
+
+Swift has a set of primitive types that form the foundation of everything else. Let's get to know them one by one — and understand what they really are.
+
+### Integers: `Int`
+
+```swift
+let users = 1_000_000       // Underscores improve readability
+let temperature = -15        // Integers can be negative
+```
+
+`Int` in Swift adapts to the platform: on a 64-bit device (every iPhone since the 5s), `Int` is a 64-bit integer. That means it can store values from -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807.
+
+Swift also offers explicitly sized variants: `Int8`, `Int16`, `Int32`, `Int64`, and their unsigned counterparts: `UInt8`, `UInt16`, `UInt32`, `UInt64`.
+
+```swift
+let byte: UInt8 = 255        // Maximum value for unsigned 8-bit
+let small: Int8 = 127        // Maximum value for signed 8-bit
+// let overflow: UInt8 = 256  // ❌ Compile-time error — out of range
+```
+
+That last example is important. In C or C++, an overflow like that would compile silently and give you an unexpected result. In Swift, **the compiler catches it before your code ever runs**. This isn't a minor detail — it's a design philosophy.
+
+<InfoBox title="Integer memory sizes">
+- `Int8` / `UInt8` → 1 byte (8 bits)
+- `Int16` / `UInt16` → 2 bytes (16 bits)
+- `Int32` / `UInt32` → 4 bytes (32 bits)
+- `Int64` / `UInt64` → 8 bytes (64 bits)
+- `Int` / `UInt` → 8 bytes on 64-bit platforms
+</InfoBox>
+
+### Decimals: `Double` and `Float`
+
+```swift
+let pi = 3.14159             // The compiler infers Double
+let gravity: Float = 9.8     // Explicitly Float
+```
+
+`Double` has 64-bit precision (at least 15 decimal digits). `Float` has 32-bit precision (6 digits). Swift infers `Double` by default when you write a number with a decimal point — and that's the right choice in most cases. Don't use `Float` unless you have a specific reason (like interoperating with graphics APIs that expect `Float`).
+
+### Booleans: `Bool`
+
+```swift
+let isActive = true
+let hasPermission = false
+```
+
+A `Bool` takes up **1 byte** in memory, even though it technically only needs 1 bit. Why? Because the smallest unit the processor can address is a byte. It's a trade-off between memory efficiency and access efficiency.
+
+### Strings (introduction)
+
+```swift
+let greeting = "Hello, Swift"
+let interpolated = "I'm \(age) years old"
+let multiline = """
+    This is a string
+    that spans multiple lines
+    and respects indentation
+    """
+```
+
+Strings deserve their own article — and they'll get one in #3 of this series. For now, what you need to know is that `String` is a **value type** in Swift (it's a `struct`), but its actual content — the characters — is stored in a buffer that may live on the heap. We'll come back to this.
+
+## Type Safety: the compiler as your ally
+
+Swift won't let you mix types without being explicit:
+
+```swift
+let integer = 42
+let decimal = 3.14
+// let sum = integer + decimal  // ❌ Error: you can't add Int + Double
+
+let sum = Double(integer) + decimal  // ✅ Explicit conversion
+```
+
+Is this annoying? Sometimes. Is it intentional? Absolutely. Swift prefers you to be explicit about conversions because implicit conversions are a constant source of subtle bugs in other languages.
+
+Think about JavaScript, where `"5" + 3` gives you `"53"` (concatenation) but `"5" - 3` gives you `2` (arithmetic). That never happens in Swift. The compiler forces you to say exactly what you mean.
+
+<Callout type="tip" title="Type Safety isn't bureaucracy">
+Every time the compiler forces you to be explicit, it's preventing a bug you might have discovered at 3 AM in production. The type system is your first line of defense — and it's free. It costs nothing at runtime because all verification happens at compile time.
+</Callout>
+
+## Operators
+
+Swift includes the operators you'd expect from any modern language, but with some details worth knowing.
+
+### Arithmetic operators
+
+```swift
+let sum = 10 + 3         // 13
+let difference = 10 - 3  // 7
+let product = 10 * 3     // 30
+let division = 10 / 3    // 3 (integer division)
+let remainder = 10 % 3   // 1
+
+let realDivision = 10.0 / 3.0  // 3.333... (decimal division)
+```
+
+A key detail: integer division **discards the decimal**. `10 / 3` is `3`, not `3.333`. This isn't a bug — it's the correct behavior for integer arithmetic. If you want the decimal result, at least one operand must be `Double`.
+
+Another important detail: Swift's arithmetic operators **detect overflow by default**. If you try to add two `Int8` values that exceed their range, your app crashes in debug with a clear message. This is intentional — a predictable crash is better than a silently incorrect result.
+
+```swift
+// If you need overflow wrapping (like C), use the special operators:
+let wrapped = Int8.max &+ 1  // -128 (overflow wrapping)
+```
+
+### Comparison and logical operators
+
+```swift
+// Comparison
+1 == 1   // true
+2 != 1   // true
+2 > 1    // true
+1 < 2    // true
+1 >= 1   // true
+2 <= 1   // false
+
+// Logical
+let a = true
+let b = false
+!a          // false (NOT)
+a && b      // false (AND)
+a || b      // true  (OR)
+```
+
+The logical operators `&&` and `||` use **short-circuit evaluation**. This means `a && b` won't evaluate `b` if `a` is `false` — because the result is already `false` regardless of what `b` is. This isn't just an optimization: it's something you can use intentionally:
+
+```swift
+// The second check only runs if the first one is true
+if user != nil && user!.isActive {
+    // Safe — we never reach the force unwrap if user is nil
+}
+```
+
+### The ternary operator
+
+```swift
+let access = age >= 18 ? "Allowed" : "Denied"
+```
+
+Compact and useful, but don't overuse it. If the condition or results are complex, an `if/else` is more readable.
+
+### Nil-Coalescing: `??`
+
+```swift
+let name: String? = nil
+let greeting = "Hello, \(name ?? "visitor")"
+// "Hello, visitor"
+```
+
+This operator deserves a preview because you'll use it constantly. It says: "use the value if it exists, otherwise use this default." We'll go deep into optionals in article #11, but it's worth seeing it now.
+
+### Range operators
+
+```swift
+// Closed range — includes both endpoints
+for i in 1...5 {
+    print(i)  // 1, 2, 3, 4, 5
+}
+
+// Half-open range — excludes the upper bound
+for i in 0..<5 {
+    print(i)  // 0, 1, 2, 3, 4
+}
+
+// Partial ranges
+let names = ["Ana", "Bob", "Carlos", "Diana"]
+let firstTwo = names[..<2]     // ["Ana", "Bob"]
+let fromThird = names[2...]    // ["Carlos", "Diana"]
+```
+
+The half-open range (`0..<array.count`) is particularly useful for iterating arrays — and it's so common that Swift offers even more expressive alternatives we'll explore in future articles.
+
+## Tuples: lightweight grouping
+
+Tuples let you group multiple values into one — without needing to create a struct or a class:
+
+```swift
+let coordinate = (latitude: 19.4326, longitude: -99.1332)
+print(coordinate.latitude)   // 19.4326
+
+// Decomposition
+let (lat, lon) = coordinate
+print(lat)  // 19.4326
+
+// Ignoring values with _
+let httpResponse = (200, "OK")
+let (statusCode, _) = httpResponse
+print(statusCode)  // 200
+```
+
+Tuples are compound **value types**. Their size in memory is the sum of their components' sizes. The tuple `(Int, Bool)` takes up 9 bytes: 8 from the `Int` + 1 from the `Bool` (plus possible alignment padding).
+
+<Callout type="info" title="Tuples or structs?">
+Tuples are perfect for temporary function returns. But if you're going to reuse that combination of data across your code, create a `struct` with clear names. Tuples can't conform to protocols or have methods.
+</Callout>
+
+## Type Aliases: names that communicate
+
+```swift
+typealias Speed = Double
+typealias Coordinate = (latitude: Double, longitude: Double)
+
+let maximum: Speed = 120.0
+let location: Coordinate = (19.4326, -99.1332)
+```
+
+A `typealias` doesn't create a new type — it's simply another name for an existing type. It has zero cost in memory or performance. It's syntactic sugar to improve your code's readability.
+
+## Where does all this live? Thinking about memory
+
+We've arrived at the part that makes this series different. Everything we just covered — `Int`, `Double`, `Bool`, tuples, `let`, `var` — these are all **value types**. And value types, in most cases, live on the **Stack**.
+
+If you've already read [Mastering Instruments (Part 2)](/blog/dominando-instruments-stack-heap-simbolizacion), you'll remember that the Stack is that fast, predictable chunk of memory where each function creates a "frame" on entry and destroys it on exit. No `malloc`, no `free`, no ARC. Just a pointer moving up and down.
+
+Let's see this with a concrete example:
+
+```swift
+func calculateArea(base: Double, height: Double) -> Double {
+    let area = base * height
+    return area
+}
+
+let result = calculateArea(base: 10.0, height: 5.0)
+```
+
+What happens in memory when we call `calculateArea`?
+
+1. **A stack frame is created** for the function. The stack pointer advances.
+2. The parameters `base` (8 bytes) and `height` (8 bytes) are copied into the frame.
+3. The local variable `area` (8 bytes) is computed and stored in the frame.
+4. The return value is copied to the calling context.
+5. **The stack frame is destroyed**. The stack pointer moves back. All clean.
+
+This entire process is incredibly fast — moving a pointer is literally a single processor instruction.
+
+<InfoBox title="What lives on the Stack?">
+- Integers (`Int`, `Int8`, `Int16`, `Int32`, `Int64`)
+- Decimals (`Double`, `Float`)
+- Booleans (`Bool`)
+- Tuples (the sum of their components)
+- Local variables of value types
+- Function parameters
+</InfoBox>
+
+### When do things end up on the Heap?
+
+There are cases where even a value type ends up on the Heap:
+
+- When it's captured by a **closure** (we'll see this in article #6)
+- When it's stored in an **existential container** (article #13)
+- When the value type is too large for the stack
+- **Reference types** (`class`, `actor`) always go to the Heap
+
+But for now, with the types we've covered today, we're firmly in Stack territory. And that's great news for performance.
+
+<Callout type="tip" title="Why does this matter?">
+When you write code that operates with value types on the stack, you're writing code the compiler can optimize aggressively. No reference counting, no synchronization, no indirection. It's the kind of code that makes Swift fast — and it's the kind of code you'll write naturally if you understand these fundamentals.
+</Callout>
+
+### The compiler as your copilot
+
+Something I want you to take away from this first article: **Swift's compiler is not an obstacle — it's your best tool**. Every restriction it imposes (type safety, overflow detection, explicit conversions) is a class of bug it eliminates before your code ever runs.
+
+Think about the cost: zero at runtime. The compiler does all its work before generating the binary. When your app runs on the user's device, there are no type checks, no overflow checks (in release), no inference. All of that already happened. What's left is clean, optimized code that knows exactly what types it's working with.
+
+<div class="pull-quote">
+Swift's compiler doesn't put up roadblocks — it builds you a highway. And the more information you give it (explicit types, let constants, value types), the smoother that highway gets.
+</div>
+
+## Recap
+
+Today we covered Swift's foundations:
+
+- **`let` and `var`** — constants and variables, and why `let` helps the compiler
+- **Fundamental types** — `Int`, `Double`, `Float`, `Bool`, `String` (intro)
+- **Type Safety** — the compiler verifies types at compile time, zero runtime cost
+- **Type Inference** — the compiler deduces types automatically
+- **Operators** — arithmetic (with overflow detection), comparison, logical, ternary, nil-coalescing, ranges
+- **Tuples** — lightweight value grouping
+- **Type aliases** — descriptive names at zero cost
+- **Memory** — everything today lives on the Stack, fast and predictable
+
+## What's next
+
+In the next article, we'll dive into **collections**: `Array`, `Set`, and `Dictionary`. And that's where the memory story gets interesting, because collections are value types... but their contents live on the Heap. We'll talk about **copy-on-write**, one of Swift's most elegant optimizations, and why the compiler can eliminate copies that never needed to exist.
+
+See you next week.
+
+<div class="pull-quote">
+Mastering Swift isn't about memorizing syntax — it's about understanding the design decisions that made this language what it is. And that starts here, from the foundations.
+</div>
