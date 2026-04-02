@@ -1,0 +1,405 @@
+---
+title: "Swift from Zero to Expert #3: Strings and Characters — much more than text"
+description: "Unicode scalars, grapheme clusters, why string[0] doesn't exist in Swift, and how Substring shares memory with the original String."
+pubDate: 'May 04 2026'
+heroImage: './hero.png'
+lang: 'en'
+translationKey: 'swift-zero-expert-strings'
+slug: 'swift-zero-expert-strings-characters'
+tags: ['swift', 'swift-zero-expert', 'strings']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+
+In the [previous article](/blog/swift-zero-expert-collections) we discovered that collections are value types with their content on the heap and the magic of copy-on-write. Today we'll explore a type that looks simple but hides one of the bravest design decisions in Swift: the `String`.
+
+Why can't you write `myString[0]`? Why is counting characters O(n)? And what does a flag emoji have to do with all of this? The answer to all these questions is the same: **Unicode**.
+
+<div class="pull-quote">
+Swift chose correctness over convenience. And that decision changed everything you know about strings.
+</div>
+
+![The Swift bird explaining Unicode to the capybara with floating characters](./resources/unicode-intro.png)
+
+## String Literals: creating text
+
+The most straightforward way to create a string is with a literal:
+
+```swift
+let greeting = "Hello, world"
+```
+
+Swift automatically infers the `String` type. But literals can be more sophisticated than they seem.
+
+### Multiline strings
+
+```swift
+let poem = """
+    Roses are red,
+    Violets are blue,
+    Swift is amazing,
+    And so are you.
+    """
+```
+
+Indentation is controlled by the position of the closing `"""` — any whitespace *before* that line is stripped from all lines.
+
+### Special characters
+
+```swift
+let wiseWords = "\"Imagination is more important than knowledge\" - Einstein"
+let dollarSign = "\u{24}"        // $  — Unicode scalar U+0024
+let blackHeart = "\u{2665}"      // ♥  — Unicode scalar U+2665
+let sparklingHeart = "\u{1F496}" // 💖 — Unicode scalar U+1F496
+```
+
+### Extended delimiters
+
+```swift
+// \n is printed literally, not as a line break
+let raw = #"Line 1\nLine 2"#
+
+// If you need interpolation inside extended delimiters:
+let value = 42
+let message = #"The answer is \#(value)"#
+// "The answer is 42"
+```
+
+Extended delimiters (`#"..."#`) are perfect when your string contains many quotes or backslashes — like regular expressions or JSON.
+
+## String is a value type
+
+Worth repeating: `String` is a **struct** in Swift. It's a value type, like `Int` or `Array`. And just like `Array`, it uses **copy-on-write** — the character buffer lives on the heap, but is only copied when you mutate.
+
+```swift
+var original = "Hello"
+var copy = original      // They share the same buffer (CoW)
+copy += ", world"        // Now copy has its own buffer
+// original is still "Hello"
+```
+
+<Callout type="info" title="Mutability with let and var">
+`var` lets you modify the string. `let` makes it immutable. Same rule as any other value type — and gives the compiler the same optimization information.
+</Callout>
+
+## Characters: not what you think
+
+This is where Swift separates itself from most languages. A `Character` in Swift is **not** a byte, nor a code point, nor a C `char`. It's an **extended grapheme cluster** — the smallest unit that a human perceives as "one character."
+
+```swift
+for character in "Dog!🐶" {
+    print(character)
+}
+// D
+// o
+// g
+// !
+// 🐶
+```
+
+So far so normal. But look at this:
+
+```swift
+let eAcute: Character = "\u{E9}"                // é — one scalar
+let combinedEAcute: Character = "\u{65}\u{301}"  // e + ◌́ — two scalars
+// Both are é, both are ONE Character
+```
+
+The character `é` can be represented two ways in Unicode: as a single scalar (`U+00E9`) or as two combined scalars (`e` + accent). Swift treats them as the **same Character**, because visually and linguistically they're identical.
+
+![The capybara surprised to see that é can be composed of one or two scalars](./resources/grapheme-clusters.png)
+
+### It gets even more interesting with emojis
+
+```swift
+let flag: Character = "\u{1F1FA}\u{1F1F8}"  // 🇺🇸
+// Two scalars → one Character
+```
+
+A country flag is **one Character** composed of two Unicode scalars (Regional Indicator Symbols). And there's more:
+
+```swift
+let family = "👨‍👩‍👧‍👦"
+print(family.count) // 1
+// One single Character composed of 7 Unicode scalars!
+// 👨 + ZWJ + 👩 + ZWJ + 👧 + ZWJ + 👦
+```
+
+<Callout type="tip" title="Why does this matter?">
+Because it means a `Character` in Swift can occupy a variable number of bytes in memory. You can't assume all characters are the same size. And that's exactly why `string[0]` doesn't exist.
+</Callout>
+
+## Why `string[0]` doesn't exist
+
+In C, `char *name = "hello"; name[2]` works because each `char` is exactly 1 byte. Jumping to the third byte is an O(1) operation — you just add 2 to the memory address.
+
+In Swift, that's impossible. The character `é` can take 2 bytes or 4 bytes depending on its encoding. A family emoji can take 25 bytes. To find where the third Character starts, Swift has to **walk through the first two** and count their bytes.
+
+That's why Swift uses `String.Index` instead of integers:
+
+```swift
+let greeting = "Guten Tag!"
+
+greeting[greeting.startIndex]                          // G
+greeting[greeting.index(after: greeting.startIndex)]   // u
+greeting[greeting.index(greeting.startIndex, offsetBy: 7)] // a
+greeting[greeting.index(before: greeting.endIndex)]    // !
+```
+
+<InfoBox title="String.Index methods">
+- `startIndex` → position of the first Character
+- `endIndex` → position *after* the last Character
+- `index(after:)` → next position
+- `index(before:)` → previous position
+- `index(_:offsetBy:)` → advance/retreat N positions
+</InfoBox>
+
+<Callout type="warning" title="endIndex is not a valid index">
+`greeting[greeting.endIndex]` crashes. `endIndex` is the position *after* the last character — it exists to define ranges, not for access.
+</Callout>
+
+### Iterating over indices
+
+```swift
+for index in greeting.indices {
+    print("\(greeting[index]) ", terminator: "")
+}
+// G u t e n   T a g !
+```
+
+## Counting characters: O(n) by design
+
+```swift
+let zoo = "Koala 🐨, Snail 🐌, Penguin 🐧"
+print(zoo.count) // 30
+```
+
+`.count` is **O(n)** — Swift has to walk through the entire string to count extended grapheme clusters. This is a direct consequence of Characters having variable size.
+
+And there's a case that demonstrates it perfectly:
+
+```swift
+var word = "cafe"
+print(word.count) // 4
+
+word += "\u{301}" // Adds COMBINING ACUTE ACCENT
+
+print(word)       // "café"
+print(word.count) // 4 — still 4!
+```
+
+Adding a combining accent doesn't add a Character — it modifies the last one. The `e` and the accent merge into `é`, a single extended grapheme cluster.
+
+<div class="pull-quote">
+In Swift, a string's character count isn't the number of bytes, nor the number of code points. It's the number of units a human would perceive as "letters." And that requires walking the entire string.
+</div>
+
+## Modifying strings
+
+### Insert and remove
+
+```swift
+var welcome = "hello"
+welcome.insert("!", at: welcome.endIndex)
+// "hello!"
+
+welcome.insert(contentsOf: " there", at: welcome.index(before: welcome.endIndex))
+// "hello there!"
+
+welcome.remove(at: welcome.index(before: welcome.endIndex))
+// "hello there"
+
+let range = welcome.index(welcome.endIndex, offsetBy: -6)..<welcome.endIndex
+welcome.removeSubrange(range)
+// "hello"
+```
+
+### Concatenation
+
+```swift
+let start = "hello"
+let end = " there"
+var combined = start + end  // "hello there"
+
+combined += "!"             // "hello there!"
+
+let exclamation: Character = "!"
+combined.append(exclamation)
+```
+
+### Interpolation
+
+```swift
+let multiplier = 3
+let message = "\(multiplier) times 2.5 is \(Double(multiplier) * 2.5)"
+// "3 times 2.5 is 7.5"
+```
+
+String interpolation is type-safe — the compiler verifies the expression inside `\()` is valid. No dangerous format strings like C's `printf`.
+
+## Substrings: sharing to avoid copying
+
+When you get a portion of a string — with a subscript, `prefix(_:)`, or `suffix(_:)` — Swift doesn't give you a `String`. It gives you a `Substring`.
+
+```swift
+let greeting = "Hello, world!"
+let index = greeting.firstIndex(of: ",") ?? greeting.endIndex
+let beginning = greeting[..<index] // "Hello" — type is Substring
+
+// For long-term storage, convert to String
+let stored = String(beginning)
+```
+
+Why? **Memory.** A `Substring` shares the buffer of the original `String`. Nothing is copied. It's instant.
+
+![Technical diagram showing how Substring shares the buffer of the original String](./resources/substring-memory.png)
+
+```
+┌──────────────────────────────────────┐
+│             Heap Buffer              │
+│  [H][e][l][l][o][,][ ][w][o][r][l][d][!] │
+│   ↑                                  │
+│   │                                  │
+│   └── greeting (String) ─────────────┘
+│   ↑───────────┐
+│               │
+│   beginning (Substring) — only points
+│   to range [0..<5] of the SAME buffer
+└──────────────────────────────────────┘
+```
+
+<Callout type="warning" title="Be careful retaining Substrings">
+If you keep a `Substring` in memory, the entire original `String` can't be freed — because the `Substring` points to its buffer. If you have a 1 MB string and only need the first 5 characters, convert to `String` to release the original buffer:
+
+```swift
+let huge = String(repeating: "x", count: 1_000_000)
+let tiny = String(huge.prefix(5)) // Copies only 5 chars, frees the rest
+```
+</Callout>
+
+<Callout type="info" title="StringProtocol">
+Both `String` and `Substring` conform to `StringProtocol`. If you write functions that accept text, use `some StringProtocol` as the parameter type to accept both without forcing a copy.
+</Callout>
+
+## Comparing strings
+
+```swift
+let quote = "We're a lot alike, you and I."
+let sameQuote = "We're a lot alike, you and I."
+quote == sameQuote // true
+```
+
+Comparison in Swift uses **canonical equivalence**: two strings are equal if they represent the same text, even if they're composed of different Unicode scalars:
+
+```swift
+let eAcuteQuestion = "Voulez-vous un caf\u{E9}?"         // é as one scalar
+let combinedQuestion = "Voulez-vous un caf\u{65}\u{301}?" // e + ◌́
+
+eAcuteQuestion == combinedQuestion // true — same visual representation
+```
+
+You also have prefix and suffix matching:
+
+```swift
+let filename = "report-2026-Q1.pdf"
+filename.hasPrefix("report")  // true
+filename.hasSuffix(".pdf")    // true
+```
+
+## Unicode representations
+
+The same string can be viewed differently depending on the encoding:
+
+```swift
+let dogString = "Dog‼🐶"
+
+// UTF-8 — 8-bit bytes
+for byte in dogString.utf8 {
+    print("\(byte) ", terminator: "")
+}
+// 68 111 103 226 128 188 240 159 144 182
+
+// UTF-16 — 16-bit code units
+for unit in dogString.utf16 {
+    print("\(unit) ", terminator: "")
+}
+// 68 111 103 8252 55357 56374
+
+// Unicode Scalars — 21-bit values
+for scalar in dogString.unicodeScalars {
+    print("\(scalar.value) ", terminator: "")
+}
+// 68 111 103 8252 128054
+```
+
+<InfoBox title="When to use each representation?">
+- `.utf8` → C interoperability, networking, files
+- `.utf16` → Foundation/NSString interoperability
+- `.unicodeScalars` → Low-level Unicode processing
+- `.count` (Characters) → What the user sees and expects
+</InfoBox>
+
+## The memory behind String
+
+Everything we've covered has direct implications on how Swift manages strings in memory.
+
+### Small String Optimization
+
+For short strings (15 bytes or fewer on 64-bit platforms), Swift stores the characters **directly in the struct**, without hitting the heap. This eliminates dynamic allocation for most common strings — variable names, country codes, short labels.
+
+```swift
+let short = "Hello"      // 5 bytes — fits inline, no heap allocation
+let long = String(repeating: "x", count: 100) // 100 bytes — goes to the heap
+```
+
+### The cost of each operation
+
+<InfoBox title="String complexity">
+- `count` → **O(n)** — walks all grapheme clusters
+- `startIndex`, `endIndex` → **O(1)**
+- `index(after:)` → **O(1)** amortized
+- `index(_:offsetBy: k)` → **O(k)** — walks k positions
+- Index access `string[i]` → **O(1)** if you already have the index
+- `hasPrefix`, `hasSuffix` → **O(n)** of the prefix/suffix
+- `==` → **O(n)** — must verify canonical equivalence
+- Concatenation `+` → **O(n)** — copies both buffers
+</InfoBox>
+
+<Callout type="tip" title="Performance tip">
+If you need frequent positional access to characters, consider converting the string to an `Array<Character>` first. The array gives you O(1) index access in exchange for an O(n) initial copy and more memory.
+
+```swift
+let text = "Hello, world!"
+let chars = Array(text) // O(n) once
+chars[7]                // O(1) always — "w"
+```
+</Callout>
+
+## Recap
+
+Today we discovered why String in Swift is much more than "text":
+
+- **String Literals** — simple, multiline, extended delimiters, type-safe interpolation
+- **Value Type with CoW** — struct on the stack, buffer on the heap, copy-on-write
+- **Characters = Extended Grapheme Clusters** — what a human perceives, not bytes
+- **String.Index** — why `string[0]` doesn't exist and how to navigate correctly
+- **count is O(n)** — direct consequence of variable-size Characters
+- **Substring** — shares the original's buffer to avoid copies
+- **Canonical equivalence** — `é` == `e` + `◌́` in comparisons
+- **Small String Optimization** — short strings avoid the heap
+- **UTF-8, UTF-16, Unicode Scalars** — three ways to view the same text
+
+<div class="pull-quote">
+Swift made the hard choice with strings: be correct always, even if it means `string[0]` can't exist. That same philosophy — correctness over convenience — is what makes the language exceptional.
+</div>
+
+## What's next
+
+In the next article we'll explore **control flow**: `if/else`, `switch` with exhaustive pattern matching, `guard` as an early exit philosophy, and how the compiler turns your switches into efficient jump tables. We'll see how the decisions you make in each `if` and `switch` speak directly to the compiler.
+
+See you next week.
+
+<div class="pull-quote">
+Understanding how Swift handles text is understanding its values as a language: correctness first, performance second — and in the end, you get both.
+</div>
