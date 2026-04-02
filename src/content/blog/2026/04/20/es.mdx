@@ -11,6 +11,7 @@ tags: ['swift', 'swift-cero-experto', 'basics']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
+import StackMemoryVisualizer from '../../../../../components/blog/StackMemoryVisualizer';
 
 ¿Cuántos años llevas escribiendo Swift? ¿Dos, cinco, ocho? Ahora déjame hacerte otra pregunta: ¿sabes exactamente qué pasa cuando escribes `let nombre = "Juan"`? No me refiero a "se crea una constante". Me refiero a *dónde* vive esa constante en memoria, *por qué* el compilador elige ponerla ahí, y *qué implicaciones* tiene esa decisión para el rendimiento de tu app.
 
@@ -47,6 +48,8 @@ contador += 1          // ✅ Esto funciona
 ```
 
 `let` declara una constante. `var` declara una variable. Simple. Pero hay algo más profundo aquí que vale la pena entender.
+
+![let es inmutable como una caja con candado, var es mutable y puede cambiar su contenido](./resources/let-vs-var.png)
 
 Cuando usas `let`, no solo estás comunicando tu intención al equipo — estás dándole **información al compilador**. Le estás diciendo: "este valor no va a cambiar jamás". Y el compilador usa esa promesa para tomar decisiones de optimización. Puede almacenar ese valor directamente en un registro del procesador, puede eliminar comprobaciones innecesarias, puede incluso sustituir las referencias al valor por el valor mismo (constant folding).
 
@@ -152,6 +155,8 @@ let suma = Double(entero) + decimal  // ✅ Conversión explícita
 ¿Esto es molesto? A veces. ¿Es intencional? Absolutamente. Swift prefiere que seas explícito sobre las conversiones porque las conversiones implícitas son una fuente constante de bugs sutiles en otros lenguajes.
 
 Piensa en JavaScript, donde `"5" + 3` da `"53"` (concatenación) pero `"5" - 3` da `2` (aritmética). Eso nunca pasa en Swift. El compilador te obliga a decir exactamente qué quieres.
+
+![Swift type safety vs JavaScript: orden y seguridad vs caos de tipos](./resources/type-safety.png)
 
 <Callout type="tip" title="Type Safety no es burocracia">
 Cada vez que el compilador te fuerza a ser explícito, está previniendo un bug que podrías haber descubierto a las 3 AM en producción. El type system es tu primera línea de defensa — y es gratis. No cuesta nada en rendimiento porque toda la verificación sucede en compilación.
@@ -291,26 +296,17 @@ Llegamos a la parte que hace diferente a esta serie. Todo lo que acabamos de ver
 
 Si ya leíste [Dominando Instruments (Parte 2)](/blog/dominando-instruments-stack-heap-simbolizacion), recordarás que el Stack es esa pila de memoria rápida y predecible donde cada función crea un "frame" al entrar y lo destruye al salir. No hay `malloc`, no hay `free`, no hay ARC. Solo un puntero que sube y baja.
 
-Veamos esto con un ejemplo concreto:
+![El Stack es una pila ordenada y rápida, el Heap es un almacén flexible pero costoso](./resources/stack-memory.png)
 
-```swift
-func calcularArea(base: Double, altura: Double) -> Double {
-    let area = base * altura
-    return area
-}
+Veamos esto con un ejemplo concreto. Navega paso a paso para ver cómo el stack crece y se destruye:
 
-let resultado = calcularArea(base: 10.0, altura: 5.0)
-```
-
-¿Qué pasa en memoria cuando llamamos a `calcularArea`?
-
-1. **Se crea un stack frame** para la función. El stack pointer avanza.
-2. Los parámetros `base` (8 bytes) y `altura` (8 bytes) se copian al frame.
-3. La variable local `area` (8 bytes) se calcula y se almacena en el frame.
-4. El valor de retorno se copia al contexto que llamó la función.
-5. **El stack frame se destruye**. El stack pointer retrocede. Todo limpio.
+<div class="interactive-content">
+  <StackMemoryVisualizer client:load lang="es" />
+</div>
 
 Todo este proceso es increíblemente rápido — mover un puntero es literalmente una instrucción del procesador.
+
+![Diagrama técnico del stack frame durante y después de la llamada a calculateArea](./resources/stack-frame-diagram.png)
 
 <InfoBox title="¿Qué vive en el Stack?">
 - Enteros (`Int`, `Int8`, `Int16`, `Int32`, `Int64`)
@@ -362,6 +358,8 @@ Hoy cubrimos los cimientos de Swift:
 ## Lo que viene
 
 En el próximo artículo vamos a sumergirnos en las **colecciones**: `Array`, `Set` y `Dictionary`. Y ahí es donde la historia de la memoria se pone interesante, porque las colecciones son tipos de valor... pero su contenido vive en el Heap. Vamos a hablar de **copy-on-write**, una de las optimizaciones más elegantes de Swift, y de por qué el compilador puede eliminar copias que nunca necesitaron existir.
+
+![El inicio de un largo camino: 20 artículos para dominar Swift](./resources/coming-next.png)
 
 Nos vemos la próxima semana.
 

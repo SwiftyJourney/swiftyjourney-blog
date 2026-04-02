@@ -11,6 +11,7 @@ tags: ['swift', 'swift-zero-expert', 'basics']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
+import StackMemoryVisualizer from '../../../../../components/blog/StackMemoryVisualizer';
 
 How many years have you been writing Swift? Two, five, eight? Now let me ask you a different question: do you know exactly what happens when you write `let name = "Juan"`? I don't mean "a constant is created." I mean *where* that constant lives in memory, *why* the compiler chooses to put it there, and *what implications* that decision has for your app's performance.
 
@@ -47,6 +48,8 @@ counter += 1           // ✅ This works
 ```
 
 `let` declares a constant. `var` declares a variable. Simple. But there's something deeper here worth understanding.
+
+![let is immutable like a locked box, var is mutable and can change its contents](./resources/let-vs-var.png)
 
 When you use `let`, you're not just communicating your intent to the team — you're giving the **compiler information**. You're telling it: "this value will never change." And the compiler uses that promise to make optimization decisions. It can store the value directly in a processor register, eliminate unnecessary checks, or even substitute references to the value with the value itself (constant folding).
 
@@ -152,6 +155,8 @@ let sum = Double(integer) + decimal  // ✅ Explicit conversion
 Is this annoying? Sometimes. Is it intentional? Absolutely. Swift prefers you to be explicit about conversions because implicit conversions are a constant source of subtle bugs in other languages.
 
 Think about JavaScript, where `"5" + 3` gives you `"53"` (concatenation) but `"5" - 3` gives you `2` (arithmetic). That never happens in Swift. The compiler forces you to say exactly what you mean.
+
+![Swift type safety vs JavaScript: order and safety vs type chaos](./resources/type-safety.png)
 
 <Callout type="tip" title="Type Safety isn't bureaucracy">
 Every time the compiler forces you to be explicit, it's preventing a bug you might have discovered at 3 AM in production. The type system is your first line of defense — and it's free. It costs nothing at runtime because all verification happens at compile time.
@@ -291,26 +296,17 @@ We've arrived at the part that makes this series different. Everything we just c
 
 If you've already read [Mastering Instruments (Part 2)](/blog/dominando-instruments-stack-heap-simbolizacion), you'll remember that the Stack is that fast, predictable chunk of memory where each function creates a "frame" on entry and destroys it on exit. No `malloc`, no `free`, no ARC. Just a pointer moving up and down.
 
-Let's see this with a concrete example:
+![The Stack is a neat, fast pile; the Heap is a flexible but costly storage room](./resources/stack-memory.png)
 
-```swift
-func calculateArea(base: Double, height: Double) -> Double {
-    let area = base * height
-    return area
-}
+Let's see this with a concrete example. Navigate step by step to see how the stack frame grows and gets destroyed:
 
-let result = calculateArea(base: 10.0, height: 5.0)
-```
-
-What happens in memory when we call `calculateArea`?
-
-1. **A stack frame is created** for the function. The stack pointer advances.
-2. The parameters `base` (8 bytes) and `height` (8 bytes) are copied into the frame.
-3. The local variable `area` (8 bytes) is computed and stored in the frame.
-4. The return value is copied to the calling context.
-5. **The stack frame is destroyed**. The stack pointer moves back. All clean.
+<div class="interactive-content">
+  <StackMemoryVisualizer client:load lang="en" />
+</div>
 
 This entire process is incredibly fast — moving a pointer is literally a single processor instruction.
+
+![Technical diagram of the stack frame during and after the calculateArea call](./resources/stack-frame-diagram.png)
 
 <InfoBox title="What lives on the Stack?">
 - Integers (`Int`, `Int8`, `Int16`, `Int32`, `Int64`)
@@ -362,6 +358,8 @@ Today we covered Swift's foundations:
 ## What's next
 
 In the next article, we'll dive into **collections**: `Array`, `Set`, and `Dictionary`. And that's where the memory story gets interesting, because collections are value types... but their contents live on the Heap. We'll talk about **copy-on-write**, one of Swift's most elegant optimizations, and why the compiler can eliminate copies that never needed to exist.
+
+![The beginning of a long road: 20 articles to master Swift](./resources/coming-next.png)
 
 See you next week.
 
