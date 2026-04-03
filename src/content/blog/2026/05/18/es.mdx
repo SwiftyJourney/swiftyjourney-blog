@@ -1,0 +1,360 @@
+---
+title: "Swift de Cero a Experto #5: Funciones — ciudadanos de primera clase"
+description: "Parámetros, labels, inout, function types y funciones como valores. La puerta de entrada a los closures y la programación funcional."
+pubDate: 'May 18 2026'
+heroImage: './hero.png'
+lang: 'es'
+translationKey: 'swift-zero-expert-functions'
+slug: 'swift-cero-experto-funciones'
+tags: ['swift', 'swift-cero-experto', 'functions']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+import FunctionTypesVisualizer from '../../../../../components/blog/FunctionTypesVisualizer';
+
+En el [artículo anterior](/es/blog/swift-cero-experto-control-flujo) dominamos el control de flujo — `switch` con pattern matching, `guard` como filosofía, y cómo el compilador convierte tus decisiones en jump tables. Hoy damos un paso que cambia todo: las funciones.
+
+Y no, no me refiero a "bloques de código que reciben parámetros y retornan un valor". Eso lo sabes desde tu primer día programando. Lo que hace especial a las funciones en Swift es que son **ciudadanos de primera clase** — valores que puedes almacenar en variables, pasar como parámetros y retornar desde otras funciones. Exactamente como un `Int` o un `String`.
+
+Entender esto es la puerta de entrada a los closures (artículo #6), la programación funcional (artículo #20), y la forma en que Swift piensa.
+
+<div class="pull-quote">
+En Swift, una función no es solo algo que ejecutas — es un valor que puedes manipular. Y esa idea lo cambia todo.
+</div>
+
+![El ave Swift entregándole al capibara una función empaquetada como un regalo](./resources/functions-intro.png)
+
+## Definiendo y llamando funciones
+
+La anatomía básica de una función en Swift, según la [documentación oficial](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/functions):
+
+```swift
+func greet(person: String) -> String {
+    let message = "Hello, " + person + "!"
+    return message
+}
+
+print(greet(person: "Anna"))  // "Hello, Anna!"
+print(greet(person: "Brian")) // "Hello, Brian!"
+```
+
+Nada sorprendente aquí. Pero vamos a ir desarmando cada pieza para entender las decisiones de diseño.
+
+### Implicit return
+
+Si el cuerpo de tu función es una **sola expresión**, puedes omitir el `return`:
+
+```swift
+func greet(person: String) -> String {
+    "Hello, " + person + "!"
+}
+```
+
+El compilador entiende que la única expresión es el valor de retorno. Es lo mismo que escribir `return` — sin costo extra, solo menos ruido visual.
+
+## Parámetros y valores de retorno
+
+### Sin parámetros
+
+```swift
+func sayHello() -> String {
+    return "Hello, world"
+}
+```
+
+### Sin valor de retorno
+
+```swift
+func printGreeting(person: String) {
+    print("Hello, \(person)!")
+}
+```
+
+Técnicamente, una función sin retorno sí retorna algo: `Void` — que es simplemente una tupla vacía `()`.
+
+### Múltiples valores de retorno con tuplas
+
+```swift
+func minMax(array: [Int]) -> (min: Int, max: Int)? {
+    if array.isEmpty { return nil }
+
+    var currentMin = array[0]
+    var currentMax = array[0]
+
+    for value in array[1..<array.count] {
+        if value < currentMin {
+            currentMin = value
+        } else if value > currentMax {
+            currentMax = value
+        }
+    }
+
+    return (currentMin, currentMax)
+}
+
+if let bounds = minMax(array: [8, -6, 2, 109, 3, 71]) {
+    print("min is \(bounds.min) and max is \(bounds.max)")
+    // "min is -6 and max is 109"
+}
+```
+
+Nota que el tipo de retorno es `(min: Int, max: Int)?` — un optional tuple. Si el array está vacío, retorna `nil`. Las etiquetas `min` y `max` permiten acceder a los valores por nombre en lugar de `.0` y `.1`.
+
+## Argument Labels y Parameter Names: por qué Swift tiene dos nombres
+
+Esta es una de las decisiones de diseño más distintivas de Swift. Cada parámetro tiene **dos nombres**: un *argument label* (para quien llama) y un *parameter name* (para el cuerpo de la función).
+
+```swift
+func greet(person: String, from hometown: String) -> String {
+    return "Hello \(person)! Glad you could visit from \(hometown)."
+}
+
+// Al llamar, se lee como una oración:
+greet(person: "Bill", from: "Cupertino")
+```
+
+- `person` es tanto label como parameter name (el default)
+- `from` es el argument label, `hometown` es el parameter name
+
+¿Por qué? Porque Swift hereda la filosofía de Objective-C de que las llamadas a funciones deben leerse como **oraciones en inglés**. `greet(person: "Bill", from: "Cupertino")` se lee naturalmente.
+
+### Omitir el label con `_`
+
+```swift
+func add(_ a: Int, _ b: Int) -> Int {
+    return a + b
+}
+
+add(3, 5) // Sin labels — para operaciones matemáticas tiene sentido
+```
+
+### Valores por defecto
+
+```swift
+func connect(to host: String, port: Int = 443, secure: Bool = true) {
+    print("Connecting to \(host):\(port) (secure: \(secure))")
+}
+
+connect(to: "api.example.com")               // port=443, secure=true
+connect(to: "api.example.com", port: 8080)    // secure=true
+connect(to: "api.example.com", secure: false)  // port=443
+```
+
+Los parámetros con defaults van al final. El compilador genera variantes de la función para cada combinación — es compile-time sugar, sin overhead en runtime.
+
+### Variadic Parameters
+
+```swift
+func average(_ numbers: Double...) -> Double {
+    var total: Double = 0
+    for number in numbers {
+        total += number
+    }
+    return total / Double(numbers.count)
+}
+
+average(1, 2, 3, 4, 5)  // 3.0
+average(3, 8.25, 18.75)  // 10.0
+```
+
+Dentro del cuerpo, `numbers` es un `[Double]` — un array normal. El `...` es azúcar sintáctica para quien llama la función.
+
+## In-Out Parameters: modificando valores externos
+
+Por defecto, los parámetros de una función son **constantes** — no puedes modificarlos. Si necesitas que la función modifique un valor externo, usas `inout`:
+
+```swift
+func swapValues(_ a: inout Int, _ b: inout Int) {
+    let temp = a
+    a = b
+    b = temp
+}
+
+var x = 3
+var y = 107
+swapValues(&x, &y)
+print("x is \(x), y is \(y)")
+// "x is 107, y is 3"
+```
+
+El `&` al pasar el argumento indica que la función puede modificar esa variable. Es explícito — no hay mutaciones ocultas.
+
+<Callout type="info" title="inout y el compilador">
+La semántica oficial de `inout` es **copy-in copy-out**: el valor se copia al entrar a la función y se copia de vuelta al salir. Pero el compilador optimiza esto a **pass-by-reference** siempre que puede — especialmente cuando la variable original es local y no hay aliasing. Resultado: la semántica de valor se mantiene, pero el rendimiento es el de una referencia.
+</Callout>
+
+## Function Types: las funciones como valores
+
+Aquí es donde las cosas se ponen interesantes. Cada función tiene un **tipo** definido por sus parámetros y su retorno:
+
+```swift
+func addTwoInts(_ a: Int, _ b: Int) -> Int { a + b }
+func multiplyTwoInts(_ a: Int, _ b: Int) -> Int { a * b }
+
+// Ambas funciones tienen tipo: (Int, Int) -> Int
+```
+
+Y puedes usar ese tipo como cualquier otro tipo en Swift:
+
+```swift
+// Almacenar una función en una variable
+var mathFunction: (Int, Int) -> Int = addTwoInts
+print(mathFunction(2, 3))  // 5
+
+// Reasignar a otra función del mismo tipo
+mathFunction = multiplyTwoInts
+print(mathFunction(2, 3))  // 6
+```
+
+![El ave Swift mostrando que una función cabe dentro de una variable como cualquier valor](./resources/function-types.png)
+
+Pruébalo tú mismo — asigna diferentes funciones a la misma variable, ajusta los argumentos y observa cómo el resultado cambia pero el tipo siempre es `(Int, Int) -> Int`:
+
+<div class="interactive-content">
+  <FunctionTypesVisualizer client:load lang="es" />
+</div>
+
+<div class="pull-quote">
+Cuando una función cabe en una variable, deja de ser "algo que ejecutas" y se convierte en "algo que manipulas". Eso es lo que significa ser first-class citizen.
+</div>
+
+### Funciones como parámetros
+
+Puedes pasar funciones como argumentos a otras funciones:
+
+```swift
+func printMathResult(_ operation: (Int, Int) -> Int, _ a: Int, _ b: Int) {
+    print("Result: \(operation(a, b))")
+}
+
+printMathResult(addTwoInts, 3, 5)       // "Result: 8"
+printMathResult(multiplyTwoInts, 3, 5)  // "Result: 15"
+```
+
+`printMathResult` no sabe ni le importa qué hace `operation` — solo sabe que acepta dos `Int` y retorna un `Int`. Esto es **polimorfismo a través de tipos de función** — uno de los pilares de la programación funcional.
+
+### Funciones como valor de retorno
+
+```swift
+func stepForward(_ input: Int) -> Int { input + 1 }
+func stepBackward(_ input: Int) -> Int { input - 1 }
+
+func chooseStepFunction(backward: Bool) -> (Int) -> Int {
+    return backward ? stepBackward : stepForward
+}
+
+var currentValue = 3
+let moveNearerToZero = chooseStepFunction(backward: currentValue > 0)
+// moveNearerToZero ahora ES stepBackward
+
+while currentValue != 0 {
+    print("\(currentValue)... ")
+    currentValue = moveNearerToZero(currentValue)
+}
+print("zero!")
+// 3... 2... 1... zero!
+```
+
+`chooseStepFunction` retorna una **función** — no un valor, sino comportamiento. El tipo de retorno `(Int) -> Int` es una función que toma un Int y retorna un Int.
+
+## Nested Functions: closures disfrazados
+
+Puedes definir funciones dentro de funciones:
+
+```swift
+func chooseStepFunction(backward: Bool) -> (Int) -> Int {
+    func stepForward(input: Int) -> Int { input + 1 }
+    func stepBackward(input: Int) -> Int { input - 1 }
+    return backward ? stepBackward : stepForward
+}
+```
+
+Las nested functions están ocultas del mundo exterior — solo su función contenedora puede verlas. Pero cuando una nested function es **retornada** fuera de su scope, se convierte en algo más poderoso: un **closure**.
+
+¿Por qué? Porque puede **capturar** variables del scope que la rodea. Y eso tiene implicaciones directas en memoria — que exploraremos a fondo en el próximo artículo.
+
+<Callout type="tip" title="Preview del artículo #6">
+Una nested function que captura variables externas necesita que esas variables sobrevivan más allá del scope donde fueron creadas. Swift resuelve esto alocando esas variables en el **heap** en lugar del stack. Eso es exactamente lo que es un closure — y es la razón por la que los closures son reference types.
+</Callout>
+
+## La memoria detrás de las funciones
+
+### ¿Dónde vive una función?
+
+El código ejecutable de una función vive en el segmento **`__TEXT`** del binario Mach-O — como vimos en [Dominando Instruments (Parte 2)](/blog/dominando-instruments-stack-heap-simbolizacion). Es de solo lectura y se comparte entre procesos. Cuando llamas a una función, el procesador salta a esa dirección de memoria.
+
+### ¿Qué pasa en el stack?
+
+Cada llamada a función crea un **stack frame** (como vimos con el componente interactivo del artículo #1):
+
+1. Los parámetros se copian al stack frame (si son value types)
+2. Las variables locales se alocan en el stack frame
+3. Al retornar, el stack frame se destruye
+
+### Function types y el heap
+
+Cuando almacenas una función en una variable (como `var mathFunction: (Int, Int) -> Int = addTwoInts`), la variable en el stack almacena un **puntero** a la función en `__TEXT`. Eso es solo 8 bytes — un puntero.
+
+Pero cuando una función **captura contexto** (una nested function que usa variables de su scope padre), Swift necesita algo más complejo: un **closure context** en el heap. Esto es lo que veremos en detalle en el artículo #6.
+
+### inout y la optimización del compilador
+
+```swift
+func increment(_ value: inout Int) {
+    value += 1
+}
+```
+
+Semánticamente es copy-in/copy-out. Pero el compilador genera:
+- **Pass-by-reference** cuando puede demostrar que no hay aliasing
+- **Copy-in/copy-out real** solo cuando hay acceso concurrente o aliasing potencial
+
+La exclusivity rule de Swift (que veremos en el artículo #17) es lo que hace posible esta optimización — el compilador puede asumir acceso exclusivo gracias a las reglas del lenguaje.
+
+<InfoBox title="Funciones y memoria — resumen">
+- Código de la función → **`__TEXT`** segment (de solo lectura, compartido)
+- Parámetros value type → **Stack** (se copian al frame)
+- Variables locales → **Stack** (se destruyen al retornar)
+- Function type en variable → **Puntero** en stack (8 bytes)
+- Función que captura contexto → **Heap** (closure context) — artículo #6
+- inout → **Pass-by-reference** optimizado cuando no hay aliasing
+</InfoBox>
+
+### El compilador como tu aliado
+
+El compilador de Swift puede hacer cosas impresionantes con funciones:
+
+- **Inlining**: si la función es pequeña, el compilador copia su código directamente en el call site, eliminando el overhead de la llamada
+- **Constant folding**: si los argumentos son constantes conocidas en compilación, el compilador puede calcular el resultado sin generar una llamada
+- **Dead code elimination**: si el resultado de una función no se usa, el compilador puede eliminar la llamada por completo (si no tiene side effects)
+- **Specialization**: para funciones genéricas, el compilador genera versiones especializadas para cada tipo concreto
+
+<div class="pull-quote">
+Una función no es solo código — es un contrato con el compilador. Los tipos de parámetros, el tipo de retorno, la ausencia de side effects: todo eso es información que el compilador usa para optimizar.
+</div>
+
+## Recapitulación
+
+Hoy cubrimos todo sobre funciones en Swift:
+
+- **Definición básica** — `func`, parámetros, retorno, implicit return
+- **Parámetros** — sin parámetros, múltiples parámetros, retorno con tuplas, optional tuple return
+- **Argument labels** — dos nombres (label + parameter), `_` para omitir, legibilidad tipo oración
+- **Defaults y variadic** — valores por defecto, `...` para número variable de argumentos
+- **inout** — modificar valores externos, `&` explícito, pass-by-reference optimizado
+- **Function types** — `(Int, Int) -> Int`, funciones en variables, como parámetros, como retorno
+- **Nested functions** — funciones dentro de funciones, preview de closures
+- **Memoria** — código en `__TEXT`, parámetros en stack, function pointers, inlining
+
+## Lo que viene
+
+El siguiente artículo es uno de los más importantes de toda la serie: **Closures**. Vamos a explorar qué pasa cuando una función captura variables de su entorno — por qué eso requiere el heap, cómo funcionan las capture lists, qué significa `@escaping`, y por qué entender closures es la clave para dominar SwiftUI, Combine, y cualquier API moderna de Apple.
+
+Si las funciones son ciudadanos de primera clase, los closures son su forma más poderosa.
+
+Nos vemos la próxima semana.
+
+<div class="pull-quote">
+Las funciones en Swift no son solo herramientas para organizar código — son la unidad fundamental de abstracción. Cuando entiendes que una función es un valor, empiezas a pensar en Swift como Swift fue diseñado para ser pensado.
+</div>

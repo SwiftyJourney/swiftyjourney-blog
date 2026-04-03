@@ -4,8 +4,10 @@ const isDev = import.meta.env.DEV;
 
 export async function getPublishedPosts() {
 	const allPosts = await getCollection("blog");
-	if (isDev) return allPosts;
+	// Filter out entries with missing data (can happen during dev mode content sync)
+	const validPosts = allPosts.filter((post) => post.data);
+	if (isDev) return validPosts;
 
 	const now = new Date();
-	return allPosts.filter((post) => post.data.pubDate.valueOf() <= now.valueOf());
+	return validPosts.filter((post) => post.data.pubDate.valueOf() <= now.valueOf());
 }
