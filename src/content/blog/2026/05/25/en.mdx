@@ -1,0 +1,490 @@
+---
+title: "Swift from Zero to Expert #6: Closures — captures, memory, and functional power"
+description: "Closure expressions, value capturing, capture lists, @escaping vs non-escaping, and why closures are reference types that live on the heap."
+pubDate: 'May 25 2026'
+heroImage: './hero.png'
+lang: 'en'
+translationKey: 'swift-zero-expert-closures'
+slug: 'swift-zero-expert-closures'
+tags: ['swift', 'swift-zero-expert', 'closures', 'functional']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+import ClosureCaptureVisualizer from '../../../../../components/blog/ClosureCaptureVisualizer';
+
+In the [previous article](/blog/swift-zero-expert-functions) we discovered that functions in Swift are first-class citizens — values you can store, pass, and return. Today we take the step that changes everything: **closures**.
+
+If a function is a named block of code, a closure is a block of code that **remembers**. It remembers the variables that surrounded it when it was created, carries them wherever it goes, and can modify them even when the original scope no longer exists. That ability to "remember" has a technical name: **capturing**. And it has direct memory consequences every Swift developer needs to understand.
+
+This is, probably, the most important article in the series so far.
+
+<div class="pull-quote">
+A closure isn't just an anonymous function — it's a function with memory. And that memory has a real cost that lives on the heap.
+</div>
+
+![The Swift bird wrapping variables with a glowing lasso while the capybara watches](./resources/closures-hero-inline.png)
+
+## What is a closure?
+
+Before we look at syntax, we need a clear definition:
+
+<Callout type="info" title="Definition: Closure">
+A **closure** is a function (named or unnamed) + the **context** it captures from its environment. "Closure" comes from "closing over" — enclosing the variables from the outer scope within itself.
+</Callout>
+
+In Swift, there are three forms of closures — and you already know two:
+
+1. **Global functions** — have a name, **don't** capture anything
+2. **Nested functions** — have a name, **can** capture from the parent scope (article #5)
+3. **Closure expressions** — have no name, **can** capture from their context
+
+Global functions and nested functions are special cases of closures. When people say "closure" in Swift, they generally mean the third form: **closure expressions**.
+
+## Closure Expressions: the syntax
+
+Let's see how Swift simplifies the syntax step by step, using `sorted(by:)` as an example — directly from the [official documentation](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/closures):
+
+```swift
+let names = ["Chris", "Alex", "Ewa", "Barry", "Daniella"]
+```
+
+We want to sort in reverse order. The most explicit way is with a function:
+
+```swift
+// 1. Full function
+func backward(_ s1: String, _ s2: String) -> Bool {
+    return s1 > s2
+}
+var reversed = names.sorted(by: backward)
+```
+
+Now as a closure expression, step by step:
+
+```swift
+// 2. Closure with explicit types
+reversed = names.sorted(by: { (s1: String, s2: String) -> Bool in
+    return s1 > s2
+})
+
+// 3. Types inferred from context
+reversed = names.sorted(by: { s1, s2 in return s1 > s2 })
+
+// 4. Implicit return (single expression)
+reversed = names.sorted(by: { s1, s2 in s1 > s2 })
+
+// 5. Shorthand argument names
+reversed = names.sorted(by: { $0 > $1 })
+
+// 6. Operator method — the shortest possible form
+reversed = names.sorted(by: >)
+```
+
+![The Swift bird simplifying code step by step like a chef reducing a sauce](./resources/syntax-evolution.png)
+
+Six ways to write exactly the same thing. The compiler generates the **same code** for all of them — the difference is purely readability.
+
+<Callout type="tip" title="Which form to use?">
+The shortest isn't always the best. `$0 > $1` is clear for `sorted(by:)`, but in complex closures descriptive names (`s1, s2 in`) are more readable. Use the form that best communicates intent.
+</Callout>
+
+<Callout type="info" title="Definition: Shorthand Argument Names">
+**Shorthand argument names** (`$0`, `$1`, `$2`...) are automatic names Swift generates for a closure's parameters. `$0` is the first parameter, `$1` the second, etc. When you use them, you can omit the parameter list and the `in` keyword.
+</Callout>
+
+## Trailing Closures
+
+When a function's last parameter is a closure, you can write it outside the parentheses:
+
+```swift
+// Without trailing closure
+names.sorted(by: { $0 > $1 })
+
+// With trailing closure
+names.sorted { $0 > $1 }
+```
+
+If the closure is the **only** argument, you can omit the parentheses entirely. This is what makes SwiftUI's syntax possible:
+
+```swift
+// SwiftUI uses trailing closures everywhere
+VStack {
+    Text("Hello")
+    Text("World")
+}
+// VStack.init(content:) takes a closure as its last parameter
+```
+
+<Callout type="info" title="Definition: Trailing Closure">
+A **trailing closure** is a closure written *after* the function call's parentheses, rather than inside them. It only applies to the last closure parameter (or the first closure when there are multiple trailing closures).
+</Callout>
+
+### Multiple trailing closures
+
+When a function takes more than one closure, you can use this syntax:
+
+```swift
+func loadPicture(
+    from server: Server,
+    completion: (Picture) -> Void,
+    onFailure: () -> Void
+) { /* ... */ }
+
+// Multiple trailing closures
+loadPicture(from: someServer) { picture in
+    someView.currentPicture = picture
+} onFailure: {
+    print("Download failed")
+}
+```
+
+The first closure goes without a label (trailing), the rest keep their labels.
+
+## Capturing Values: where the magic (and the cost) happen
+
+This is where closures separate themselves from simple functions. A closure can **capture** constants and variables from the context where it was defined — and then use and modify them even after that context no longer exists.
+
+<Callout type="info" title="Definition: Capture">
+To **capture** a variable means the closure retains a reference to that variable so it can access it later. If the variable lives in a scope that's about to disappear (like a stack frame), Swift moves it to the **heap** so it survives. This is called a **capture box** — a small structure on the heap that holds the captured variables.
+</Callout>
+
+Let's look at the classic example from the official documentation:
+
+```swift
+func makeIncrementer(forIncrement amount: Int) -> () -> Int {
+    var runningTotal = 0
+    func incrementer() -> Int {
+        runningTotal += amount  // captures runningTotal and amount
+        return runningTotal
+    }
+    return incrementer
+}
+```
+
+`makeIncrementer` returns a function (`incrementer`) that uses two variables from its parent scope: `runningTotal` and `amount`. When `makeIncrementer` finishes, its stack frame is destroyed — but those variables need to survive because `incrementer` uses them.
+
+Swift solves this by moving `runningTotal` and `amount` to a **capture box on the heap**. The closure points to that box, and every time you call it, it accesses the variables there.
+
+Navigate step by step to see how it works:
+
+<div class="interactive-content">
+  <ClosureCaptureVisualizer client:load lang="en" />
+</div>
+
+```swift
+let incrementByTen = makeIncrementer(forIncrement: 10)
+
+incrementByTen()  // 10
+incrementByTen()  // 20
+incrementByTen()  // 30 — runningTotal persists between calls!
+
+// A second closure has its OWN capture box
+let incrementBySeven = makeIncrementer(forIncrement: 7)
+incrementBySeven() // 7 — independent from incrementByTen
+```
+
+<div class="pull-quote">
+A closure doesn't copy the variables it captures — it shares them. Each call to the closure accesses the same variables on the heap, and changes persist.
+</div>
+
+## Closures Are Reference Types
+
+If closures capture variables and live on the heap, what happens when you assign a closure to another variable?
+
+```swift
+let alsoIncrementByTen = incrementByTen
+alsoIncrementByTen()  // 40
+incrementByTen()      // 50 — the same runningTotal!
+```
+
+Assigning a closure to another variable **doesn't copy it**. Both variables point to the **same** closure with the **same** capture box. It's like having two remote controls for the same TV.
+
+<Callout type="info" title="Definition: Reference Type">
+A **reference type** is a type where assigning to another variable doesn't create a copy — both variables point to the same instance on the heap. Closures and classes are reference types. Structs and enums are value types (with copy-on-write for collections, as we saw in article #2).
+</Callout>
+
+This is fundamentally different from value types like `Int` or `Array`:
+
+```swift
+var a = 42
+var b = a    // b is a COPY — changing b doesn't affect a
+b += 1       // a is still 42
+
+// But with closures:
+let c1 = incrementByTen
+let c2 = c1  // c2 points to the SAME closure — no copy
+```
+
+## @escaping vs non-escaping: the heap decision
+
+This is one of the most confusing concepts — and the one with the biggest memory impact. Let's define it clearly.
+
+<Callout type="info" title="Definition: Escaping Closure">
+A closure **escapes** a function when it survives beyond that function's execution. This happens when the closure is saved to an external variable, stored in an array, or executed asynchronously after the function returns.
+</Callout>
+
+<Callout type="info" title="Definition: Non-escaping Closure">
+A **non-escaping** closure is executed *within* the function that receives it and doesn't survive afterward. In Swift, closures are non-escaping **by default** — this is a design decision to optimize performance.
+</Callout>
+
+```swift
+// Non-escaping (default) — executes within the function
+func doWork(work: () -> Void) {
+    work()  // Executes here and dies
+}
+
+// @escaping — survives after the function
+var savedClosures: [() -> Void] = []
+func saveForLater(closure: @escaping () -> Void) {
+    savedClosures.append(closure)  // The closure survives
+}
+```
+
+Why does this matter? Because of **memory**:
+
+![Technical diagram: non-escaping closure on the stack vs escaping closure on the heap](./resources/escaping-vs-nonescaping.png)
+
+- **Non-escaping**: the compiler can allocate the closure and its capture context on the **stack**. When the function ends, everything is cleaned up automatically. **Zero heap allocation.**
+- **@escaping**: the closure must live on the **heap** because it needs to survive. The capture context is allocated with `malloc`, has a refcount, and is freed by ARC when there are no more references.
+
+<Callout type="warning" title="Explicit self in escaping closures">
+In an escaping closure inside a class, you must write `self` explicitly when accessing properties. This is intentional — Swift forces you to be aware that you're capturing `self`, because it's easy to create **retain cycles** (circular references that never get freed). We'll dive deep into this in article #16 on ARC.
+
+```swift
+class DataLoader {
+    var data: [String] = []
+
+    func loadData() {
+        fetchFromServer { [weak self] result in
+            self?.data = result  // explicit self + weak
+        }
+    }
+}
+```
+</Callout>
+
+## Capture Lists: controlling the capture
+
+So far, captures have been automatic — Swift decides what to capture and how. But you can take explicit control with a **capture list**.
+
+<Callout type="info" title="Definition: Capture List">
+A **capture list** is a list of instructions in square brackets `[]` at the start of a closure that specifies *how* to capture variables. You can capture by value (copy), by weak reference, or by unowned reference.
+</Callout>
+
+### Capture by value vs by reference
+
+```swift
+var counter = 0
+
+// Without capture list — captures by REFERENCE
+let byReference = { print(counter) }
+counter = 10
+byReference() // 10 — sees the current value
+
+// With capture list — captures by VALUE (copy)
+counter = 0
+let byValue = { [counter] in print(counter) }
+counter = 10
+byValue() // 0 — has its own copy from the moment of capture
+```
+
+![The capybara with a protective shield marked [weak self]](./resources/capture-list.png)
+
+### [weak self] and [unowned self]
+
+These are the capture lists you'll use most in real code:
+
+```swift
+class ViewController {
+    var label = "Hello"
+
+    func setupTimer() {
+        // [weak self] — self can be nil
+        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            print(self.label)
+        }
+
+        // [unowned self] — I assume self ALWAYS exists
+        // Crashes if self was deallocated
+        someOperation { [unowned self] in
+            print(self.label)
+        }
+    }
+}
+```
+
+<InfoBox title="When to use which?">
+- `[weak self]` → When the closure can outlive the object. Example: timers, network requests, animations. **The safe default choice.**
+- `[unowned self]` → When you're certain self will outlive the closure. Faster than weak (no side table needed), but crashes if you're wrong.
+- `[value]` → When you want to freeze the current value instead of capturing the reference.
+</InfoBox>
+
+## Autoclosures: deferred evaluation
+
+An **autoclosure** is a closure the compiler creates automatically to wrap an expression:
+
+<Callout type="info" title="Definition: Autoclosure">
+An **autoclosure** automatically converts an expression into a `() -> T` closure. The expression isn't evaluated until the closure is called. This enables **deferred evaluation** — the code only runs when it's actually needed.
+</Callout>
+
+```swift
+var customers = ["Chris", "Alex", "Ewa", "Barry"]
+
+// Without autoclosure — you need the braces { }
+func serve(customer provider: () -> String) {
+    print("Serving \(provider())!")
+}
+serve(customer: { customers.remove(at: 0) })
+
+// With @autoclosure — looks like a regular call
+func serve(customer provider: @autoclosure () -> String) {
+    print("Serving \(provider())!")
+}
+serve(customer: customers.remove(at: 0))
+// Looks like you're passing a String, but it's a closure
+// Evaluation is deferred until provider() is called
+```
+
+The `??` (nil-coalescing) operator we saw in article #1 uses `@autoclosure` for the default value — so it's only evaluated if actually needed.
+
+<Callout type="warning" title="Don't overuse @autoclosure">
+It can make code confusing — the reader doesn't know the expression is deferred. Use it only when deferred evaluation is clearly beneficial.
+</Callout>
+
+## Higher-Order Functions: closures in action
+
+<Callout type="info" title="Definition: Higher-Order Function">
+A **higher-order function** is a function that takes another function as a parameter or returns a function. `map`, `filter`, `reduce`, `sorted`, and `compactMap` are the most common in Swift.
+</Callout>
+
+This is where closures shine in real code — transforming collections:
+
+```swift
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+// map — transform each element
+let doubled = numbers.map { $0 * 2 }
+// [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+
+// filter — select elements matching a condition
+let evens = numbers.filter { $0 % 2 == 0 }
+// [2, 4, 6, 8, 10]
+
+// reduce — combine all elements into one value
+let sum = numbers.reduce(0) { $0 + $1 }
+// 55
+
+// Chained — functional and expressive
+let result = numbers
+    .filter { $0 % 2 == 0 }     // Only evens
+    .map { $0 * $0 }             // Square them
+    .reduce(0, +)                // Sum it all
+// 220
+```
+
+We'll go deeper into these functions in article #19 on functional patterns. For now, the key point is that each one takes a closure as a parameter.
+
+## The memory behind closures
+
+Time for the section that connects everything with our memory thread.
+
+### Anatomy of a closure in memory
+
+A closure in Swift isn't just a pointer to code. It's a two-part structure:
+
+```
+┌─────────────────────────┐
+│     Closure             │
+│  ┌───────────────────┐  │
+│  │ function pointer   │──── → code in __TEXT
+│  ├───────────────────┤  │
+│  │ capture context    │──── → capture box on the heap
+│  └───────────────────┘  │
+└─────────────────────────┘
+```
+
+1. **Function pointer** — points to executable code in `__TEXT` (just like a regular function)
+2. **Capture context** — points to the capture box on the heap where captured variables live
+
+If the closure captures nothing (like a global function), the capture context is empty and there's no heap allocation.
+
+### Non-escaping: the stack optimization
+
+When the compiler knows a closure doesn't escape, it can do something very smart: **allocate the closure and its capture context on the stack** instead of the heap.
+
+```swift
+// Non-escaping — the compiler allocates EVERYTHING on the stack
+func process(_ items: [Int], using transform: (Int) -> Int) -> [Int] {
+    return items.map(transform)
+}
+
+let result = process([1, 2, 3]) { $0 * 2 }
+// The closure { $0 * 2 } NEVER touches the heap
+```
+
+This is huge for performance. No `malloc`, no refcount, no `free`. Everything is cleaned up automatically when the stack frame is destroyed.
+
+### @escaping: the cost of the heap
+
+An escaping closure **must** live on the heap:
+
+```swift
+var completionHandlers: [() -> Void] = []
+
+func addHandler(handler: @escaping () -> Void) {
+    completionHandlers.append(handler)
+    // handler survives — goes to the heap with its capture context
+}
+```
+
+Each escaping closure that captures variables implies:
+- `malloc` for the capture box
+- refcount management (retain/release)
+- `free` when the last reference is released
+
+### The compiler optimizes aggressively
+
+Swift's compiler doesn't stop there:
+
+- **Closure inlining**: for closures passed to `map`, `filter`, `reduce` — the compiler can copy the closure's code directly into the loop, eliminating the indirection entirely
+- **Stack promotion**: if the compiler proves that an `@escaping` closure doesn't actually escape in a specific case, it can promote it to the stack
+- **Capture optimization**: if a captured variable isn't mutated, the compiler can capture a copy instead of a reference (avoiding the capture box)
+
+<InfoBox title="Closures and memory — summary">
+- **Non-escaping closure without captures** → Zero cost, can live in registers
+- **Non-escaping closure with captures** → Stack allocation, zero heap cost
+- **@escaping closure** → Mandatory heap allocation (capture box + refcount)
+- **Closures in map/filter/reduce** → The compiler can inline, eliminating overhead
+- **Each capture box** → malloc + refcount + eventual free
+- **Closures are reference types** → Assign = share, not copy
+</InfoBox>
+
+<div class="pull-quote">
+Non-escaping by default isn't a restriction — it's a gift from the compiler. You're telling it "you can put this on the stack," and the compiler thanks you with zero allocations.
+</div>
+
+## Recap
+
+Today we covered one of Swift's deepest concepts:
+
+- **Closures = functions + captured context** — three forms: global, nested, expressions
+- **Evolving syntax** — from full function to `>` in 6 steps, all generate the same code
+- **Trailing closures** — the syntax that makes SwiftUI possible
+- **Capturing values** — outer scope variables move to a capture box on the heap
+- **Reference types** — assigning a closure = sharing, not copying
+- **@escaping vs non-escaping** — non-escaping lives on the stack (free), escaping on the heap (cost)
+- **Capture lists** — `[weak self]`, `[unowned self]`, capture by value
+- **Autoclosures** — automatic deferred evaluation
+- **Higher-order functions** — `map`, `filter`, `reduce` as closures in action
+- **Memory** — function pointer + capture context, inlining, stack promotion
+
+## What's next
+
+In the next article we'll explore **Enumerations** — which in Swift are much more than a list of cases. We'll see raw values, associated values, recursive enums with `indirect`, and how the compiler chooses the most efficient memory representation. If you're coming from other languages, Swift's enums will surprise you.
+
+See you next week.
+
+<div class="pull-quote">
+Understanding closures is understanding how Swift thinks. Every time you write { }, you're creating a block of code that can remember its environment, travel to another scope, and execute whenever needed. That power has a memory cost — and now you know exactly what it is.
+</div>
