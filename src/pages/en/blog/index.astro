@@ -1,19 +1,19 @@
 ---
-import { Image } from "astro:assets";
 import { getPublishedPosts } from "../../../utils/posts";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import BlogCard from "../../../components/BlogCard.astro";
+import Pagination from "../../../components/Pagination.astro";
+
+const PAGE_SIZE = 9;
+const currentPage = 1;
 
 const allPosts = await getPublishedPosts();
 const posts = allPosts
 	.filter((post) => post.data.lang === "en")
 	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
-const slugify = (tag) =>
-	tag
-		.trim()
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-+|-+$/g, "");
+const totalPages = Math.ceil(posts.length / PAGE_SIZE);
+const pagePosts = posts.slice(0, PAGE_SIZE);
 
 const jsonLd = {
 	"@context": "https://schema.org",
@@ -23,7 +23,7 @@ const jsonLd = {
 	url: "https://blog.swiftyjourney.com/en/blog/",
 	inLanguage: "en",
 	publisher: { "@type": "Person", name: "Juan Francisco Dorado Torres" },
-	itemListElement: posts.map((post, i) => ({
+	itemListElement: pagePosts.map((post, i) => ({
 		"@type": "ListItem",
 		position: i + 1,
 		url: `https://blog.swiftyjourney.com/en/blog/${post.data.slug}/`,
@@ -50,69 +50,18 @@ const jsonLd = {
 			</p>
 		</div>
 
-		<div class="grid gap-8">
-			{
-				posts.map((post, index) => (
-					<article class={`group ${index === 0 ? "md:col-span-full" : ""}`}>
-						<a
-							href={`/en/blog/${post.data.slug ?? post.id.split("/").pop()}/`}
-							class="block"
-						>
-							<div
-								class={`rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden transition-all hover:border-orange-500/30 hover:shadow-md ${index === 0 ? "md:flex md:gap-8" : ""}`}
-							>
-								{post.data.heroImage && (
-									<div class={`${index === 0 ? "md:w-1/2" : ""}`}>
-										<Image
-											src={post.data.heroImage}
-											alt={post.data.title}
-											width={index === 0 ? 720 : 400}
-											height={index === 0 ? 360 : 200}
-											class="w-full h-48 md:h-64 object-cover"
-											loading={index === 0 ? "eager" : "lazy"}
-										/>
-									</div>
-								)}
-								<div
-									class={`p-6 ${index === 0 && post.data.heroImage ? "md:w-1/2 md:flex md:flex-col md:justify-center" : ""}`}
-								>
-									<h2
-										class={`font-bold text-zinc-900 dark:text-zinc-100 mb-3 group-hover:text-orange-500 transition-colors ${index === 0 ? "text-2xl md:text-3xl" : "text-lg"}`}
-									>
-										{post.data.title}
-									</h2>
-									<p
-										class={`text-zinc-600 dark:text-zinc-400 mb-4 ${index === 0 ? "text-base" : "text-sm"}`}
-									>
-										{post.data.description}
-									</p>
-									{
-										post.data.tags && post.data.tags.length > 0 && (
-											<div class="mb-4 flex flex-wrap gap-2">
-												{post.data.tags.map((tag) => (
-													<a
-														href={`/en/tags/${slugify(tag)}/`}
-														class="text-[11px] uppercase tracking-wide px-2.5 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-orange-500 hover:border-orange-300 dark:hover:text-orange-300 transition-colors"
-													>
-														{tag}
-													</a>
-												))}
-											</div>
-										)
-									}
-									<time class="text-sm text-zinc-500 dark:text-zinc-500">
-										{post.data.pubDate.toLocaleDateString("en-US", {
-											year: "numeric",
-											month: "long",
-											day: "numeric",
-										})}
-									</time>
-								</div>
-							</div>
-						</a>
-					</article>
-				))
-			}
-		</div>
+		{pagePosts.length > 0 && (
+			<BlogCard post={pagePosts[0]} featured={true} lang="en" />
+		)}
+
+		{pagePosts.length > 1 && (
+			<div class="grid gap-6 md:grid-cols-2 mt-8">
+				{pagePosts.slice(1).map((post) => (
+					<BlogCard post={post} lang="en" />
+				))}
+			</div>
+		)}
+
+		<Pagination currentPage={currentPage} totalPages={totalPages} baseUrl="/en/blog/" />
 	</div>
 </BaseLayout>

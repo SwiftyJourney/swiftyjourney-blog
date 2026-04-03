@@ -17,6 +17,7 @@ const slugify = (value) =>
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-+|-+$/g, "");
+// NOTE: duplicated here instead of importing from utils/slugify.ts because this is a plain .mjs script
 
 const parseDateInput = (value) => {
 	if (!value) return new Date();

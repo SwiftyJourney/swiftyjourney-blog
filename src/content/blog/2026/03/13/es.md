@@ -6,7 +6,7 @@ heroImage: './hero.png'
 lang: 'es'
 translationKey: 'ai-agent-teams'
 slug: 'de-ai-assistant-a-ai-engineering-teams'
-tags: ['ai', 'claude', 'ios', 'claude-code']
+tags: ['ai', 'ios']
 ---
 
 Estamos pasando de "AI assistant" a "AI engineering teams"

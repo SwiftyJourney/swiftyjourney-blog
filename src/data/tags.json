@@ -1,11 +1,12 @@
 [
   "ai",
-  "animations",
-  "architecture",
+  "career",
   "concurrency",
+  "ios",
+  "performance",
   "swift",
-  "swiftdata",
-  "swiftui",
-  "testing",
-  "uikit"
+  "swift-cero-experto",
+  "swift-fundamentals",
+  "swift-zero-expert",
+  "swiftui"
 ]

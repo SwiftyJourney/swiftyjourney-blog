@@ -1,0 +1,53 @@
+---
+import { getPublishedPosts } from "../../../../utils/posts";
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import BlogCard from "../../../../components/BlogCard.astro";
+import Pagination from "../../../../components/Pagination.astro";
+
+export async function getStaticPaths() {
+	const PAGE_SIZE = 9;
+	const allPosts = await getPublishedPosts();
+	const posts = allPosts
+		.filter((post) => post.data.lang === "es")
+		.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+	const totalPages = Math.ceil(posts.length / PAGE_SIZE);
+	return Array.from({ length: totalPages - 1 }, (_, i) => ({
+		params: { page: String(i + 2) },
+		props: {
+			posts: posts.slice((i + 1) * PAGE_SIZE, (i + 2) * PAGE_SIZE),
+			currentPage: i + 2,
+			totalPages,
+		},
+	}));
+}
+
+const { posts, currentPage, totalPages } = Astro.props;
+---
+
+<BaseLayout
+	title={`Blog — Página ${currentPage} — Swifty Journey`}
+	description="Todos los artículos sobre iOS, Swift y SwiftUI"
+	lang="es"
+>
+	<div class="py-12">
+		<div class="mb-12">
+			<h1
+				class="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-zinc-100 mb-4"
+			>
+				Todos los Artículos
+			</h1>
+			<p class="text-zinc-600 dark:text-zinc-400">
+				Página {currentPage} de {totalPages}
+			</p>
+		</div>
+
+		<div class="grid gap-6 md:grid-cols-2">
+			{posts.map((post) => (
+				<BlogCard post={post} lang="es" />
+			))}
+		</div>
+
+		<Pagination currentPage={currentPage} totalPages={totalPages} baseUrl="/es/blog/" />
+	</div>
+</BaseLayout>

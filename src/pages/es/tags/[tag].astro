@@ -1,14 +1,9 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { getPublishedPosts } from "../../../utils/posts";
+import { slugify } from "../../../utils/slugify";
 
 export async function getStaticPaths() {
-	const slugify = (tag) =>
-		tag
-			.trim()
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-+|-+$/g, "");
 
 	const allPosts = await getPublishedPosts();
 	const posts = allPosts.filter((post) => post.data.lang === "es");
