@@ -1,0 +1,158 @@
+---
+title: "Mastering Instruments (Part 2.5): malloc, free, and ARC — How Memory Works Under the Hood"
+description: "Viscerally understand what happens when your code runs. Visualize malloc, free, reference counting, and retain cycles with interactive components."
+pubDate: 'May 07 2026'
+heroImage: './hero.png'
+lang: 'en'
+translationKey: 'instruments-malloc-free-arc'
+slug: 'mastering-instruments-malloc-free-arc'
+tags: ['swift', 'ios', 'performance']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+import StackMemoryVisualizer from '../../../../../components/blog/StackMemoryVisualizer';
+import HeapAllocatorVisualizer from '../../../../../components/blog/HeapAllocatorVisualizer';
+import ARCSimulator from '../../../../../components/blog/ARCSimulator';
+
+In [Part 2](/blog/mastering-instruments-stack-heap-symbolication) we talked about the Stack and the Heap. We said that `malloc` reserves memory, that `free` releases it, that ARC keeps track of references. But let's be honest — if you've never worked at that level, those words feel abstract. Like reading a car manual in another language.
+
+I've been writing Swift for years and for a long time those concepts just flew past me. I knew they existed, but I didn't *feel* them. I didn't viscerally understand what happens when I write `let person = Person(name: "Juan")`. And that lack of understanding catches up with you eventually — when your app has a memory leak you can't track down, or when Instruments shows you data you can't interpret.
+
+This article exists to close that gap. We're not going to stay in theory — we're going to *see* how memory works with interactive visualizations. By the end, you'll understand `malloc`, `free`, `refCount`, and retain cycles as if you were watching them in slow motion.
+
+<div class="pull-quote">
+The difference between knowing ARC exists and understanding how it works is the difference between driving a car and knowing what to do when it breaks down.
+</div>
+
+## The Stack: Fast Because It's Simple
+
+Let's start with the easy part. The Stack is the fastest memory your app has because it works with a brutal rule: **last in, first out**. When you call a function, a "frame" is created with space for its variables. When the function returns, the frame is destroyed. No negotiation, no searching — just a pointer moving up and down.
+
+Let's see it in action. In the following visualizer, click each step to see how the Stack grows when we call a function and shrinks when that function returns:
+
+<div class="interactive-content">
+  <StackMemoryVisualizer client:load lang="en" />
+</div>
+
+Did you see what happened? The entire lifecycle of the function — creating variables, computing, returning — was simply moving a pointer. There was no `malloc`. No `free`. No ARC. Just a pointer that advanced and retreated.
+
+That's what makes the Stack so fast. But it has a huge limitation: **it only works with data whose size is known at compile time** and that doesn't need to survive the function that created it. For everything else, we need the Heap.
+
+## malloc and free: Checking In and Out of a Memory Hotel
+
+If the Stack is a stack of plates — orderly, predictable — the Heap is a hotel. You have rooms available of different sizes, and you need a system to manage them.
+
+- **`malloc(size)`** is like walking up to the front desk and asking for a room. The system finds a free space of the size you need, marks it as "occupied", gives you the key (a pointer), and registers you in the system. That takes time — it's not just moving a pointer like the Stack.
+
+- **`free(pointer)`** is checking out. You hand back the key, the system marks the room as "available" again. But here's the problem: if nobody checks out, the room stays occupied forever. That's a memory leak.
+
+And there's another subtler problem: **fragmentation**. If you reserve and free rooms in random order, you end up with small gaps between the occupied ones. You might have 100 free rooms total, but no contiguous block of 50 — and that makes a reservation of 50 fail even though there's "enough" space.
+
+Play with the following visualizer. Reserve blocks of different sizes, free some, and watch how the Heap fragments:
+
+<div class="interactive-content">
+  <HeapAllocatorVisualizer client:load lang="en" />
+</div>
+
+<Callout type="tip" title="Try this">
+Reserve 4 blocks of 16B, then free the second and third. Now try reserving a 32B block. Does it fit in the gaps you left? That's fragmentation in action — and it's one of the hidden costs of the Heap that the Stack simply doesn't have.
+</Callout>
+
+In Swift, you never call `malloc` or `free` directly. The compiler and ARC do it for you. But every time you write `let person = Person(name: "Juan")` with a `class`, that's a `malloc` under the hood. And every time that variable goes out of scope and nobody else references it, that's a `free`.
+
+## ARC: The Invisible Counter That Decides Who Lives and Who Dies
+
+Now comes the key question: **who** decides when to call `free`? In languages like C, you do it manually — and it's an infinite source of bugs. In Swift, that responsibility belongs to **ARC** (Automatic Reference Counting).
+
+The concept is elegant:
+
+1. Every object on the Heap has an invisible counter called **refCount** (reference count)
+2. When you create a reference to the object (`let ref = person`), the refCount goes up: +1
+3. When that reference disappears (the variable goes out of scope, or you set it to `nil`), the refCount goes down: -1
+4. When the refCount reaches **0** — nobody points to the object anymore — ARC calls `deinit` and then `free`
+
+It's like a counting system at the hotel: as long as at least one guest has a room key, the room stays assigned. When the last guest returns their key, automatic checkout.
+
+Explore the following simulator to see ARC in action. It has three scenarios: the normal ARC cycle, a **retain cycle** (the most common memory bug in Swift), and the fix with `weak`:
+
+<div class="interactive-content">
+  <ARCSimulator client:load lang="en" />
+</div>
+
+<Callout type="warning" title="The scenario you need to understand">
+In the simulator, go to the **"Retain Cycle"** scenario and advance to the last step. You'll see that even though we released all local variables, both objects remain with refCount = 1 because they point to each other. Neither can reach 0. Neither gets freed. That's a memory leak — and it's exactly what Instruments' Memory Graph Debugger shows you visually in a future part of this series.
+</Callout>
+
+## Retain Cycles: When They Happen and How to Prevent Them
+
+Retain cycles aren't a rare edge case. They appear in extremely common patterns:
+
+### The Classic Delegate
+
+```swift
+class ViewController {
+    var delegate: SomeDelegate?  // strong reference
+}
+
+class SomeDelegate {
+    var viewController: ViewController?  // strong reference back = cycle!
+}
+```
+
+**The fix:** The delegate should always be `weak`:
+
+```swift
+class SomeDelegate {
+    weak var viewController: ViewController?  // weak = no cycle
+}
+```
+
+### Closures Capturing self
+
+```swift
+class DataLoader {
+    var onComplete: (() -> Void)?
+
+    func load() {
+        onComplete = {
+            self.updateUI()  // self captured strongly = potential cycle!
+        }
+    }
+}
+```
+
+**The fix:** Use `[weak self]` in the capture list:
+
+```swift
+onComplete = { [weak self] in
+    self?.updateUI()  // weak capture = no cycle
+}
+```
+
+<InfoBox title="weak vs unowned — when to use each">
+- **weak** → The reference automatically becomes `nil` when the object is freed. Always safe. Use it when you're not 100% sure the object will outlive the reference.
+- **unowned** → The reference does NOT become `nil`. If the object is freed and you access the reference, your app crashes. Use it only when you're absolutely certain the object will outlive the reference (e.g. a child that always dies before its parent).
+- **Rule of thumb:** When in doubt, use `weak`. The cost of unwrapping an optional is infinitely less than a crash in production.
+</InfoBox>
+
+## Connecting with Instruments
+
+Everything you saw in this article — `malloc` reserving blocks, `free` releasing them, refCount going up and down, retain cycles trapping memory — is exactly what Instruments records and shows you visually. Now when you open a trace and see "Allocations" or "Leaks", you'll know what that data represents.
+
+But before we dive into memory instruments, we need to talk about **methodology**. In Part 3 we'll learn to diagnose performance problems as a scientific process — with hypotheses, experiments, and data. We'll explore the differences between **Time Profiler**, **CPU Profiler**, and **Processor Trace**, and when to use each one. We'll also cover advanced techniques like Charge, Prune, and Flatten for manipulating call trees with surgical precision.
+
+<div class="pull-quote">
+Now you understand what happens under the hood. In Part 3 you'll learn to use that knowledge as a scientific process — not intuition, but data.
+</div>
+
+<Callout type="success" title="What's coming in Part 3">
+Diagnostic methodology, advanced Time Profiler (Weight vs Self-Weight, Charge/Prune/Flatten), CPU Profiler, Processor Trace, and how to automate performance tests with xctrace. See you there.
+</Callout>
+
+---
+
+## References
+
+- [Automatic Reference Counting — The Swift Programming Language](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/automaticreferencecounting/) — Apple's official reference on ARC, strong/weak/unowned references, and retain cycles.
+- [Improving App Responsiveness — Apple Documentation](https://developer.apple.com/documentation/xcode/improving-app-responsiveness) — Apple's guide on how Heap work affects your app's responsiveness.

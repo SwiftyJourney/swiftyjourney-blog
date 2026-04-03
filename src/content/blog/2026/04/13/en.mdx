@@ -291,10 +291,10 @@ Each of these pieces connects to the next. Understanding Stack vs. Heap lets you
 Optimizing isn't about fixing slow code. It's about understanding where and how your code interacts with the system — and getting ahead of it.
 </div>
 
-In the first part of this series we learned to use Instruments as a tool. Today we learned the patient's anatomy. In the next article we'll combine both — we'll dive deep into **Allocations and the Memory Graph** to track leaks, retain cycles, and uncontrolled memory growth. That's where things get really interesting.
+In the first part of this series we learned to use Instruments as a tool. Today we learned the patient's anatomy. But there's a missing piece: we mentioned `malloc`, `free`, `refCount` — concepts that sound abstract if you've never worked at that level. In the next article we'll close that gap with **interactive visualizations** that let you *see* how memory works step by step.
 
-<Callout type="success" title="What's coming in Part 3">
-Memory Graph Debugger, the Allocations instrument, how to detect retain cycles in practice, and why `weak` and `unowned` are not interchangeable. See you there.
+<Callout type="success" title="What's coming in Part 2.5">
+An interactive article where you'll visualize malloc allocating blocks, free releasing them, ARC counting references, and retain cycles trapping memory — all in components you can manipulate directly. See you there.
 </Callout>
 
 ---

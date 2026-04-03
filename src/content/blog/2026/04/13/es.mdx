@@ -291,10 +291,10 @@ Cada una de estas piezas conecta con la siguiente. Entender Stack vs. Heap te pe
 Optimizar no es arreglar código lento. Es entender dónde y cómo tu código interactúa con el sistema — y anticiparte.
 </div>
 
-En la primera parte de esta serie aprendimos a usar Instruments como herramienta. Hoy aprendimos la anatomía del paciente. En el siguiente artículo vamos a combinar ambos — nos meteremos de lleno en **Allocations y el Memory Graph** para rastrear leaks, retain cycles y el crecimiento descontrolado de memoria. Ahí es donde la cosa se pone realmente interesante.
+En la primera parte de esta serie aprendimos a usar Instruments como herramienta. Hoy aprendimos la anatomía del paciente. Pero hay una pieza que falta: mencionamos `malloc`, `free`, `refCount` — conceptos que suenan abstractos si nunca has trabajado a ese nivel. En el siguiente artículo vamos a cerrar esa brecha con **visualizaciones interactivas** que te dejan *ver* cómo funciona la memoria paso a paso.
 
-<Callout type="success" title="Lo que viene en la Parte 3">
-Memory Graph Debugger, el instrumento de Allocations, cómo detectar retain cycles en la práctica, y por qué `weak` y `unowned` no son intercambiables. Nos vemos ahí.
+<Callout type="success" title="Lo que viene en la Parte 2.5">
+Un artículo interactivo donde vas a visualizar malloc reservando bloques, free liberándolos, ARC contando referencias, y retain cycles atrapando memoria — todo en componentes que puedes manipular directamente. Nos vemos ahí.
 </Callout>
 
 ---
