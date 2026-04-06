@@ -1,0 +1,255 @@
+---
+title: "Dominando Instruments (Parte 4): Flame Graphs, Swift Concurrency bajo el microscopio y Processor Trace en acción"
+description: "Aprende a leer Flame Graphs, auditar tareas asíncronas con Swift Tasks y exprimir el Processor Trace con un proyecto CLI real que usa Swift Concurrency de forma intensiva."
+pubDate: 'May 21 2026'
+heroImage: './hero.png'
+lang: 'es'
+translationKey: 'instruments-flame-graphs-swift-concurrency'
+slug: 'dominando-instruments-flame-graphs-swift-concurrency'
+tags: ['swift', 'ios', 'performance']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+import FlameGraphVisualizer from '../../../../../components/blog/FlameGraphVisualizer';
+
+En la [Parte 1](/blog/dominando-xcode-instruments-modelos-mentales-signposts) aprendimos a usar Instruments como técnicos. En la [Parte 2](/blog/dominando-instruments-stack-heap-simbolizacion) nos convertimos en médicos. En la [Parte 2.5](/blog/dominando-instruments-malloc-free-arc) vimos la memoria en acción. En la [Parte 3](/blog/dominando-instruments-metodo-cientifico-time-profiler) dominamos el método científico del profiling, las operaciones de cirugía del Call Tree y conocimos los tres niveles de análisis — desde Time Profiler hasta Processor Trace.
+
+Hoy cambiamos de bisturí y de paciente. Dejamos atrás la app SuperStuff y abrimos un proyecto completamente diferente: una **herramienta de línea de comandos** que usa Swift Concurrency de forma intensiva. Y descubriremos visualizaciones que transforman la manera en que leemos los datos de rendimiento.
+
+<div class="pull-quote">
+No se trata de tener más datos. Se trata de verlos de una forma que revele lo que antes era invisible.
+</div>
+
+## Nuevo paciente: Swift Evolution Metadata Extractor
+
+El [Swift Evolution Metadata Extractor](https://github.com/swiftlang/swift-evolution-metadata-extractor) es una herramienta oficial del equipo de Swift que genera los datos JSON para el [Swift Evolution Dashboard](https://swift.org/swift-evolution). Es un proyecto real, de producción, mantenido por Apple.
+
+¿Por qué es perfecto para nuestro laboratorio?
+
+1. **Concurrencia masiva** — Usa `withTaskGroup` para procesar más de 400 propuestas en paralelo. Cientos de tareas creándose, suspendiéndose y reanudándose.
+2. **Parsing intensivo** — Cada propuesta es un archivo Markdown que se parsea con `swift-markdown` (la librería oficial de Apple). El parser genera un AST completo del documento.
+3. **Networking** — Hace peticiones HTTP a la API de GitHub para obtener el contenido de cada propuesta, utilizando `URLSession` con `async/await`.
+4. **Sin interfaz gráfica** — Al ser una CLI, no hay run loops, ni vistas, ni hilo principal compitiendo por atención. Todo el rendimiento se mide en puro procesamiento.
+
+```swift
+// El corazón del extractor: TaskGroup procesando propuestas en paralelo
+await withTaskGroup(of: SortableProposalWrapper.self) { taskGroup in
+    for spec in proposalSpecs {
+        taskGroup.addTask {
+            await readAndExtractProposalMetadata(for: spec, ...)
+        }
+    }
+    for await result in taskGroup {
+        proposals.append(result)
+    }
+}
+```
+
+<Callout type="info" title="¿Dónde consigo el proyecto?">
+El código fuente está en [GitHub](https://github.com/swiftlang/swift-evolution-metadata-extractor). Clona el repositorio y ábrelo con Xcode. Para generar datos significativos en Instruments, ejecuta el comando `extract` — procesará todas las propuestas de Swift Evolution disponibles.
+</Callout>
+
+![Xcode con el proyecto swift-evolution-metadata-extractor abierto, mostrando EvolutionMetadataExtractor.swift con el TaskGroup que procesa propuestas en paralelo](./resources/01_swift_evolution_metadata_extractor.png)
+
+## Flame Graphs — una nueva forma de ver los datos
+
+### El origen: de Netflix a Xcode
+
+Los Flame Graphs nacieron en 2011, creados por [Brendan Gregg](https://www.brendangregg.com/flamegraphs.html) mientras trabajaba en Netflix. Su problema era sencillo: los stack traces lineales eran imposibles de leer cuando tienes miles de muestras. La solución fue apilar las funciones visualmente, donde el **ancho** de cada caja representa el porcentaje de muestras — no el tiempo cronológico.
+
+Esta idea fue tan transformadora que se publicó formalmente en [Communications of the ACM](https://queue.acm.org/detail.cfm?id=2927301) en 2016 y fue adoptada universalmente. Apple integró los Flame Graphs en **Instruments 16.3** como parte del instrumento Processor Trace, aunque la visualización también está disponible en el Time Profiler estándar.
+
+### Cómo leer un Flame Graph
+
+A diferencia de la línea de tiempo cronológica que ya conocemos, en un Flame Graph:
+
+- **El eje X no es el tiempo.** Representa el **100% de las muestras capturadas**. El ancho de una caja indica qué porcentaje del tiempo total de ejecución pasó la CPU en esa función.
+- **El eje Y es la profundidad del stack.** Las funciones más profundas están más abajo (en Instruments se muestran como "estalactitas" — de arriba hacia abajo).
+- **El orden es por peso.** Instruments coloca las cajas más anchas (mayor porcentaje de muestras) a la izquierda.
+- **Los colores indican categoría:** azul para tu código, morado para librerías, gris para código del sistema, magenta para el runtime de Swift.
+
+<div class="pull-quote">
+En un Call Tree, el cuello de botella se esconde entre números. En un Flame Graph, es la meseta más ancha que salta a la vista.
+</div>
+
+### Cómo acceder al Flame Graph en Instruments
+
+1. Perfila tu app con **Time Profiler** o **Processor Trace**.
+2. En la vista de detalle inferior, busca el botón **Graph** en la esquina superior derecha del Call Tree view.
+3. Haz clic — la vista cambia instantáneamente al Flame Graph.
+
+![Flame Graph del Swift Evolution Metadata Extractor en Time Profiler — el hover sobre Document.init(parsing:source:options:) revela 54ms y 3.6% del tiempo total](./resources/02_flame_graph.png)
+
+### Limpieza visual: Flatten to Boundary Frames
+
+Cuando el Flame Graph está dominado por una librería externa (como `swift-markdown`), puedes limpiar el ruido sin perder información:
+
+1. **Control-clic** sobre cualquier función de la librería.
+2. Selecciona **"Flatten 'swift-markdown' to Boundary Frames"**.
+3. Todas las funciones internas de esa librería se colapsan en una sola barra, mostrando solo los puntos de entrada y salida.
+
+Esto es conceptualmente diferente de Flatten en el Call Tree (que ya vimos en la Parte 3). Aquí no estamos eliminando una función individual — estamos colapsando **toda una librería** a sus fronteras, para que tu código destaque sobre el ruido.
+
+![Antes y después de aplicar Flatten to Boundary Frames — el Flame Graph pasa de 12+ niveles densos a una vista limpia donde solo quedan las fronteras del código](./resources/03_flatten_to_boundaries_frame.png)
+
+<Callout type="tip" title="Flame Graph de sampling vs. determinístico">
+Cuando usas Flame Graph con **Time Profiler**, los anchos son estimaciones estadísticas basadas en ~1,000 muestras por segundo. Cuando lo usas con **Processor Trace** (M4/A18+), cada barra refleja el conteo exacto de instrucciones ejecutadas. El mismo Flame Graph, pero con certeza absoluta en lugar de probabilidad.
+</Callout>
+
+Experimenta con el Flame Graph interactivo basado en datos del extractor:
+
+<FlameGraphVisualizer client:load lang="es" />
+
+<InfoBox title="Flame Graph — referencia rápida">
+- **Ancho de barra** = porcentaje de muestras (no tiempo cronológico)
+- **Profundidad** = posición en el call stack (más profundo = más abajo)
+- **Barra ancha inesperada** = posible cuello de botella
+- **Colores:** Azul = tu código | Morado = librerías | Gris = sistema | Magenta = runtime
+- **Flatten to Boundary Frames** = colapsar librería a sus fronteras (limpiar ruido)
+- **Acceso:** Botón "Graph" en la esquina superior derecha del Call Tree
+</InfoBox>
+
+## Swift Concurrency bajo el microscopio
+
+El Call Tree y los Flame Graphs nos muestran *dónde* se gasta la CPU. Pero cuando tu app usa Swift Concurrency, hay una pregunta igual de importante: **¿qué están haciendo tus tareas?** ¿Cuántas están vivas? ¿Cuántas están realmente ejecutándose? ¿Cuántas están suspendidas esperando algo?
+
+### La plantilla Swift Concurrency
+
+Instruments incluye una plantilla dedicada: **Swift Concurrency**. Al seleccionarla, obtienes dos instrumentos principales:
+
+- **Swift Tasks** — Rastrea el ciclo de vida de cada tarea asíncrona.
+- **Swift Actors** — Monitorea el acceso exclusivo a los actores y las colas de espera.
+
+Para el extractor, Swift Tasks es nuestro protagonista. Al perfilar la extracción de metadatos, el instrumento captura cada `taskGroup.addTask` como una nueva tarea con un identificador único.
+
+### Los tres contadores mágicos
+
+En la parte superior del track de Swift Tasks, Instruments muestra tres histogramas:
+
+1. **Running Tasks** — Cuántas tareas se están ejecutando simultáneamente en un momento dado. En nuestro extractor, verás picos cuando el `TaskGroup` lanza las tareas de extracción.
+2. **Alive Tasks** — Cuántas tareas existen (creadas pero no finalizadas). La diferencia entre Alive y Running revela cuántas tareas están suspendidas o en cola.
+3. **Total Tasks** — Acumulado de tareas creadas hasta ese punto. Útil para detectar si se están creando más tareas de las necesarias.
+
+<div class="pull-quote">
+Running te dice cuántas tareas trabajan. Alive te dice cuántas existen. La diferencia entre ambas es tiempo que tus tareas pasan esperando — y eso es lo que debes investigar.
+</div>
+
+![El capibara y el ave Swift monitoreando los tres histogramas de Swift Tasks: Running, Alive y Total](./resources/01_swift_concurrency.png)
+
+![Swift Tasks track del extractor mostrando los histogramas Running/Alive/Total Tasks y el Task Summary con estados Creating, Running, Suspended y Continuation](./resources/04_swift_task_histograms.png)
+
+### Task Summary y Task Forest
+
+Debajo de los histogramas, el panel de detalle ofrece dos vistas clave:
+
+- **Task Summary** — Una tabla que muestra cuánto tiempo cada tarea pasó en cada estado: ejecutándose, suspendida, esperando acceso a un actor. Si ves una tarea con mucho tiempo "Enqueued", significa que está bloqueada esperando acceso exclusivo a un actor.
+- **Task Forest** — Representación gráfica de las relaciones padre-hijo entre tareas. En nuestro extractor, verás la tarea principal (`ExtractionJob.run`) como raíz, con cientos de tareas hijas (una por propuesta) organizadas bajo el `TaskGroup`.
+
+### Narrative View: la biografía de una tarea
+
+Selecciona cualquier tarea en el Task Summary y haz clic derecho → **Pin Track**. Instruments añade un track dedicado a esa tarea en la línea de tiempo, y en la parte inferior aparece la **Narrative View**.
+
+La Narrative View es como leer la biografía de una tarea:
+
+- En qué **hilo** empezó a ejecutarse.
+- Por qué se **suspendió** (esperando una continuación, esperando acceso a un actor, etc.).
+- Cuánto tiempo pasó en cada estado.
+- Si esperaba otra tarea, **cuál** era esa tarea.
+
+Para nuestro extractor, esto revela patrones fascinantes: cada tarea de extracción empieza ejecutándose brevemente para parsear el Markdown, se suspende esperando I/O si necesita datos de la red, y se reanuda para escribir el resultado.
+
+![Narrative View de Swift Task 100 mostrando su biografía completa: Creating, Running en un hilo, Continuation, Suspended y Running de nuevo en otro hilo](./resources/05_narrative_view.png)
+
+<Callout type="warning" title="Concurrencia ≠ paralelismo">
+Ver muchas tareas "Alive" no significa que se estén ejecutando en paralelo. Swift Concurrency usa un cooperative thread pool limitado al número de cores. Si tienes 400 tareas pero 8 cores, máximo 8 se ejecutan simultáneamente. Las demás esperan — y eso está bien, es el diseño. El problema aparece cuando las tareas esperan *demasiado* por acceso a un actor o por I/O bloqueante.
+</Callout>
+
+<InfoBox title="Swift Tasks instrument — referencia rápida">
+- **Plantilla:** Swift Concurrency (incluye Swift Tasks + Swift Actors)
+- **Running Tasks** = tareas ejecutándose ahora (limitado por cores)
+- **Alive Tasks** = tareas creadas pero no finalizadas
+- **Total Tasks** = acumulado histórico
+- **Task Summary** = tiempo por estado (running, suspended, enqueued)
+- **Task Forest** = relaciones padre-hijo (structured concurrency)
+- **Narrative View** = biografía completa de una tarea individual
+- **Pin Track** = clic derecho en Task Summary para fijar una tarea a la línea de tiempo
+</InfoBox>
+
+## Processor Trace — profundizando
+
+![El capibara mirando asombrado a través de un microscopio que revela instrucciones individuales de nanosegundos, mientras el ave Swift sostiene un cronómetro de 3ns](./resources/02_processor_trace_zoom.png)
+
+En la [Parte 3](/blog/dominando-instruments-metodo-cientifico-time-profiler) conocimos los tres niveles de profiling: Time Profiler (estadístico, ~1kHz), CPU Profiler (contadores de hardware) y Processor Trace (cada instrucción). Sabemos *qué* es Processor Trace. Ahora vamos a *usarlo*.
+
+### Requisitos de hardware
+
+Processor Trace necesita chips de última generación:
+
+- **Mac** con M4 o posterior
+- **iPad Pro** con M4 o posterior
+- **iPhone 16** / iPhone 16 Pro o posterior
+
+Si no tienes este hardware, no te preocupes — puedes analizar traces guardados por alguien de tu equipo que sí lo tenga, en cualquier Mac con Instruments 16.3+.
+
+### La sorpresa del overhead
+
+Quizás lo más contra-intuitivo de Processor Trace es su overhead. Cuando grabas *cada instrucción* ejecutada por cada core, esperarías un impacto brutal en rendimiento. Pero Apple reporta un overhead de apenas **~1%**. El truco es que el hardware almacena la información en un buffer dedicado y la vuelca al disco de forma asíncrona — sin interferir con la ejecución normal.
+
+El precio real no es el overhead de CPU, sino el **volumen de datos**: una grabación de pocos segundos en una app multi-hilo puede generar **gigabytes** de información. Por eso Apple recomienda mantener las grabaciones cortas y dirigidas.
+
+### Processor Trace en acción con el extractor
+
+1. **Abre Instruments** y selecciona la plantilla **Processor Trace**.
+2. **Graba** 3-5 segundos durante la extracción del metadatos.
+3. **Haz zoom extremo** (Option-drag) en la línea de tiempo.
+
+Lo que verás es revelador: donde Time Profiler mostraba barras gruesas, Processor Trace revela un mosaico de funciones diminutas. Puedes ver literalmente cada llamada a `swift_retain` y `swift_release` — las operaciones de reference counting que ARC ejecuta detrás de escena (las que estudiamos en la [Parte 2.5](/blog/dominando-instruments-malloc-free-arc)).
+
+<Callout type="info" title="¿No tienes M4?">
+Processor Trace requiere hardware M4/A18 o posterior. Si aún no tienes acceso, puedes explorar las capturas de la [documentación oficial de Apple](https://developer.apple.com/documentation/xcode/analyzing-cpu-usage-with-processor-trace) para ver exactamente cómo luce un trace a nivel de instrucciones. También puedes abrir traces guardados por un compañero de equipo que sí tenga el hardware, en cualquier Mac con Instruments 16.3+.
+</Callout>
+
+### Flame Graph determinístico
+
+Con Processor Trace activo, cambia a la vista Flame Graph (botón **Graph** en Call Tree). Ahora cada barra refleja el **conteo exacto de instrucciones y ciclos** — no una estimación estadística. La diferencia es sutil pero fundamental:
+
+- En el Flame Graph de Time Profiler, una función rápida que siempre se ejecuta entre dos muestras podría no aparecer nunca.
+- En el Flame Graph de Processor Trace, **aparece todo**. Nada se escapa.
+
+<Callout type="info" title="¿Vale la pena para una CLI?">
+Absolutamente. Las herramientas de línea de comandos procesan datos sin la "interferencia" de la UI. Eso hace que los traces sean más limpios y los cuellos de botella más evidentes. Si quieres entender el costo real de Swift Concurrency — la creación de tareas, el cambio de contexto, el overhead del cooperative pool — una CLI es el laboratorio perfecto.
+</Callout>
+
+<InfoBox title="Processor Trace — referencia rápida">
+- **Hardware:** M4 / A18 o posterior
+- **Overhead:** ~1% (el costo real es el volumen de datos, no el rendimiento)
+- **Recomendación:** Grabaciones cortas (3-5 segundos), dirigidas al momento de interés
+- **Flame Graph:** Determinístico — cada barra refleja instrucciones reales ejecutadas
+- **Capacidad única:** Ver funciones de nanosegundos (retain/release, destructores, thunks)
+- **Análisis remoto:** Puedes abrir traces grabados en cualquier Mac con Instruments 16.3+
+</InfoBox>
+
+## Conectando los puntos
+
+Empezamos esta serie con botones y plantillas. Hoy analizamos una herramienta CLI real con cientos de tareas concurrentes, leímos sus Flame Graphs, auditamos el ciclo de vida de sus tareas asíncronas y vimos operaciones de nanosegundos con Processor Trace.
+
+El arco ha sido deliberado: de la interfaz al modelo mental, del modelo mental a la anatomía, de la anatomía al método científico, y del método científico a las herramientas de visualización más avanzadas. Cada parte construye sobre la anterior.
+
+<div class="pull-quote">
+Las herramientas cambian, las plantillas se actualizan, los instrumentos evolucionan. Pero la habilidad de observar, hipotetizar, medir e interpretar es permanente. Eso es lo que esta serie intenta cultivar.
+</div>
+
+---
+
+## Referencias
+
+- [Analyzing CPU usage with the Processor Trace instrument — Apple Documentation](https://developer.apple.com/documentation/xcode/analyzing-cpu-usage-with-processor-trace) — Documentación oficial de Apple sobre el Processor Trace, incluyendo Flame Graphs y operaciones de Charge/Prune/Flatten.
+- [Visualize and optimize Swift concurrency — WWDC22](https://developer.apple.com/videos/play/wwdc2022/110350/) — Sesión donde Apple introduce el instrumento Swift Tasks y la Narrative View.
+- [Optimize CPU performance with Instruments — WWDC25](https://developer.apple.com/videos/play/wwdc2025/308/) — Sesión más reciente sobre Processor Trace, Flame Graphs y CPU Counters.
+- [Analyze hangs with Instruments — WWDC23](https://developer.apple.com/videos/play/wwdc2023/10248/) — Cómo usar Instruments para diagnosticar hangs en todas las plataformas Apple.
+- [Flame Graphs — Brendan Gregg](https://www.brendangregg.com/flamegraphs.html) — Página oficial del creador de los Flame Graphs con filosofía, variantes y herramientas.
+- [The Flame Graph — Communications of the ACM](https://queue.acm.org/detail.cfm?id=2927301) — Artículo formal de Brendan Gregg en ACM sobre la visualización.
+- [How to find and fix slow code using Instruments — Paul Hudson (Hacking with Swift)](https://www.hackingwithswift.com/articles/81/how-to-find-and-fix-slow-code-using-instruments) — Guía práctica de Paul Hudson sobre optimización con Instruments.
+- [Using Instruments to profile a SwiftUI app — Donny Wals](https://www.donnywals.com/using-instruments-to-profile-a-swiftui-app/) — Tutorial de Donny Wals sobre profiling con Instruments.
+- [Xcode Instruments Time Profiler — Antoine van der Lee (AvanderLee)](https://www.avanderlee.com/debugging/xcode-instruments-time-profiler/) — Tutorial de Antoine van der Lee sobre el uso efectivo del Time Profiler.
