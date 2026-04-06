@@ -151,7 +151,7 @@ En la práctica, esto te da unidades en **ciclos** en vez de milisegundos, lo qu
 
 El nivel definitivo. Processor Trace no muestrea — **graba absolutamente cada instrucción** ejecutada por cada núcleo. Nada se escapa. Donde Time Profiler te da 1,400 muestras en un segundo, Processor Trace puede darte **117 millones de registros** en el mismo intervalo.
 
-Requiere hardware moderno (**M4 o A18** en adelante) y genera un overhead significativo, por lo que está diseñado para grabaciones cortas y muy dirigidas. Perfecto para responder: "¿esta función se ejecutó o no?" o "¿qué camino exacto tomó la ejecución dentro de este framework?"
+Requiere hardware moderno (**M4 o A18** en adelante) y, sorprendentemente, genera un overhead de apenas **~1%** según Apple. Sin embargo, produce volúmenes masivos de datos (gigabytes por segundo en apps multi-hilo), por lo que está diseñado para grabaciones cortas y muy dirigidas. Perfecto para responder: "¿esta función se ejecutó o no?" o "¿qué camino exacto tomó la ejecución dentro de este framework?"
 
 <div class="pull-quote">
 Time Profiler te dice dónde tu app gasta su tiempo. CPU Profiler te dice dónde gasta sus ciclos. Processor Trace te dice exactamente qué pasó — cada instrucción, cada salto, cada llamada.
@@ -164,7 +164,7 @@ Processor Trace requiere un chip M4 o A18. Si no tienes ese hardware, Time Profi
 <InfoBox title="Tres niveles de profiling — comparativa">
 - **Time Profiler** → Temporizador ~1kHz | ~5% overhead | Estadístico | Todo hardware Apple
 - **CPU Profiler** → Contadores PMC | ~5-10% overhead | Estadístico (por ciclos) | Apple Silicon
-- **Processor Trace** → Cada instrucción | Overhead alto | Determinístico | Solo M4/A18+
+- **Processor Trace** → Cada instrucción | ~1% overhead (pero genera GBs de datos) | Determinístico | Solo M4/A18+
 - **Recomendación:** Empieza siempre con Time Profiler. Escala solo cuando necesites más precisión.
 </InfoBox>
 
@@ -237,7 +237,7 @@ Si no puedes medir el rendimiento automáticamente, no puedes protegerlo automá
 Hasta ahora nos hemos enfocado en CPU — dónde se gasta el tiempo de procesamiento. Pero hay otra mitad de la ecuación que puede degradar tu app silenciosamente: **la memoria**. Retain cycles que nunca se liberan, allocations descontroladas, objetos zombie que crashean tu app días después de ser liberados.
 
 <Callout type="success" title="Lo que viene en la Parte 4">
-Allocations, Leaks y el Memory Graph Debugger — las herramientas de Instruments para cazar problemas de memoria. Vamos a conectar todo lo que aprendimos en la Parte 2.5 sobre malloc, free y ARC con las herramientas que te dejan ver esos procesos en tu app real. Nos vemos ahí.
+Flame Graphs, Swift Concurrency bajo el microscopio y Processor Trace en acción — cambiaremos de proyecto para analizar una herramienta CLI real que usa Swift Concurrency de forma intensiva, y descubriremos visualizaciones que transforman la manera en que leemos los datos de rendimiento. Nos vemos ahí.
 </Callout>
 
 ---
