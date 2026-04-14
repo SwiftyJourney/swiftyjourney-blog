@@ -1,0 +1,412 @@
+---
+title: "Swift Zero to Expert #8: Structs vs Classes — the decision that shapes your app"
+description: "Value semantics vs reference semantics, static vs dynamic dispatch, and why Apple recommends structs by default. The article that changes how you think about Swift."
+pubDate: 'Jun 08 2026'
+heroImage: './hero.png'
+lang: 'en'
+translationKey: 'swift-zero-expert-structs-classes'
+slug: 'swift-zero-expert-structs-vs-classes'
+tags: ['swift', 'swift-zero-expert', 'swift-fundamentals']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+import ValueVsReferenceVisualizer from '../../../../../components/blog/ValueVsReferenceVisualizer';
+
+In the [previous article](/en/blog/swift-zero-expert-enumerations) we saw that enums are value types with an incredibly efficient memory representation. Today we tackle the most fundamental decision in Swift: **struct or class**. This isn't an aesthetic preference — it's a choice that directly affects where your data lives (stack vs heap), how it gets copied, how each method is dispatched, and how much pressure you put on the garbage collector (well, on ARC).
+
+This article will change how you think about your types.
+
+<div class="pull-quote">
+Struct or class isn't a matter of preference — it's an architectural decision. Choose wrong and you'll pay in performance, shared-state bugs, or both.
+</div>
+
+![The capybara and the Swift bird comparing two worlds: stack and heap](./resources/inline-1.png)
+
+## What they share
+
+Before diving into the differences, it's worth noting that structs and classes have **a lot in common**:
+
+```swift
+// Both can have:
+// ✓ Stored y computed properties
+// ✓ Methods
+// ✓ Subscripts
+// ✓ Initializers
+// ✓ Extensions
+// ✓ Protocol conformance
+```
+
+If you only look at the feature list, they seem nearly identical. The differences are **under the hood**.
+
+## What sets them apart
+
+<InfoBox title="Only classes have">
+- **Inheritance** — a class can inherit from another
+- **Type casting** — checking the type at runtime
+- **Deinitializers** — code that runs before the instance is destroyed (`deinit`)
+- **Reference counting** — multiple references to the same object (ARC)
+- **Identity** — the `===` operator to check whether two variables point to the same object
+</InfoBox>
+
+## Value semantics vs Reference semantics
+
+<Callout type="info" title="Definition: Value Semantics">
+With **value semantics**, each variable owns its own independent copy of the data. Modifying one copy **does not affect** the others. Structs, enums, and all of Swift's basic types (Int, String, Array, Dictionary) have value semantics.
+</Callout>
+
+<Callout type="info" title="Definition: Reference Semantics">
+With **reference semantics**, multiple variables can point to the **same** object. Modifying through one reference affects **all** the others. Classes have reference semantics.
+</Callout>
+
+Let's see this in action:
+
+```swift
+// VALUE SEMANTICS — struct
+struct Size {
+    var width: Double
+    var height: Double
+}
+
+var a = Size(width: 100, height: 200)
+var b = a       // b es una COPIA independiente
+b.width = 999
+
+print(a.width)  // 100 — intacto
+print(b.width)  // 999 — solo b cambió
+```
+
+```swift
+// REFERENCE SEMANTICS — class
+class SizeClass {
+    var width: Double
+    var height: Double
+    init(width: Double, height: Double) {
+        self.width = width
+        self.height = height
+    }
+}
+
+var x = SizeClass(width: 100, height: 200)
+var y = x       // y apunta al MISMO objeto
+y.width = 999
+
+print(x.width)  // 999 — ¡también cambió!
+print(y.width)  // 999
+```
+
+Explore the interactive component to see step by step how they behave in memory:
+
+<div class="interactive-content">
+  <ValueVsReferenceVisualizer client:load lang="en" />
+</div>
+
+<Callout type="warning" title="The most common bug with classes">
+Shared state is the #1 source of subtle bugs. If you pass a `class` object to a function and that function mutates it, your original variable changes too — with no warning. With structs, every function works on its own copy. It's **safer by default**.
+</Callout>
+
+## Where they live: Stack vs Heap
+
+### Structs: the stack
+
+Structs live directly in the **stack frame** of the function that creates them:
+
+```swift
+func process() {
+    var point = Size(width: 10, height: 20)
+    // point vive aquí, en el stack de process()
+    // Cuando process() termina, point desaparece
+    // No hay malloc, no hay free, no hay refcount
+}
+```
+
+The stack is **LIFO** (Last In, First Out) — allocating and freeing is simply moving a pointer. It's the fastest memory operation there is.
+
+### Classes: the heap
+
+Classes are **always** allocated on the heap:
+
+```swift
+func process() {
+    var point = SizeClass(width: 10, height: 20)
+    // En el stack: 8 bytes (puntero al heap)
+    // En el heap: metadata + refcount + width + height
+    // malloc() al crear, free() cuando refcount llega a 0
+}
+```
+
+Every class instance involves:
+1. `malloc` — finding free space on the heap
+2. **metadata** — type info, vtable pointer
+3. **refcount** — reference counter (ARC)
+4. The actual data (properties)
+5. `free` — when the last reference goes away
+
+<Callout type="tip" title="Why does this matter?">
+`malloc` is **~100x slower** than stack allocation. Not because it's a bad algorithm — it's that finding free space on the heap, managing fragmentation, and maintaining thread safety is inherently more expensive than moving a pointer. For a single object you won't notice, but in a loop that creates thousands of objects, the difference is real.
+</Callout>
+
+## Memberwise initializers
+
+Structs get an **automatic initializer** with all their stored properties:
+
+```swift
+struct Color {
+    var red: Double
+    var green: Double
+    var blue: Double
+}
+
+// El compilador genera esto gratis:
+let white = Color(red: 1.0, green: 1.0, blue: 1.0)
+```
+
+Classes **don't** — you have to write your own `init`:
+
+```swift
+class ColorClass {
+    var red: Double
+    var green: Double
+    var blue: Double
+
+    init(red: Double, green: Double, blue: Double) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+    }
+}
+```
+
+<Callout type="info" title="Why don't classes have a memberwise init?">
+Because of inheritance. A generated memberwise init could conflict with the initialization chain of subclasses. Structs don't have inheritance, so there's no possible conflict. We'll dive deeper into initializers in [article #10](/en/blog/swift-zero-expert-inheritance-initialization).
+</Callout>
+
+## Identity: === vs ==
+
+Classes have something structs don't: **identity**. You can ask whether two variables point to the **same object** (not just whether they hold the same values):
+
+```swift
+let point1 = SizeClass(width: 10, height: 20)
+let point2 = point1                              // misma instancia
+let point3 = SizeClass(width: 10, height: 20)    // otra instancia, mismos valores
+
+point1 === point2  // true — MISMO objeto
+point1 === point3  // false — objetos DIFERENTES
+```
+
+Structs don't have `===` because it wouldn't make sense — every variable is its own copy. You can only compare values with `==` (if the type conforms to `Equatable`).
+
+## mutating: the keyword that protects your structs
+
+Since structs are value types, Swift **forbids** mutating their properties from methods by default:
+
+```swift
+struct Counter {
+    var count = 0
+
+    mutating func increment() {
+        count += 1  // Solo posible con 'mutating'
+    }
+}
+
+var counter = Counter()
+counter.increment()  // OK — counter es var
+
+let fixed = Counter()
+// fixed.increment()  // ERROR — no puedes mutar un let
+```
+
+`mutating` is a contract: it tells the compiler "this method will modify `self`." In classes it doesn't exist because properties are always mutable through any reference (even `let`).
+
+```swift
+let classCounter = SomeCounterClass()
+classCounter.count += 1  // OK — let solo protege la REFERENCIA, no el objeto
+```
+
+<Callout type="warning" title="let in structs vs let in classes">
+`let struct` = you can't change **anything** on the struct. `let class` = you can't change **which object it points to**, but you can still modify the object's properties. This asymmetry confuses many developers — and it's one more reason to prefer structs.
+</Callout>
+
+## Static dispatch vs Dynamic dispatch
+
+![The Swift bird showing two paths: one direct and one with indirection](./resources/inline-2.png)
+
+This is the performance difference that gets discussed the least — and the one that matters the most.
+
+<Callout type="info" title="Definition: Static Dispatch">
+With **static dispatch**, the compiler knows **at compile time** exactly which function to call. There's no indirection at runtime — the CPU jumps directly to the code. Structs use static dispatch for all their methods.
+</Callout>
+
+<Callout type="info" title="Definition: Dynamic Dispatch">
+With **dynamic dispatch**, the program consults a **vtable** (virtual table) at runtime to determine which function to call. This is necessary when a class might be subclassed and the method overridden. It costs ~2-3 extra nanoseconds per call.
+</Callout>
+
+```swift
+// STRUCT — static dispatch
+struct Calculator {
+    func add(_ a: Int, _ b: Int) -> Int { a + b }
+}
+let calc = Calculator()
+calc.add(2, 3)
+// El compilador inserta directamente: a + b (puede hasta hacer inline)
+
+// CLASS — dynamic dispatch (por defecto)
+class Calculator {
+    func add(_ a: Int, _ b: Int) -> Int { a + b }
+}
+let calc = Calculator()
+calc.add(2, 3)
+// Runtime: busca add() en la vtable → salta al código → ejecuta
+```
+
+### final: the optimization you should know
+
+Marking a class or method as `final` tells the compiler "nobody will subclass/override this" — enabling static dispatch:
+
+```swift
+final class FastCalculator {
+    func add(_ a: Int, _ b: Int) -> Int { a + b }
+    // static dispatch — igual de rápido que un struct
+}
+```
+
+<InfoBox title="Dispatch at a glance">
+- **Struct methods** → always static dispatch (resolved at compile time)
+- **Class methods** → dynamic dispatch by default (vtable lookup at runtime)
+- **final class methods** → static dispatch (compiler knows there's no override)
+- **Protocol methods** → witness table (similar to vtable, we'll cover it in article #13)
+- **Whole Module Optimization** → the compiler can infer `final` if it sees nobody subclasses
+</InfoBox>
+
+## Copy-on-Write (CoW): the best of both worlds
+
+If structs are copied every time you assign them... wouldn't that be terribly slow for an `Array` with 10,000 elements? No — thanks to **Copy-on-Write**.
+
+<Callout type="info" title="Definition: Copy-on-Write (CoW)">
+**Copy-on-Write** is an optimization where the actual copy only happens when you **mutate** the data. As long as you only read, multiple variables share the same internal storage. `Array`, `Dictionary`, `Set`, and `String` all use CoW.
+</Callout>
+
+```swift
+var original = [1, 2, 3, 4, 5]
+var copy = original  // NO copia los datos — comparten el buffer interno
+
+// Ambos apuntan al mismo buffer (refcount = 2)
+
+copy.append(6)  // AHORA se copia — copy necesita su propio buffer
+// original sigue con [1, 2, 3, 4, 5]
+// copy tiene [1, 2, 3, 4, 5, 6] en su propio buffer
+```
+
+CoW gives you the best of both worlds:
+- **Safety** of value semantics (every variable is independent)
+- **Performance** of sharing (no copying unless you mutate)
+
+<Callout type="tip" title="For advanced devs">
+You can implement CoW in your own structs using `isKnownUniquelyReferenced()`. If the internal storage has a single owner, you mutate in-place; if it has more, you copy first. Standard library types like Array do exactly this.
+</Callout>
+
+## When do structs end up on the heap?
+
+Structs **normally** live on the stack, but the compiler moves them to the heap when:
+
+1. **Escaping scope** — captured by an escaping closure (article #6)
+2. **Existential containers** — when stored as a protocol (`any Drawable`)
+3. **Too large** — very large structs may be more efficient on the heap
+4. **Inside a class** — if a struct is a property of a class, it lives in that class's heap allocation
+
+```swift
+protocol Drawable {
+    func draw()
+}
+
+struct Circle: Drawable {
+    var radius: Double
+    func draw() { print("Drawing circle") }
+}
+
+// Existential container — Circle puede terminar en el heap
+let shape: any Drawable = Circle(radius: 5)
+```
+
+<Callout type="info" title="Existential containers">
+When you store a value type as `any Protocol`, Swift uses an **existential container** — a fixed-size structure that can hold the value inline (if it fits in 3 words / 24 bytes) or a pointer to the heap (if it's larger). In Swift 5.9+, `any` is explicit so you're aware of the cost.
+</Callout>
+
+## When should you use struct? When should you use class?
+
+<InfoBox title="Use struct when...">
+- The data is **self-contained** and doesn't need identity
+- You want **value semantics** (independent copies)
+- You don't need **inheritance**
+- You want the performance of **stack** allocation and **static dispatch**
+- It's the **default** option recommended by Apple
+</InfoBox>
+
+<InfoBox title="Use class when...">
+- You need **identity** (checking whether two variables are the same object with `===`)
+- You need **inheritance** (type hierarchies)
+- You need **reference semantics** (multiple parts of your code share the same state)
+- You're interoperating with **Objective-C** (which only has classes)
+- The object's lifecycle needs **deinit** for cleanup
+</InfoBox>
+
+Apple sums it up in one sentence: **"Use structs by default. Use classes only when you need the specific capabilities that classes provide."**
+
+## Memory: the definitive summary
+
+```
+┌─────────────────────────────────────────────────┐
+│                    STRUCT                         │
+│  • Stack allocation (fast)                       │
+│  • Value semantics (independent copy)            │
+│  • Static dispatch (resolved at compile time)    │
+│  • No refcount, no malloc, no free               │
+│  • CoW for collections (Array, Dict, Set)        │
+│  • Free memberwise init                          │
+│  • No inheritance, no deinit, no identity        │
+└─────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────┐
+│                    CLASS                          │
+│  • Heap allocation (malloc + free)               │
+│  • Reference semantics (shared state)            │
+│  • Dynamic dispatch (vtable at runtime)          │
+│  • Refcount management (ARC)                     │
+│  • Metadata + vtable per instance                │
+│  • Inheritance, deinit, identity (===)           │
+│  • final → static dispatch (optimization)        │
+└─────────────────────────────────────────────────┘
+```
+
+<div class="pull-quote">
+It's not that classes are "bad" — it's that structs are the right choice for most cases. A struct is faster, safer, and more predictable. Reserve classes for when you truly need inheritance, identity, or shared state.
+</div>
+
+## Recap
+
+- **Value semantics (struct)** — each variable owns its own copy; mutating one doesn't affect the others
+- **Reference semantics (class)** — multiple variables share the same object
+- **Stack vs Heap** — structs on the stack (fast), classes on the heap (malloc + refcount + free)
+- **Memberwise init** — free for structs, manual for classes
+- **Identity** — only classes have `===`; structs only have `==`
+- **mutating** — required in structs to modify `self`; unnecessary in classes
+- **Static dispatch (struct)** — resolved by the compiler at compile time
+- **Dynamic dispatch (class)** — vtable lookup at runtime; `final` turns it into static
+- **Copy-on-Write** — Array/Dict/Set only copy on mutation
+- **Structs on the heap** — existential containers, escaping closures, inside classes
+
+## What's next
+
+In the next article we explore **Properties, Methods, and Subscripts** — the connective tissue of your types. We'll look at the difference between stored and computed properties (and why computed = zero storage), property observers, lazy properties, and how properties define the memory layout of your structs and classes.
+
+See you next week.
+
+<div class="pull-quote">
+The choice between struct and class isn't about syntax — it's about semantics. Value semantics gives you safety and performance by default. Reference semantics gives you power and flexibility when you need it. Choose with intention.
+</div>
+
+## References
+
+- [The Swift Programming Language — Structures and Classes](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/classesandstructures)
+- [Choosing Between Structures and Classes — Apple](https://developer.apple.com/documentation/swift/choosing-between-structures-and-classes)
+- [Understanding Swift Performance — WWDC 2016](https://developer.apple.com/videos/play/wwdc2016/416/)
