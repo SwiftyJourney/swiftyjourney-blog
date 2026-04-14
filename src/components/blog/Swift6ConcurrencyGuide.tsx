@@ -165,7 +165,72 @@ function OverviewSection({ lang }: { lang: Lang }) {
           : <>, only 2 flags change: <Code>InferIsolatedConformances</Code> and <Code>NonisolatedNonsendingByDefault</Code>. The other 3 are already enabled by default.</>}
       </Callout>
       <SectionTitle>{l ? "Cómo activarlo en un Swift Package" : "How to enable it in a Swift Package"}</SectionTitle>
-      <CodeBlock title="Package.swift" code={l
+      <Callout type="danger">
+        <strong>{l ? "No existe un flag único para SPM." : "There is no single SPM flag."}</strong>{" "}
+        {l
+          ? <><Code>.enableUpcomingFeature("ApproachableConcurrency")</Code> <strong>no existe</strong> como feature flag del compilador. <Code>SWIFT_APPROACHABLE_CONCURRENCY</Code> es un build setting exclusivo de Xcode que activa internamente los flags individuales. En SPM, <Code>.enableUpcomingFeature()</Code> recibe un <Code>String</Code> y no valida si el flag existe — lo ignora silenciosamente sin error de compilación. Debes activar los flags individuales.</>
+          : <><Code>.enableUpcomingFeature("ApproachableConcurrency")</Code> <strong>does not exist</strong> as a compiler feature flag. <Code>SWIFT_APPROACHABLE_CONCURRENCY</Code> is an Xcode-only build setting that internally enables the individual flags. In SPM, <Code>.enableUpcomingFeature()</Code> takes a <Code>String</Code> and does not validate whether the flag exists — it silently ignores it with no compilation error. You must enable the individual flags.</>}
+      </Callout>
+      <SectionTitle sub={l ? "Si tu Package ya usa Swift 6 language mode" : "If your Package already uses Swift 6 language mode"}>
+        {l ? "Con swiftLanguageModes: [.v6]" : "With swiftLanguageModes: [.v6]"}
+      </SectionTitle>
+      <p style={{ fontSize: 13.5, lineHeight: 1.7, color: theme.text }}>
+        {l
+          ? <>En Swift 6 language mode, 3 de los 5 flags ya están activos por defecto (<Code>DisableOutwardActorInference</Code>, <Code>GlobalActorIsolatedTypesUsability</Code>, <Code>InferSendableFromCaptures</Code>). Solo necesitas agregar los 2 nuevos de Swift 6.2:</>
+          : <>In Swift 6 language mode, 3 of the 5 flags are already active by default (<Code>DisableOutwardActorInference</Code>, <Code>GlobalActorIsolatedTypesUsability</Code>, <Code>InferSendableFromCaptures</Code>). You only need to add the 2 new flags from Swift 6.2:</>}
+      </p>
+      <CodeBlock title={l ? "Package.swift — Swift 6 (solo 2 flags necesarios)" : "Package.swift — Swift 6 (only 2 flags needed)"} highlight="good" code={l
+        ? `// swift-tools-version: 6.2
+import PackageDescription
+
+let package = Package(
+    name: "SearchFeature",
+    platforms: [.iOS(.v26), .macOS(.v26)],
+    products: [
+        .library(name: "SearchFeature", targets: ["SearchFeature"]),
+    ],
+    targets: [
+        .target(
+            name: "SearchFeature",
+            swiftSettings: [
+                // Solo los 2 flags nuevos de 6.2:
+                .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+                .enableUpcomingFeature("InferIsolatedConformances"),
+            ]
+        ),
+    ],
+    swiftLanguageModes: [.v6] // ← los otros 3 flags ya vienen incluidos
+)`
+        : `// swift-tools-version: 6.2
+import PackageDescription
+
+let package = Package(
+    name: "SearchFeature",
+    platforms: [.iOS(.v26), .macOS(.v26)],
+    products: [
+        .library(name: "SearchFeature", targets: ["SearchFeature"]),
+    ],
+    targets: [
+        .target(
+            name: "SearchFeature",
+            swiftSettings: [
+                // Only the 2 new flags from 6.2:
+                .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+                .enableUpcomingFeature("InferIsolatedConformances"),
+            ]
+        ),
+    ],
+    swiftLanguageModes: [.v6] // ← the other 3 flags are already included
+)`} />
+      <SectionTitle sub={l ? "Si tu Package aún usa Swift 5 language mode" : "If your Package still uses Swift 5 language mode"}>
+        {l ? "Sin swiftLanguageModes: [.v6] (todos los flags)" : "Without swiftLanguageModes: [.v6] (all flags)"}
+      </SectionTitle>
+      <p style={{ fontSize: 13.5, lineHeight: 1.7, color: theme.text }}>
+        {l
+          ? "Si aún no has migrado a Swift 6 language mode, necesitas los 5 flags explícitamente:"
+          : "If you haven't migrated to Swift 6 language mode yet, you need all 5 flags explicitly:"}
+      </p>
+      <CodeBlock title={l ? "Package.swift — Swift 5 (los 5 flags)" : "Package.swift — Swift 5 (all 5 flags)"} code={l
         ? `// swift-tools-version: 6.2
 
 .target(
@@ -174,7 +239,7 @@ function OverviewSection({ lang }: { lang: Lang }) {
         // Solo si quieres MainActor default (opcional):
         // .defaultIsolation(MainActor.self),
 
-        // Approachable Concurrency flags:
+        // Los 5 Approachable Concurrency flags:
         .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .enableUpcomingFeature("InferIsolatedConformances"),
         .enableUpcomingFeature("InferSendableFromCaptures"),
@@ -190,7 +255,7 @@ function OverviewSection({ lang }: { lang: Lang }) {
         // Only if you want MainActor default (optional):
         // .defaultIsolation(MainActor.self),
 
-        // Approachable Concurrency flags:
+        // All 5 Approachable Concurrency flags:
         .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .enableUpcomingFeature("InferIsolatedConformances"),
         .enableUpcomingFeature("InferSendableFromCaptures"),
@@ -198,6 +263,19 @@ function OverviewSection({ lang }: { lang: Lang }) {
         .enableUpcomingFeature("DisableOutwardActorInference")
     ]
 )`} />
+      <SectionTitle sub={l ? "Cómo Xcode resuelve estos valores internamente" : "How Xcode resolves these values internally"}>
+        {l ? "Xcode vs SPM: la diferencia" : "Xcode vs SPM: the difference"}
+      </SectionTitle>
+      <Table headers={[l ? "Macro de Xcode" : "Xcode Macro", l ? "Significado" : "Meaning"]} rows={[
+        [<Code>$(SWIFT_UPCOMING_FEATURE_6_0)</Code>, l ? "Se activa con Swift 6 language mode" : "Activated by Swift 6 language mode"],
+        [<Code>$(SWIFT_APPROACHABLE_CONCURRENCY)</Code>, l ? "Se activa con el toggle Approachable Concurrency = Yes" : "Activated by the Approachable Concurrency = Yes toggle"],
+        [<><Code>$(SETTING_DefaultValue_</Code>...<Code>)</Code></>, l ? "Se activa si cualquiera de los dos está activo (OR lógico)" : "Activated if either of the two is active (logical OR)"],
+      ]} />
+      <Callout type="info">
+        {l
+          ? <>En Xcode, un solo toggle (<strong>Approachable Concurrency = Yes</strong>) activa los 5 flags. En SPM no existe ese toggle — debes usar los flags individuales con <Code>.enableUpcomingFeature()</Code>. Si ya usas <Code>swiftLanguageModes: [.v6]</Code>, solo necesitas los 2 nuevos.</>
+          : <>In Xcode, a single toggle (<strong>Approachable Concurrency = Yes</strong>) enables all 5 flags. In SPM there is no such toggle — you must use individual flags with <Code>.enableUpcomingFeature()</Code>. If you already use <Code>swiftLanguageModes: [.v6]</Code>, you only need the 2 new ones.</>}
+      </Callout>
     </div>
   );
 }
@@ -1018,7 +1096,9 @@ function MigrationSection({ lang }: { lang: Lang }) {
         .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .enableUpcomingFeature("InferIsolatedConformances"),
     ]
-)`
+)
+// + a nivel de Package:
+// swiftLanguageModes: [.v6]`
             : `// In Xcode Build Settings:
 // Swift Compiler - Language:
 //   Swift Language Version: Swift 6
@@ -1037,7 +1117,9 @@ function MigrationSection({ lang }: { lang: Lang }) {
         .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .enableUpcomingFeature("InferIsolatedConformances"),
     ]
-)`} />
+)
+// + at Package level:
+// swiftLanguageModes: [.v6]`} />
           <SectionTitle>{l ? "Modelo mental con esta config" : "Mental model with this config"}</SectionTitle>
           <CodeBlock title={l ? "Patrón de trabajo diario" : "Daily workflow pattern"} highlight="good" code={l
             ? `// ═══════════════════════════════════════════
