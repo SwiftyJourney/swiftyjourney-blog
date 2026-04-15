@@ -1,0 +1,453 @@
+---
+title: "Swift de Cero a Experto #9: Propiedades, métodos y subscripts"
+description: "Stored vs computed properties, observers, lazy, static. Cómo las propiedades definen el layout en memoria y por qué computed = zero storage."
+pubDate: 'Jun 15 2026'
+heroImage: './hero.png'
+lang: 'es'
+translationKey: 'swift-zero-expert-properties-methods'
+slug: 'swift-cero-experto-propiedades-metodos-subscripts'
+tags: ['swift', 'swift-cero-experto', 'swift-fundamentals']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+
+En el [artículo anterior](/es/blog/swift-cero-experto-structs-vs-classes) descubrimos que structs viven en el stack y classes en el heap. Hoy entramos al tejido conectivo de ambos: **propiedades, métodos y subscripts** — las piezas que definen qué sabe tu tipo, qué puede hacer, y cómo accedes a sus datos.
+
+No todas las propiedades cuestan lo mismo. Una **stored property** ocupa espacio real en el layout de memoria de tu tipo. Una **computed property** no ocupa ni un byte — es una función disfrazada de propiedad. Entender esa diferencia es la clave para diseñar tipos eficientes.
+
+<div class="pull-quote">
+Una stored property ocupa bytes reales en cada instancia. Una computed property ocupa cero — es simplemente una función con sintaxis de propiedad.
+</div>
+
+![El ave Swift organizando propiedades en una estructura de datos](./resources/inline-1.png)
+
+## Stored properties: el dato real
+
+<Callout type="info" title="Definición: Stored Property">
+Una **stored property** es una constante (`let`) o variable (`var`) almacenada como parte de cada instancia de un struct o class. Cada instancia tiene su propia copia del valor. Son las propiedades que definen el **tamaño** de tu tipo en memoria.
+</Callout>
+
+```swift
+struct FixedLengthRange {
+    var firstValue: Int   // 8 bytes — stored
+    let length: Int       // 8 bytes — stored (inmutable)
+}
+
+// MemoryLayout<FixedLengthRange>.size == 16 bytes (8 + 8)
+var range = FixedLengthRange(firstValue: 0, length: 3)
+range.firstValue = 6  // OK — var
+// range.length = 4   // ERROR — let es inmutable
+```
+
+Recuerda del artículo #8: si el struct se asigna a una constante `let`, **ninguna** de sus propiedades puede cambiar — ni siquiera las `var`:
+
+```swift
+let fixedRange = FixedLengthRange(firstValue: 0, length: 3)
+// fixedRange.firstValue = 6  // ERROR — todo el struct es inmutable
+```
+
+Con classes es diferente — `let` solo protege la referencia, no el objeto:
+
+```swift
+class SomeClass {
+    var value = 42
+}
+let instance = SomeClass()
+instance.value = 99  // OK — let protege la referencia, no las propiedades
+```
+
+## Lazy stored properties: alocación diferida
+
+<Callout type="info" title="Definición: Lazy Property">
+Una **lazy stored property** es una propiedad cuyo valor inicial se calcula la **primera vez** que se accede, no cuando la instancia se crea. Se declara con `lazy var`. Nunca puede ser `let` porque su valor se asigna después de la inicialización.
+</Callout>
+
+```swift
+class DataManager {
+    lazy var importer = DataImporter()
+    var data: [String] = []
+}
+
+let manager = DataManager()
+// importer NO se ha creado todavía — zero costo hasta que lo necesites
+manager.data.append("Some data")
+
+print(manager.importer.filename)
+// AHORA se crea DataImporter — solo cuando realmente lo necesitas
+```
+
+¿Cuándo usar `lazy`?
+
+- El valor depende de factores externos que no se conocen hasta después del `init`
+- El cálculo inicial es costoso y quizás nunca se necesite
+- La propiedad depende de `self` (que no existe durante la inicialización)
+
+<Callout type="warning" title="Lazy no es thread-safe">
+Si dos hilos acceden a una lazy property simultáneamente por primera vez, la propiedad podría inicializarse **dos veces**. Si necesitas inicialización thread-safe, usa `static` (que usa `dispatch_once` internamente) o un mecanismo explícito de sincronización.
+</Callout>
+
+## Computed properties: funciones disfrazadas
+
+<Callout type="info" title="Definición: Computed Property">
+Una **computed property** no almacena un valor — lo **calcula** cada vez que se accede. Tiene un `get` (obligatorio) y opcionalmente un `set`. No ocupa espacio en el memory layout de la instancia.
+</Callout>
+
+```swift
+struct Rect {
+    var origin: Point
+    var size: Size
+
+    var center: Point {
+        get {
+            Point(
+                x: origin.x + (size.width / 2),
+                y: origin.y + (size.height / 2)
+            )
+        }
+        set {
+            origin.x = newValue.x - (size.width / 2)
+            origin.y = newValue.y - (size.height / 2)
+        }
+    }
+}
+
+var square = Rect(
+    origin: Point(x: 0, y: 0),
+    size: Size(width: 10, height: 10)
+)
+print(square.center)        // Point(x: 5, y: 5)
+square.center = Point(x: 15, y: 15)
+print(square.origin)        // Point(x: 10, y: 10)
+```
+
+`center` no ocupa espacio — se calcula cada vez. Si solo tienes getter, puedes simplificar:
+
+```swift
+struct Cuboid {
+    var width = 0.0, height = 0.0, depth = 0.0
+
+    var volume: Double {   // read-only computed
+        width * height * depth
+    }
+}
+```
+
+<InfoBox title="Stored vs Computed — en memoria">
+- **Stored property** → ocupa bytes reales en cada instancia. Determina `MemoryLayout.size`
+- **Computed property** → zero bytes. Es una función que el compilador puede inlinear
+- **Lazy stored** → ocupa bytes + 1 byte de flag (para saber si ya se inicializó)
+- **Truco del compilador**: si una computed property es simple, el compilador la hace inline — equivalente a acceder directamente al campo
+</InfoBox>
+
+## Property observers: willSet y didSet
+
+<Callout type="info" title="Definición: Property Observers">
+Los **property observers** son bloques de código que se ejecutan automáticamente **antes** (`willSet`) o **después** (`didSet`) de que una stored property cambie de valor. No agregan almacenamiento extra — son funciones que el compilador inserta en el setter.
+</Callout>
+
+```swift
+class StepCounter {
+    var totalSteps: Int = 0 {
+        willSet(newTotalSteps) {
+            print("A punto de cambiar a \(newTotalSteps)")
+        }
+        didSet {
+            if totalSteps > oldValue {
+                print("Agregaste \(totalSteps - oldValue) pasos")
+            }
+        }
+    }
+}
+
+let counter = StepCounter()
+counter.totalSteps = 200
+// "A punto de cambiar a 200"
+// "Agregaste 200 pasos"
+counter.totalSteps = 360
+// "A punto de cambiar a 360"
+// "Agregaste 160 pasos"
+```
+
+- `willSet` recibe el nuevo valor como parámetro (default: `newValue`)
+- `didSet` tiene acceso al valor anterior (default: `oldValue`)
+- Puedes usar uno, ambos, o ninguno
+
+<Callout type="tip" title="Optimización SE-0268">
+Desde Swift 5.3, si tu `didSet` **no usa** `oldValue`, el compilador **no llama al getter** para obtenerlo. Esto es importante para propiedades costosas de leer — si solo necesitas reaccionar al cambio sin comparar con el valor anterior, es gratis.
+</Callout>
+
+Los observers también funcionan en propiedades **heredadas** — puedes agregar `willSet`/`didSet` a una propiedad que heredas de una superclass.
+
+## Type properties: static y class
+
+<Callout type="info" title="Definición: Type Property">
+Una **type property** pertenece al **tipo** en sí, no a una instancia. Solo existe una copia compartida entre todas las instancias. Se declara con `static` (o `class` en classes para permitir override).
+</Callout>
+
+```swift
+struct AudioChannel {
+    static let thresholdLevel = 10
+    static var maxInputLevelForAllChannels = 0
+
+    var currentLevel: Int = 0 {
+        didSet {
+            if currentLevel > AudioChannel.thresholdLevel {
+                currentLevel = AudioChannel.thresholdLevel
+            }
+            if currentLevel > AudioChannel.maxInputLevelForAllChannels {
+                AudioChannel.maxInputLevelForAllChannels = currentLevel
+            }
+        }
+    }
+}
+
+var leftChannel = AudioChannel()
+leftChannel.currentLevel = 7
+print(AudioChannel.maxInputLevelForAllChannels)  // 7 — compartido
+```
+
+<Callout type="tip" title="Thread-safe por naturaleza">
+Las stored type properties (`static let/var`) se inicializan de forma **lazy y thread-safe** automáticamente. Swift usa `dispatch_once` internamente — la primera vez que accedes a la propiedad, se inicializa una sola vez sin importar cuántos hilos accedan simultáneamente. Es el patrón singleton más limpio que existe.
+</Callout>
+
+## Property wrappers: reutiliza la lógica
+
+<Callout type="info" title="Definición: Property Wrapper">
+Un **property wrapper** (SE-0258) encapsula lógica de acceso reutilizable detrás de un atributo `@`. Defines la lógica una vez y la aplicas a cualquier propiedad con `@NombreDelWrapper`.
+</Callout>
+
+```swift
+@propertyWrapper
+struct Clamped {
+    var wrappedValue: Int {
+        didSet { wrappedValue = min(max(wrappedValue, range.lowerBound), range.upperBound) }
+    }
+    let range: ClosedRange<Int>
+
+    init(wrappedValue: Int, _ range: ClosedRange<Int>) {
+        self.range = range
+        self.wrappedValue = min(max(wrappedValue, range.lowerBound), range.upperBound)
+    }
+}
+
+struct Player {
+    @Clamped(0...100) var health: Int = 100
+    @Clamped(0...999) var score: Int = 0
+}
+
+var player = Player()
+player.health = 150   // se clampea a 100
+player.health = -10   // se clampea a 0
+```
+
+SwiftUI está lleno de property wrappers: `@State`, `@Binding`, `@ObservedObject`, `@Environment`. Ahora sabes cómo funcionan bajo el capó.
+
+## Métodos de instancia
+
+Los métodos son funciones que pertenecen a un tipo:
+
+```swift
+class Counter {
+    var count = 0
+
+    func increment() {
+        count += 1
+    }
+
+    func increment(by amount: Int) {
+        count += amount
+    }
+
+    func reset() {
+        count = 0
+    }
+}
+
+let counter = Counter()
+counter.increment()
+counter.increment(by: 5)
+print(counter.count)  // 6
+counter.reset()
+```
+
+Cada método de instancia tiene un parámetro implícito `self` que referencia a la instancia. Normalmente se omite a menos que haya ambigüedad:
+
+```swift
+struct Point {
+    var x = 0.0, y = 0.0
+
+    func isToTheRightOf(x: Double) -> Bool {
+        return self.x > x  // self.x es la propiedad, x es el parámetro
+    }
+}
+```
+
+## mutating en structs y enums
+
+Como vimos en el artículo #8, los value types (structs y enums) necesitan `mutating` para modificar `self`:
+
+```swift
+struct Point {
+    var x = 0.0, y = 0.0
+
+    mutating func moveBy(x deltaX: Double, y deltaY: Double) {
+        x += deltaX
+        y += deltaY
+    }
+}
+
+// Incluso puedes reemplazar self completamente:
+enum TriStateSwitch {
+    case off, low, high
+
+    mutating func next() {
+        switch self {
+        case .off:  self = .low
+        case .low:  self = .high
+        case .high: self = .off
+        }
+    }
+}
+```
+
+![El capibara modificando un struct con la keyword mutating](./resources/inline-2.png)
+
+## Type methods: static y class
+
+Los type methods se llaman sobre el **tipo**, no sobre una instancia:
+
+```swift
+struct LevelTracker {
+    static var highestUnlockedLevel = 1
+    var currentLevel = 1
+
+    static func unlock(_ level: Int) {
+        if level > highestUnlockedLevel {
+            highestUnlockedLevel = level
+        }
+    }
+
+    static func isUnlocked(_ level: Int) -> Bool {
+        return level <= highestUnlockedLevel
+    }
+
+    @discardableResult
+    mutating func advance(to level: Int) -> Bool {
+        if LevelTracker.isUnlocked(level) {
+            currentLevel = level
+            return true
+        }
+        return false
+    }
+}
+
+LevelTracker.unlock(2)
+var tracker = LevelTracker()
+tracker.advance(to: 2)  // true
+```
+
+En classes, usa `class func` en lugar de `static func` si quieres permitir que subclasses puedan hacer override del método.
+
+## Subscripts: acceso con corchetes
+
+<Callout type="info" title="Definición: Subscript">
+Un **subscript** es una forma de acceder a elementos de un tipo usando la sintaxis de corchetes `[]`. Son atajos para acceder a miembros de una colección, lista, o secuencia.
+</Callout>
+
+```swift
+struct Matrix {
+    let rows: Int, columns: Int
+    var grid: [Double]
+
+    init(rows: Int, columns: Int) {
+        self.rows = rows
+        self.columns = columns
+        grid = Array(repeating: 0.0, count: rows * columns)
+    }
+
+    subscript(row: Int, column: Int) -> Double {
+        get {
+            assert(row >= 0 && row < rows && column >= 0 && column < columns)
+            return grid[(row * columns) + column]
+        }
+        set {
+            assert(row >= 0 && row < rows && column >= 0 && column < columns)
+            grid[(row * columns) + column] = newValue
+        }
+    }
+}
+
+var matrix = Matrix(rows: 2, columns: 2)
+matrix[0, 1] = 1.5
+matrix[1, 0] = 3.2
+print(matrix[0, 1])  // 1.5
+```
+
+Los subscripts pueden tomar cualquier número de parámetros, ser read-only o read-write, y pueden ser type subscripts (`static subscript`).
+
+## La memoria: cómo las propiedades definen el layout
+
+Las stored properties de un tipo definen su **memory layout**:
+
+```swift
+struct UserProfile {
+    let id: Int            // 8 bytes
+    var name: String       // 16 bytes (String = 16 bytes inline)
+    var age: Int           // 8 bytes
+    var isActive: Bool     // 1 byte + 7 padding (alignment a 8)
+}
+
+MemoryLayout<UserProfile>.size       // 41 bytes (dato real)
+MemoryLayout<UserProfile>.stride     // 48 bytes (con alignment padding)
+MemoryLayout<UserProfile>.alignment  // 8 bytes
+```
+
+Las computed properties **no aparecen** en el layout. No importa cuántas computed properties tengas — el tamaño del tipo no cambia:
+
+```swift
+struct Circle {
+    var radius: Double  // 8 bytes — la ÚNICA propiedad que ocupa espacio
+
+    var diameter: Double { radius * 2 }         // 0 bytes
+    var circumference: Double { .pi * diameter } // 0 bytes
+    var area: Double { .pi * radius * radius }   // 0 bytes
+}
+
+MemoryLayout<Circle>.size  // 8 bytes — solo radius
+```
+
+<div class="pull-quote">
+Diseña tus tipos pensando en qué necesita ser stored (dato real que cambia y se necesita persistir) y qué puede ser computed (derivado de otros datos). Menos stored properties = menos memoria por instancia.
+</div>
+
+## Recapitulación
+
+- **Stored properties** — dato real, ocupan bytes en el memory layout
+- **Computed properties** — funciones disfrazadas, zero storage, pueden ser inline
+- **Lazy properties** — se alocan en demanda, útiles para objetos costosos
+- **Property observers** — willSet/didSet, no agregan storage, SE-0268 optimiza oldValue
+- **Type properties** — `static`, una copia compartida, thread-safe con dispatch_once
+- **Property wrappers** — lógica reutilizable con `@`, base de SwiftUI
+- **Instance methods** — `self` implícito, `mutating` para value types
+- **Type methods** — `static func` / `class func`, se llaman sobre el tipo
+- **Subscripts** — acceso con `[]`, como computed properties para colecciones
+- **Memory layout** — solo stored properties definen el tamaño; computed = free
+
+## Lo que viene
+
+En el próximo artículo exploramos **Herencia, Inicialización y Deinicialización** — la trinidad que define el ciclo de vida de las classes. Veremos designated vs convenience initializers, two-phase initialization, failable init, y `deinit` — el último acto antes de que ARC libere la memoria.
+
+Nos vemos la próxima semana.
+
+<div class="pull-quote">
+Las propiedades son el ADN de tus tipos. Stored properties definen qué sabe tu tipo — y cuánta memoria consume. Computed properties definen qué puede derivar — sin costo. Diseña tus tipos con esa distinción en mente.
+</div>
+
+## Referencias
+
+- [The Swift Programming Language — Properties](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/properties)
+- [The Swift Programming Language — Methods](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/methods)
+- [The Swift Programming Language — Subscripts](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/subscripts)
+- [SE-0258: Property Wrappers](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0258-property-wrappers.md)
+- [SE-0268: Refine didSet Semantics](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0268-didset-semantics.md)
