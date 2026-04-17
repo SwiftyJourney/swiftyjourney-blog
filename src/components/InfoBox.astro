@@ -15,35 +15,41 @@ const { title } = Astro.props;
     <span class="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0"></span>
     {title}
   </div>
-  <div class="info-box-grid grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+  <div class="info-box-grid grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
     <slot />
   </div>
 </div>
 
 <style>
+  .info-box-grid :global(ul) {
+    list-style: none;
+    display: contents;
+    padding: 0;
+    margin: 0;
+  }
+
   .info-box-grid :global(li),
   .info-box-grid :global(p) {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    position: relative;
+    padding-left: 22px;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
     margin: 0;
     color: var(--color-text);
   }
 
   .info-box-grid :global(li)::before {
     content: "→";
+    position: absolute;
+    left: 0;
+    top: 0;
     color: var(--color-accent);
     font-weight: 600;
-    flex-shrink: 0;
-    margin-top: 1px;
+    line-height: 1.6;
   }
 
-  .info-box-grid :global(ul) {
-    list-style: none;
-    display: contents;
-    padding: 0;
-    margin: 0;
+  .info-box-grid :global(code) {
+    font-size: 0.9em;
+    white-space: nowrap;
   }
 </style>
