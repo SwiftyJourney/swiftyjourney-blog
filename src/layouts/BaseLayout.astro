@@ -278,7 +278,7 @@ const backToSiteLabel = lang === "en" ? "swiftyjourney.com" : "swiftyjourney.com
 
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        const codeBlocks = document.querySelectorAll("pre code");
+        const codeBlocks = document.querySelectorAll(".prose pre.astro-code > code");
 
         const getLanguageIcon = (language: string) => {
           const iconContainer = document.getElementById("language-icons");
