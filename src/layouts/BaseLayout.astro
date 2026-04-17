@@ -1,61 +1,47 @@
 ---
 import "../styles/global.css";
-import ThemeToggle from "../components/ThemeToggle.astro";
 import LangToggle from "../components/LangToggle.astro";
-import PartnersStrip from "../components/PartnersStrip.astro";
+import SEO from "../components/SEO.astro";
 import EDLogo from "../components/EDLogo.astro";
 import { Icon } from "astro-icon/components";
 
 const SITE = "https://blog.swiftyjourney.com";
+const MAIN_SITE = "https://swiftyjourney.com";
 
-// Props por página
+type Lang = "en" | "es";
+
 const {
-  title = "Swifty Journey Blog",
-  description = "Exploring iOS, Swift and SwiftUI through articles, tutorials and development experiences",
-  lang = "en",
+  title = "Swifty Journey — Writing",
+  description = "Real-world iOS engineering, explained clearly.",
+  lang = "en" as Lang,
   toEn: customToEn,
   toEs: customToEs,
-  ogType = "website",
-  ogImage,
-  ogImageWidth,
-  ogImageHeight,
+  seoTitle,
+  seoDescription,
+  seoImage,
+  seoType = "website",
   articlePublishedTime,
   articleModifiedTime,
   jsonLd,
 } = Astro.props;
 
-// Ruta actual (e.g. /en/blog)
 const path = Astro.url.pathname || "/";
 
-/** Diccionario de slugs por idioma */
-const slugMap: Record<"en" | "es", Record<string, string>> = {
-  en: {
-    blog: "blog",
-    resources: "recursos",
-  },
-  es: {
-    blog: "blog",
-    recursos: "resources",
-  },
+const slugMap: Record<Lang, Record<string, string>> = {
+  en: { resources: "recursos" },
+  es: { recursos: "resources" },
 };
 
-/** Traduce el primer segmento de una ruta al otro idioma */
 function translateFirstSegment(
-  currentLang: "en" | "es",
-  otherLang: "en" | "es",
+  currentLang: Lang,
+  otherLang: Lang,
   pathname: string,
 ) {
-  // quita el prefijo /en/ o /es/
   const bare = pathname.replace(/^\/(en|es)\//, "");
   const parts = bare.split("/").filter(Boolean);
-
-  if (parts.length === 0) {
-    return `/${otherLang}/`;
-  }
-
+  if (parts.length === 0) return `/${otherLang}/`;
   const first = parts[0];
   const mapped = (slugMap[currentLang] && slugMap[currentLang][first]) || first;
-
   const rebuilt = `/${otherLang}/${[mapped, ...parts.slice(1)].join("/")}`;
   return rebuilt.endsWith("/") ? rebuilt : rebuilt + "/";
 }
@@ -64,84 +50,103 @@ const isEN =
   path.startsWith("/en/") ||
   (!path.startsWith("/en/") && !path.startsWith("/es/"));
 const isES = path.startsWith("/es/");
-const currentLang = isEN ? "en" : "es";
-const otherLang = currentLang === "es" ? "en" : "es";
+const currentLang: Lang = isEN ? "en" : "es";
 
-// URLs alternas correctas (usar custom si está disponible)
 const toEn =
   customToEn || (isEN ? path : translateFirstSegment("es", "en", path));
 const toEs =
   customToEs || (isES ? path : translateFirstSegment("en", "es", path));
 
-// Canonical y hreflang
 const canonical = new URL(path, SITE).toString();
 const hrefEn = new URL(toEn, SITE).toString();
 const hrefEs = new URL(toEs, SITE).toString();
 
-// Home por idioma
 const homeHref = lang === "en" ? "/en/" : "/es/";
+const tagsHref = lang === "en" ? "/en/tags/" : "/es/tags/";
+const resourcesHref = lang === "en" ? "/en/resources/" : "/es/recursos/";
+const aboutHref = lang === "en" ? `${MAIN_SITE}/en/about/` : `${MAIN_SITE}/es/about/`;
+const siteHomeHref = lang === "en" ? `${MAIN_SITE}/en/` : `${MAIN_SITE}/es/`;
+
+const tagsLabel = lang === "en" ? "Tags" : "Etiquetas";
+const resourcesLabel = lang === "en" ? "Resources" : "Recursos";
+const aboutLabel = lang === "en" ? "About" : "Sobre mí";
+const wordmark = lang === "en" ? "Writing" : "Escritura";
+const backToSiteLabel = lang === "en" ? "swiftyjourney.com" : "swiftyjourney.com";
 ---
 
-<html lang={lang} class="min-h-full">
+<html lang={lang} class="min-h-full" transition:animate="fade">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
 
-    <!-- Canonical + hreflang -->
-    <link rel="canonical" href={canonical} />
+    <SEO
+      title={seoTitle || title}
+      description={seoDescription || description}
+      canonical={canonical}
+      image={seoImage}
+      type={seoType}
+      lang={lang}
+      jsonLd={jsonLd}
+    />
+
     <link rel="alternate" href={hrefEn} hreflang="en" />
     <link rel="alternate" href={hrefEs} hreflang="es-mx" />
     <link rel="alternate" href={SITE + "/"} hreflang="x-default" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="Swifty Journey Blog"
+      href="/rss.xml"
+    />
 
     <link rel="icon" href="/favicon.svg" />
 
-    <!-- Evita "flash" de tema -->
-    <script is:inline>
-      (function () {
-        const key = "theme";
-        const saved = localStorage.getItem(key);
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)",
-        ).matches;
-        const useDark = (saved ?? (prefersDark ? "dark" : "light")) === "dark";
-        if (useDark) document.documentElement.classList.add("dark");
-      })();
-    </script>
+    <link rel="dns-prefetch" href="//github.com" />
+    <link rel="dns-prefetch" href="//x.com" />
+    <link rel="dns-prefetch" href="//linkedin.com" />
+    <link rel="dns-prefetch" href="//swiftyjourney.com" />
 
-    <!-- Plausible Analytics -->
-    <script defer data-domain="blog.swiftyjourney.com" src="https://plausible.io/js/script.js"></script>
+    <link rel="prefetch" href={lang === "en" ? "/es/" : "/en/"} />
 
-    <!-- Open Graph / Twitter básicos -->
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
-    <meta property="og:type" content={ogType} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
-    {ogImageWidth && <meta property="og:image:width" content={ogImageWidth} />}
-    {ogImageHeight && <meta property="og:image:height" content={ogImageHeight} />}
+    <link rel="preload" href="/logo.svg" as="image" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="/fonts/Inter-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/Inter-SemiBold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
     {articlePublishedTime && (
       <meta property="article:published_time" content={articlePublishedTime} />
     )}
     {articleModifiedTime && (
       <meta property="article:modified_time" content={articleModifiedTime} />
     )}
-    <meta name="twitter:card" content="summary_large_image" />
-    {ogImage && <meta name="twitter:image" content={ogImage} />}
-    {jsonLd && (
-      <script type="application/ld+json">
-        {JSON.stringify(jsonLd)}
-      </script>
-    )}
+
+    <style>
+      ::view-transition-old(root),
+      ::view-transition-new(root) {
+        animation-duration: 0.3s;
+      }
+      ::view-transition-old(root) { animation-name: fade-out; }
+      ::view-transition-new(root) { animation-name: fade-in; }
+      @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+      @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+    </style>
   </head>
 
-  <body
-    class="bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 antialiased"
-  >
-    <!-- Header sticky + blur -->
+  <body class="antialiased">
     <header
-      class="sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:supports-[backdrop-filter]:bg-zinc-900/70"
+      class="sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-bg/70"
     >
       <div
         class="max-w-6xl mx-auto px-4 py-3 md:py-4 flex items-center justify-between"
@@ -149,40 +154,44 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
         <a
           href={homeHref}
           class="flex items-center gap-2"
-          aria-label="Swifty Journey Blog — Home"
+          aria-label="Swifty Journey — Writing"
+          transition:persist="logo"
         >
-          <!-- Logo light/dark -->
           <img
-            src="/logo-light.svg"
+            src="/logo.svg"
             alt="Swifty Journey"
             width="192"
             height="48"
-            class="h-12 w-auto block dark:hidden"
+            class="h-10 md:h-12 w-auto block"
           />
-          <img
-            src="/logo-dark.svg"
-            alt="Swifty Journey"
-            width="192"
-            height="48"
-            class="h-12 w-auto hidden dark:block"
-          />
-          <span class="text-sm text-zinc-600 dark:text-zinc-400 ml-2">Blog</span
+          <span class="hidden sm:inline text-sm text-text-subtle tracking-wide"
+            >/ {wordmark}</span
           >
         </a>
 
-        <nav class="flex items-center gap-2">
+        <nav
+          class="flex items-center gap-1 md:gap-2"
+          transition:persist="navigation"
+        >
           <a
-            href={lang === "en"
-              ? "https://swiftyjourney.com/en/"
-              : "https://swiftyjourney.com/es/"}
-            class="px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+            href={tagsHref}
+            class="px-3 py-1.5 text-sm text-text-muted hover:text-text rounded-md transition-colors"
           >
-            ← {lang === "en" ? "Main Site" : "Sitio Principal"}
+            {tagsLabel}
+          </a>
+          <a
+            href={resourcesHref}
+            class="hidden md:inline-block px-3 py-1.5 text-sm text-text-muted hover:text-text rounded-md transition-colors"
+          >
+            {resourcesLabel}
+          </a>
+          <a
+            href={aboutHref}
+            class="px-3 py-1.5 text-sm text-text-muted hover:text-text rounded-md transition-colors"
+          >
+            {aboutLabel}
           </a>
           <LangToggle lang={lang} toEn={toEn} toEs={toEs} />
-          <div class="ml-2">
-            <ThemeToggle />
-          </div>
         </nav>
       </div>
     </header>
@@ -191,32 +200,17 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
       <slot />
     </main>
 
-    <!-- Partners/Affiliates Section -->
-    <div class="max-w-6xl mx-auto px-4">
-      <PartnersStrip
-        title={lang === "en"
-          ? "Development Resources"
-          : "Recursos de Desarrollo"}
-        ctaHref={lang === "en" ? "/en/resources/" : "/es/recursos/"}
-        ctaLabel={lang === "en" ? "See resources" : "Ver recursos"}
-        logoSrc="/partners/capi_neo_pills.png"
-        desc={lang === "en"
-          ? "Select your dev pill — dive into curated tools and resources for iOS and beyond."
-          : "Elige tu píldora de desarrollo — sumérgete en herramientas y recursos para iOS y más allá."}
-        disclaimer={lang === "en"
-          ? "Some links are affiliate. You pay the same price — a small commission may support this site."
-          : "Algunos enlaces son de afiliado. Pagas lo mismo; una pequeña comisión puede apoyar este sitio."}
-      />
-    </div>
-
-    <footer class="max-w-6xl mx-auto px-4 py-10 opacity-80">
-      <div class="flex flex-col items-center gap-4">
-        <div class="flex gap-4 text-2xl">
+    <footer
+      class="max-w-6xl mx-auto px-4 py-12 border-t border-border mt-20"
+    >
+      <div class="flex flex-col items-center gap-5 text-text-muted">
+        <div class="flex gap-5 text-2xl">
           <a
             href="https://github.com/swiftyjourney"
             target="_blank"
             rel="noopener me"
-            class="hover:opacity-100 opacity-80 transition-opacity"
+            aria-label="GitHub"
+            class="hover:text-text transition-colors"
           >
             <Icon name="mdi:github" />
           </a>
@@ -224,7 +218,8 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
             href="https://x.com/jfdoradotr"
             target="_blank"
             rel="noopener me"
-            class="hover:opacity-100 opacity-80 transition-opacity"
+            aria-label="X"
+            class="hover:text-text transition-colors"
           >
             <Icon name="mdi:twitter" />
           </a>
@@ -232,34 +227,36 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
             href="https://linkedin.com/in/juanfranciscodoradotorres"
             target="_blank"
             rel="noopener me"
-            class="hover:opacity-100 opacity-80 transition-opacity"
+            aria-label="LinkedIn"
+            class="hover:text-text transition-colors"
           >
             <Icon name="mdi:linkedin" />
           </a>
         </div>
+
         <a
           href="https://iosacademy.essentialdeveloper.com/p/ios-lead-essentials/"
           target="_blank"
           rel="noopener"
-          class="inline-flex rounded-full p-[1px] bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 hover:opacity-100 opacity-80 transition-opacity"
+          class="inline-flex items-center gap-2 text-xs text-text-subtle hover:text-text transition-colors"
         >
-          <span
-            class="inline-flex items-center gap-2 rounded-full px-3 py-1 bg-zinc-900 text-white text-xs leading-none"
-          >
-            <EDLogo class="h-4 w-auto" />
-            <span>Moderator — iOS Lead Essentials (2022)</span>
-          </span>
+          <EDLogo class="h-3.5 w-auto" />
+          <span>Moderator — iOS Lead Essentials (2022)</span>
         </a>
+
         <p class="text-sm">
-          © {new Date().getFullYear()} Swifty Journey — Created by Juan F. Dorado.
+          © {new Date().getFullYear()} Swifty Journey — Juan F. Dorado.
         </p>
-        <p class="text-xs opacity-60">
-          Built with Astro, Tailwind, and Swift-inspired minimalism.
-        </p>
+
+        <a
+          href={siteHomeHref}
+          class="text-xs text-text-subtle hover:text-accent transition-colors"
+        >
+          ← {backToSiteLabel}
+        </a>
       </div>
     </footer>
 
-    <!-- Hidden language icons for client-side use -->
     <div id="language-icons" style="display: none;">
       <div data-lang="swift"><Icon name="mdi:language-swift" /></div>
       <div data-lang="typescript"><Icon name="mdi:language-typescript" /></div>
@@ -279,198 +276,142 @@ const homeHref = lang === "en" ? "/en/" : "/es/";
       <div data-lang="code"><Icon name="mdi:file-document-outline" /></div>
     </div>
 
-    <!-- Copy code functionality -->
     <script>
-      // GitHub Gist style code blocks with header
       document.addEventListener("DOMContentLoaded", function () {
         const codeBlocks = document.querySelectorAll("pre code");
 
-        // Get language icon from pre-rendered icons
-        const getLanguageIcon = (language) => {
+        const getLanguageIcon = (language: string) => {
           const iconContainer = document.getElementById("language-icons");
+          if (!iconContainer) return "";
           const iconDiv = iconContainer.querySelector(
             `[data-lang="${language.toLowerCase()}"]`,
           );
           return iconDiv
             ? iconDiv.innerHTML
-            : iconContainer.querySelector('[data-lang="plain"]').innerHTML;
+            : iconContainer.querySelector('[data-lang="plain"]')?.innerHTML || "";
         };
 
         codeBlocks.forEach((codeBlock) => {
-          const pre = codeBlock.parentNode;
-
-          // Skip if header already exists
+          const pre = codeBlock.parentNode as HTMLElement | null;
+          if (!pre) return;
           if (pre.querySelector(".code-header")) return;
 
-          // Detect language with multiple fallback strategies
-          let language = null;
+          let language: string | null | undefined = null;
 
-          // Strategy 1: Check for language class on code element
           const codeClasses = codeBlock.className;
           language = codeClasses.match(/language-(\w+)/)?.[1];
 
-          // Strategy 2: Check pre element classes
           if (!language) {
             const preClasses = pre.className;
             language = preClasses.match(/language-(\w+)/)?.[1];
           }
 
-          // Strategy 3: Check data attributes (for future Shiki versions)
           if (!language) {
-            language = pre.getAttribute('data-language') ||
-                       pre.getAttribute('data-lang') ||
-                       codeBlock.getAttribute('data-language') ||
-                       codeBlock.getAttribute('data-lang');
+            language =
+              pre.getAttribute("data-language") ||
+              pre.getAttribute("data-lang") ||
+              codeBlock.getAttribute("data-language") ||
+              codeBlock.getAttribute("data-lang");
           }
 
-          // Strategy 4: Enhanced content inspection
           if (!language) {
             const content = codeBlock.textContent || "";
-            const lowerContent = content.toLowerCase();
-
-            // Swift detection - comprehensive patterns
-            if (content.includes("import SwiftUI") ||
-                content.includes("import SwiftData") ||
-                (content.includes("struct ") && content.includes("View")) ||
-                content.includes("@main") ||
-                content.includes("@State") ||
-                content.includes("@Binding") ||
-                content.includes("@Environment") ||
-                content.includes("@StateObject") ||
-                content.includes("@ObservedObject") ||
-                content.includes("@Query") ||
-                lowerContent.includes("viewbuilder") ||
-                /\bactor\s+\w+/.test(content) ||
-                /\bprotocol\s+\w+/.test(content) ||
-                /\benum\s+\w+/.test(content) ||
-                /\bclass\s+\w+/.test(content) ||
-                /\bfunc\s+\w+\s*\(/.test(content) ||
-                /\bvar\s+\w+\s*:/.test(content) ||
-                /\blet\s+\w+\s*:/.test(content) ||
-                /Sendable/.test(content) ||
-                /async\s+throws/.test(content) ||
-                /\bself\./.test(content)) {
+            if (
+              content.includes("import SwiftUI") ||
+              content.includes("import SwiftData") ||
+              /\bfunc\s+\w+\s*\(/.test(content) ||
+              /\blet\s+\w+\s*[:=]/.test(content) ||
+              /\bvar\s+\w+\s*[:=]/.test(content)
+            ) {
               language = "swift";
-            }
-            // TypeScript detection
-            else if (content.includes("interface ") ||
-                     (content.includes("type ") && content.includes("=")) ||
-                     /:\s*(string|number|boolean|any|unknown|void)\b/.test(content)) {
+            } else if (
+              content.includes("interface ") ||
+              /:\s*(string|number|boolean|any|unknown|void)\b/.test(content)
+            ) {
               language = "typescript";
-            }
-            // JavaScript detection
-            else if (content.includes("function ") ||
-                     content.includes("const ") ||
-                     content.includes("=>")) {
+            } else if (
+              content.includes("function ") ||
+              content.includes("=>")
+            ) {
               language = "javascript";
-            }
-            // Bash detection
-            else if (content.includes("SWIFT_VERSION") ||
-                     content.includes("#!/bin/bash") ||
-                     /^\s*\$\s/.test(content)) {
+            } else if (/^\s*\$\s/.test(content)) {
               language = "bash";
             }
           }
 
           language = language || "plain";
-          console.log("Final detected language:", language);
 
-          // Create header
           const header = document.createElement("div");
           header.className = "code-header";
 
-          // Language info section
           const languageInfo = document.createElement("div");
           languageInfo.className = "language-info";
 
-          // Language icon using astro-icon
           const iconHtml = getLanguageIcon(language);
           const languageIcon = document.createElement("div");
           languageIcon.innerHTML = iconHtml;
           languageIcon.className = "language-icon";
 
-          // Language name mapping
-          const languageNames = {
-            'plain': 'Plain Text',
-            'code': 'Plain Text',
-            'text': 'Plain Text', 
-            'gherkin': 'Gherkin',
-            'javascript': 'JavaScript',
-            'typescript': 'TypeScript',
-            'swift': 'Swift',
-            'json': 'JSON',
-            'html': 'HTML',
-            'css': 'CSS',
-            'bash': 'Bash',
-            'shell': 'Shell',
-            'python': 'Python',
-            'yaml': 'YAML',
-            'markdown': 'Markdown',
-            'xml': 'XML'
+          const languageNames: Record<string, string> = {
+            plain: "Plain Text",
+            code: "Plain Text",
+            text: "Plain Text",
+            gherkin: "Gherkin",
+            javascript: "JavaScript",
+            typescript: "TypeScript",
+            swift: "Swift",
+            json: "JSON",
+            html: "HTML",
+            css: "CSS",
+            bash: "Bash",
+            shell: "Shell",
+            python: "Python",
+            yaml: "YAML",
+            markdown: "Markdown",
+            xml: "XML",
           };
 
-          // Language name
           const languageName = document.createElement("span");
           languageName.className = "language-name";
-          languageName.textContent = languageNames[language.toLowerCase()] || 
-            (language.charAt(0).toUpperCase() + language.slice(1));
+          languageName.textContent =
+            languageNames[language.toLowerCase()] ||
+            language.charAt(0).toUpperCase() + language.slice(1);
 
           languageInfo.appendChild(languageIcon);
           languageInfo.appendChild(languageName);
 
-          // Actions section
           const codeActions = document.createElement("div");
           codeActions.className = "code-actions";
 
-          // Copy button
           const copyButton = document.createElement("button");
           copyButton.className = "copy-button";
           copyButton.textContent = "Copy";
           copyButton.setAttribute("aria-label", "Copy code to clipboard");
 
-          // Copy functionality
           copyButton.addEventListener("click", async () => {
+            const code = codeBlock.textContent || "";
             try {
-              const code = codeBlock.textContent || "";
               await navigator.clipboard.writeText(code);
-
-              // Visual feedback
-              const originalText = copyButton.textContent;
-              copyButton.textContent = "Copied!";
-              copyButton.classList.add("copied");
-
-              setTimeout(() => {
-                copyButton.textContent = originalText;
-                copyButton.classList.remove("copied");
-              }, 2000);
-            } catch (err) {
-              console.error("Failed to copy code:", err);
-
-              // Fallback for older browsers
+            } catch {
               const textArea = document.createElement("textarea");
-              textArea.value = codeBlock.textContent || "";
+              textArea.value = code;
               document.body.appendChild(textArea);
               textArea.select();
               document.execCommand("copy");
               document.body.removeChild(textArea);
-
-              copyButton.textContent = "Copied!";
-              copyButton.classList.add("copied");
-
-              setTimeout(() => {
-                copyButton.textContent = "Copy";
-                copyButton.classList.remove("copied");
-              }, 2000);
             }
+            copyButton.textContent = "Copied!";
+            copyButton.classList.add("copied");
+            setTimeout(() => {
+              copyButton.textContent = "Copy";
+              copyButton.classList.remove("copied");
+            }, 2000);
           });
 
           codeActions.appendChild(copyButton);
-
-          // Assemble header
           header.appendChild(languageInfo);
           header.appendChild(codeActions);
 
-          // Insert header at the beginning of pre
           pre.insertBefore(header, codeBlock);
         });
       });

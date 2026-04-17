@@ -1,0 +1,27 @@
+---
+import { slugify } from "../utils/slugify";
+
+type Props = {
+  name: string;
+  lang: "en" | "es";
+  as?: "a" | "span";
+  class?: string;
+};
+
+const { name, lang, as = "a", class: extraClass = "" } = Astro.props;
+const href = `/${lang}/tags/${slugify(name)}/`;
+const baseClass =
+  "text-[12px] font-medium uppercase tracking-[0.08em] text-text-muted transition-colors";
+const linkClass = `${baseClass} hover:text-accent ${extraClass}`;
+const spanClass = `${baseClass} ${extraClass}`;
+---
+
+{
+  as === "a" ? (
+    <a href={href} class={linkClass}>
+      {name}
+    </a>
+  ) : (
+    <span class={spanClass}>{name}</span>
+  )
+}

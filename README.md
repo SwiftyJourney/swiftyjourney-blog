@@ -239,7 +239,7 @@ The blog uses Tailwind CSS with a custom `.prose` class for article content. The
 - Dark/light mode
 - Responsive design
 - Code block styling
-- Link colors (orange theme)
+- Link colors (coral accent on cream)
 
 ## 🔧 Development
 
@@ -247,21 +247,30 @@ The blog uses Tailwind CSS with a custom `.prose` class for article content. The
 ```
 src/
 ├── components/
-│   ├── BaseHead.astro      # SEO head tags
-│   ├── Footer.astro        # Site footer
-│   ├── Header.astro        # Site header  
+│   ├── ArticleList.astro   # Editorial article listing
+│   ├── ArticleRow.astro    # Single article row (date • tag / title / desc)
+│   ├── Button.astro        # Coral primary/ghost/link button
+│   ├── Callout.astro       # Info/tip/warning callout
+│   ├── HeroBlog.astro      # Page hero (title + subtitle)
 │   ├── LangToggle.astro    # Language switcher
-│   └── ThemeToggle.astro   # Dark/light mode toggle
+│   ├── Meta.astro          # Date • tag metadata line
+│   ├── Pagination.astro    # Editorial pagination
+│   ├── ResourceRow.astro   # Resources page row
+│   ├── SEO.astro           # SEO meta tags + JSON-LD
+│   ├── SectionHeading.astro # Section title with eyebrow
+│   └── Tag.astro           # Minimal uppercase tag link
 ├── content/
 │   └── blog/               # Blog posts go here
 ├── layouts/
-│   ├── BaseLayout.astro    # Main site layout
-│   └── BlogPost.astro      # Individual post layout
+│   ├── BaseLayout.astro    # Main site layout (header, footer, code-block script)
+│   └── BlogPost.astro      # Individual post layout (editorial)
 ├── pages/
 │   ├── en/
 │   │   ├── blog/
-│   │   │   ├── [...slug].astro  # Dynamic post pages
-│   │   │   └── index.astro      # Blog index
+│   │   │   └── [...slug].astro  # Individual post pages
+│   │   ├── page/
+│   │   │   └── [page].astro     # Paginated listing (pages 2+)
+│   │   └── index.astro          # Hero + posts 1–10 + pagination
 │   │   └── index.astro          # English homepage
 │   ├── es/
 │   │   ├── blog/

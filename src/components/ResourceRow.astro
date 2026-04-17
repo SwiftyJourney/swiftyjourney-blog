@@ -1,0 +1,47 @@
+---
+type Props = {
+  title: string;
+  desc: string;
+  price?: string;
+  tags?: string[];
+  href: string;
+  cta?: string;
+};
+
+const { title, desc, price, tags = [], href, cta = "Learn more" } = Astro.props;
+---
+
+<a
+  href={href}
+  target="_blank"
+  rel="sponsored noopener"
+  class="group block focus:outline-none"
+>
+  <article class="flex flex-col gap-3 text-left">
+    {tags.length > 0 && (
+      <p
+        class="text-[12px] font-medium uppercase tracking-[0.08em] text-text-muted"
+      >
+        {tags.join(" · ")}
+        {price && (
+          <>
+            <span aria-hidden="true" class="text-text-subtle"> • </span>
+            <span>{price}</span>
+          </>
+        )}
+      </p>
+    )}
+    <h3
+      class="text-[20px] md:text-[22px] font-semibold tracking-tight text-text group-hover:text-accent transition-colors"
+    >
+      {title}
+    </h3>
+    <p class="text-[15px] text-text-muted leading-snug">{desc}</p>
+    <span
+      class="text-sm text-accent opacity-0 group-hover:opacity-100 transition-opacity"
+      aria-hidden="true"
+    >
+      {cta} →
+    </span>
+  </article>
+</a>

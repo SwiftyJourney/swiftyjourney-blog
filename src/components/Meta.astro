@@ -1,0 +1,43 @@
+---
+import Tag from "./Tag.astro";
+
+type Props = {
+  pubDate: Date;
+  tags?: string[];
+  lang: "en" | "es";
+  interactive?: boolean;
+  class?: string;
+};
+
+const { pubDate, tags = [], lang, interactive = true, class: extraClass = "" } = Astro.props;
+
+const locale = lang === "es" ? "es-MX" : "en-US";
+const monthShort = pubDate
+  .toLocaleDateString(locale, { month: "short" })
+  .replace(".", "")
+  .toUpperCase();
+const year = pubDate.getFullYear();
+const dateLabel = `${monthShort} ${year}`;
+const isoDate = pubDate.toISOString();
+---
+
+<div
+  class={`flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] uppercase tracking-[0.08em] text-text-muted ${extraClass}`}
+>
+  <time datetime={isoDate} class="font-medium">{dateLabel}</time>
+  {tags && tags.length > 0 && (
+    <>
+      <span aria-hidden="true" class="text-text-subtle">•</span>
+      <ul class="flex flex-wrap items-center gap-x-2 gap-y-1 list-none p-0 m-0">
+        {tags.map((tag, idx) => (
+          <li class="flex items-center gap-2">
+            <Tag name={tag} lang={lang} as={interactive ? "a" : "span"} />
+            {idx < tags.length - 1 && (
+              <span aria-hidden="true" class="text-text-subtle">,</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </>
+  )}
+</div>

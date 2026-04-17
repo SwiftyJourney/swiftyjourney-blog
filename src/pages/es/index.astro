@@ -1,154 +1,58 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import HeroBlog from "../../components/HeroBlog.astro";
+import ArticleList from "../../components/ArticleList.astro";
+import Pagination from "../../components/Pagination.astro";
 import { getPublishedPosts } from "../../utils/posts";
-import { slugify } from "../../utils/slugify";
+
+const PAGE_SIZE = 10;
 
 const allPosts = await getPublishedPosts();
 const posts = allPosts
-	.filter((post) => post.data.lang === "es")
-	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+  .filter((post) => post.data.lang === "es")
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
-const tagColors = {
-	swift: "bg-orange-500/20 border-orange-400/50 text-orange-200",
-	swiftui: "bg-pink-500/20 border-pink-400/50 text-pink-200",
-	ios: "bg-sky-500/20 border-sky-400/50 text-sky-200",
-	concurrency: "bg-violet-500/20 border-violet-400/50 text-violet-200",
-	performance: "bg-teal-500/20 border-teal-400/50 text-teal-200",
-	career: "bg-emerald-500/20 border-emerald-400/50 text-emerald-200",
-	"swift-fundamentals": "bg-cyan-500/20 border-cyan-400/50 text-cyan-200",
-	"swift-cero-experto": "bg-rose-500/20 border-rose-400/50 text-rose-200",
-	ai: "bg-amber-500/20 border-amber-400/50 text-amber-200",
-};
-const fallbackTagColor =
-	"bg-zinc-700/40 border-zinc-600/60 text-zinc-200";
+const totalPages = Math.ceil(posts.length / PAGE_SIZE);
+const pagePosts = posts.slice(0, PAGE_SIZE);
 
 const jsonLd = {
-	"@context": "https://schema.org",
-	"@type": "WebSite",
-	name: "Swifty Journey Blog",
-	description: "Explorando iOS, Swift y SwiftUI a través de artículos, tutoriales y experiencias de desarrollo",
-	url: "https://blog.swiftyjourney.com/es/",
-	inLanguage: "es",
-	publisher: {
-		"@type": "Person",
-		name: "Juan Francisco Dorado Torres",
-		url: "https://swiftyjourney.com",
-		sameAs: [
-			"https://x.com/jfdoradotr",
-			"https://github.com/swiftyjourney",
-			"https://linkedin.com/in/juanfranciscodoradotorres"
-		]
-	}
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  name: "Swifty Journey — Escritura",
+  description: "Ingeniería iOS real, explicada con claridad.",
+  url: "https://blog.swiftyjourney.com/es/",
+  inLanguage: "es",
+  publisher: {
+    "@type": "Person",
+    name: "Juan Francisco Dorado Torres",
+    url: "https://swiftyjourney.com",
+    sameAs: [
+      "https://x.com/jfdoradotr",
+      "https://github.com/swiftyjourney",
+      "https://linkedin.com/in/juanfranciscodoradotorres",
+    ],
+  },
+  blogPost: pagePosts.map((post) => ({
+    "@type": "BlogPosting",
+    headline: post.data.title,
+    datePublished: post.data.pubDate.toISOString(),
+    url: `https://blog.swiftyjourney.com/es/blog/${post.data.slug}/`,
+  })),
 };
-
-const allTags = Array.from(
-	new Set(
-		posts.flatMap((post) => post.data.tags ?? []).map((tag) => slugify(tag)),
-	),
-).filter(Boolean);
-
 ---
 
 <BaseLayout
-	title="Swifty Journey Blog"
-	description="Explorando iOS, Swift y SwiftUI a través de artículos y tutoriales"
-	lang="es"
-	jsonLd={jsonLd}
+  title="Swifty Journey — Escritura"
+  description="Ingeniería iOS real, explicada con claridad."
+  lang="es"
+  jsonLd={jsonLd}
 >
-	<div class="py-12">
-		<!-- Hero Section -->
-		<section class="text-center mb-16">
-			<h1
-				class="text-5xl md:text-7xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 mb-6"
-			>
-				Swifty Journey <span class="text-orange-500">Blog</span>
-			</h1>
-			<p class="text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
-				Explorando el mundo de iOS, Swift y SwiftUI a través de artículos,
-				tutoriales y experiencias de desarrollo.
-			</p>
-			{allTags.length > 0 && (
-				<div class="mt-6 flex flex-wrap justify-center gap-2">
-					{allTags.map((tag) => (
-						<a
-							href={`/es/tags/${tag}/`}
-							class={`text-xs uppercase tracking-wide px-3 py-1 rounded-full border ${tagColors[tag] ?? fallbackTagColor}`}
-						>
-							{tag}
-						</a>
-					))}
-				</div>
-			)}
-		</section>
+  <HeroBlog
+    title="Escribo sobre Swift."
+    subtitle="Ingeniería iOS real, explicada con claridad."
+  />
 
-		<!-- Latest Posts -->
-		<section>
-			<h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-8">
-				Últimos Artículos
-			</h2>
-			<div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-				{
-					posts.slice(0, 6).map((post) => (
-						<article class="group">
-							<a href={`/es/blog/${post.data.slug}/`} class="block">
-								<div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 h-full transition-all hover:border-orange-500/30 hover:-translate-y-1 hover:shadow-md">
-									<h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3 group-hover:text-orange-500 transition-colors">
-										{post.data.title}
-									</h3>
-									<p class="text-zinc-600 dark:text-zinc-400 text-sm mb-4 line-clamp-3">
-										{post.data.description}
-									</p>
-									{post.data.tags && post.data.tags.length > 0 && (
-										<div class="mb-4 flex flex-wrap gap-2">
-											{post.data.tags.map((tag) => (
-												<a
-													href={`/es/tags/${slugify(tag)}/`}
-													class="text-[11px] uppercase tracking-wide px-2.5 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-orange-500 hover:border-orange-300 dark:hover:text-orange-300 transition-colors"
-												>
-													{tag}
-												</a>
-											))}
-										</div>
-									)}
-									<time class="text-xs text-zinc-500 dark:text-zinc-500">
-										{post.data.pubDate.toLocaleDateString("es-ES", {
-											year: "numeric",
-											month: "long",
-											day: "numeric",
-										})}
-									</time>
-								</div>
-							</a>
-						</article>
-					))
-				}
-			</div>
-		</section>
+  <ArticleList posts={pagePosts} lang="es" />
 
-		{
-			posts.length > 6 && (
-				<div class="text-center mt-12">
-					<a
-						href="/es/blog"
-						class="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg shadow-orange-500/30 hover:shadow-xl hover:scale-105 transition-all duration-300"
-					>
-						Ver todos los artículos
-						<svg
-							class="w-4 h-4"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 5l7 7-7 7"
-							/>
-						</svg>
-					</a>
-				</div>
-			)
-		}
-	</div>
+  <Pagination currentPage={1} totalPages={totalPages} baseUrl="/es/" />
 </BaseLayout>

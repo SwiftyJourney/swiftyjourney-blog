@@ -2,77 +2,77 @@
 import { Icon } from "astro-icon/components";
 
 interface Props {
-  type?: 'info' | 'warning' | 'success' | 'error' | 'tip';
+  type?: "info" | "warning" | "success" | "error" | "tip";
   title?: string;
 }
 
-const { type = 'info', title } = Astro.props;
+const { type = "info", title } = Astro.props;
 
-const getConfig = (type: string) => {
-  switch (type) {
-    case 'warning':
-      return {
-        icon: 'mdi:alert',
-        bgColor: 'bg-amber-50 dark:bg-amber-950/20',
-        borderColor: 'border-amber-200 dark:border-amber-800',
-        iconColor: 'text-amber-600 dark:text-amber-500',
-        titleColor: 'text-amber-900 dark:text-amber-200',
-        textColor: 'text-amber-800 dark:text-amber-300',
-      };
-    case 'success':
-      return {
-        icon: 'mdi:check-circle',
-        bgColor: 'bg-green-50 dark:bg-green-950/20',
-        borderColor: 'border-green-200 dark:border-green-800',
-        iconColor: 'text-green-600 dark:text-green-500',
-        titleColor: 'text-green-900 dark:text-green-200',
-        textColor: 'text-green-800 dark:text-green-300',
-      };
-    case 'error':
-      return {
-        icon: 'mdi:alert-circle',
-        bgColor: 'bg-red-50 dark:bg-red-950/20',
-        borderColor: 'border-red-200 dark:border-red-800',
-        iconColor: 'text-red-600 dark:text-red-500',
-        titleColor: 'text-red-900 dark:text-red-200',
-        textColor: 'text-red-800 dark:text-red-300',
-      };
-    case 'tip':
-      return {
-        icon: 'mdi:lightbulb',
-        bgColor: 'bg-orange-50 dark:bg-orange-950/20',
-        borderColor: 'border-orange-200 dark:border-orange-800',
-        iconColor: 'text-orange-600 dark:text-orange-500',
-        titleColor: 'text-orange-900 dark:text-orange-200',
-        textColor: 'text-orange-800 dark:text-orange-300',
-      };
-    default: // info
-      return {
-        icon: 'mdi:information',
-        bgColor: 'bg-blue-50 dark:bg-blue-950/20',
-        borderColor: 'border-blue-200 dark:border-blue-800',
-        iconColor: 'text-blue-600 dark:text-blue-500',
-        titleColor: 'text-blue-900 dark:text-blue-200',
-        textColor: 'text-blue-800 dark:text-blue-300',
-      };
-  }
+const config: Record<
+  string,
+  { icon: string; border: string; accent: string }
+> = {
+  tip: {
+    icon: "mdi:lightbulb",
+    border: "border-accent",
+    accent: "text-accent",
+  },
+  info: {
+    icon: "mdi:information",
+    border: "border-accent",
+    accent: "text-accent",
+  },
+  warning: {
+    icon: "mdi:alert",
+    border: "border-amber-600",
+    accent: "text-amber-700",
+  },
+  success: {
+    icon: "mdi:check-circle",
+    border: "border-emerald-600",
+    accent: "text-emerald-700",
+  },
+  error: {
+    icon: "mdi:alert-circle",
+    border: "border-red-600",
+    accent: "text-red-700",
+  },
 };
 
-const config = getConfig(type);
+const c = config[type] ?? config.info;
 ---
 
-<div class={`my-6 p-4 rounded-lg border-l-4 ${config.bgColor} ${config.borderColor}`}>
-  <div class="flex gap-3">
-    <Icon name={config.icon} class={`w-5 h-5 mt-0.5 flex-shrink-0 ${config.iconColor}`} />
-    <div class="flex-1">
+<aside
+  class={`callout my-7 pl-5 py-4 pr-4 border-l-2 bg-surface-alt/60 rounded-r-md ${c.border}`}
+>
+  <div class="flex items-start gap-3">
+    <Icon name={c.icon} class={`w-5 h-5 mt-0.5 flex-shrink-0 ${c.accent}`} />
+    <div class="flex-1 min-w-0">
       {title && (
-        <h4 class={`font-semibold mb-2 ${config.titleColor}`}>
+        <p
+          class={`text-[12px] font-semibold uppercase tracking-[0.08em] mb-2 ${c.accent}`}
+        >
           {title}
-        </h4>
+        </p>
       )}
-      <div class={`prose prose-sm max-w-none ${config.textColor}`}>
+      <div class="callout-body text-[15px] leading-relaxed text-text">
         <slot />
       </div>
     </div>
   </div>
-</div>
+</aside>
+
+<style>
+  .callout-body :global(p) {
+    margin: 0.5rem 0;
+  }
+  .callout-body :global(p:first-child) {
+    margin-top: 0;
+  }
+  .callout-body :global(p:last-child) {
+    margin-bottom: 0;
+  }
+  .callout-body :global(code) {
+    font-size: 0.875em;
+  }
+</style>

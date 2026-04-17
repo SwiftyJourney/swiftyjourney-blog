@@ -1,0 +1,21 @@
+---
+import type { CollectionEntry } from "astro:content";
+import ArticleRow from "./ArticleRow.astro";
+
+type Props = {
+  posts: CollectionEntry<"blog">[];
+  lang: "en" | "es";
+  compact?: boolean;
+  class?: string;
+};
+
+const { posts, lang, compact = false, class: extraClass = "" } = Astro.props;
+---
+
+<ul class={`list-none p-0 m-0 max-w-[640px] mx-auto ${extraClass}`}>
+  {posts.map((post) => (
+    <li class="py-10 md:py-12 border-t border-border first:border-t-0">
+      <ArticleRow post={post} lang={lang} compact={compact} />
+    </li>
+  ))}
+</ul>
