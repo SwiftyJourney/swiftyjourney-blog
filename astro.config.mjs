@@ -9,20 +9,36 @@ import partytown from '@astrojs/partytown';
 import { defineConfig } from 'astro/config';
 import rehypeMermaid from 'rehype-mermaid';
 
+const shiki = {
+	theme: 'github-light',
+	langs: [
+		'swift',
+		'typescript',
+		'javascript',
+		'json',
+		'bash',
+		'yaml',
+		'markdown',
+		'xml',
+		'css',
+		'html',
+		'gherkin',
+		'mermaid',
+	],
+	wrap: true,
+};
+
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://blog.swiftyjourney.com',
+	redirects: {
+		'/en/blog': '/en/',
+		'/es/blog': '/es/',
+	},
 	integrations: [
 		mdx({
 			syntaxHighlight: 'shiki',
-			shikiConfig: {
-				themes: {
-					light: 'github-light',
-					dark: 'one-dark-pro',
-				},
-				langs: ['swift', 'typescript', 'javascript', 'json', 'bash', 'yaml', 'markdown', 'xml', 'css', 'html', 'gherkin', 'mermaid'],
-				wrap: true,
-			},
+			shikiConfig: shiki,
 			rehypePlugins: [[rehypeMermaid, { strategy: 'img-svg' }]],
 		}),
 		sitemap(),
@@ -39,14 +55,7 @@ export default defineConfig({
 	},
 	markdown: {
 		syntaxHighlight: 'shiki',
-		shikiConfig: {
-			themes: {
-				light: 'github-light',
-				dark: 'one-dark-pro',
-			},
-			langs: ['swift', 'typescript', 'javascript', 'json', 'bash', 'yaml', 'markdown', 'xml', 'css', 'html', 'mermaid'],
-			wrap: true,
-		},
+		shikiConfig: shiki,
 		rehypePlugins: [[rehypeMermaid, { strategy: 'img-svg' }]],
 	},
 });

@@ -34,9 +34,9 @@ function useTheme() {
         textFaint: "#71717a",
         freeBlock: "#27272a",
         freeBorder: "rgba(255,255,255,0.1)",
-        badgeBg: "rgba(249,115,22,0.15)",
-        badgeText: "#fb923c",
-        accentText: "#f97316",
+        badgeBg: "rgba(236,105,91,0.15)",
+        badgeText: "#F59B90",
+        accentText: "#EC695B",
         btnBg: "#3f3f46",
         btnText: "#fff",
         btnDisabledBg: "#27272a",
@@ -56,9 +56,9 @@ function useTheme() {
         textFaint: "#999",
         freeBlock: "#f5f5f0",
         freeBorder: "rgba(0,0,0,0.08)",
-        badgeBg: "rgba(234,88,12,0.1)",
-        badgeText: "#ea580c",
-        accentText: "#ea580c",
+        badgeBg: "rgba(220,86,72,0.1)",
+        badgeText: "#DC5648",
+        accentText: "#DC5648",
         btnBg: "#1a1a1a",
         btnText: "#fff",
         btnDisabledBg: "#e5e5e0",
@@ -71,7 +71,7 @@ function useTheme() {
       };
 }
 
-const COLORS = ["#6366f1", "#06b6d4", "#22c55e", "#f97316", "#ec4899", "#8b5cf6", "#14b8a6"];
+const COLORS = ["#6366f1", "#06b6d4", "#22c55e", "#EC695B", "#ec4899", "#8b5cf6", "#14b8a6"];
 const TOTAL_CELLS = 32;
 
 export default function HeapAllocatorVisualizer({ lang = "es" }: { lang?: Lang }) {

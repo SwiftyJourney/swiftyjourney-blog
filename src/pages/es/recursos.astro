@@ -1,78 +1,96 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import AffiliateCard from "../../components/AffiliateCard.astro";
-import { bmsProductsES, bmsStoreES, rocketSimProductsES, rocketSimStoreES } from "../../data/affiliates-es";
+import HeroBlog from "../../components/HeroBlog.astro";
+import SectionHeading from "../../components/SectionHeading.astro";
+import ResourceRow from "../../components/ResourceRow.astro";
+import {
+  bmsProductsES,
+  bmsStoreES,
+  rocketSimProductsES,
+  rocketSimStoreES,
+} from "../../data/affiliates-es";
 ---
 
 <BaseLayout
   lang="es"
   toEn="/en/resources/"
   toEs="/es/recursos/"
-  title="Recursos — Swifty Journey Blog"
-  description="Recursos seleccionados de SwiftUI y desarrollo iOS de nuestros socios."
+  title="Recursos — Swifty Journey"
+  description="Herramientas, libros y cursos seleccionados de SwiftUI e iOS."
 >
-  <section class="py-10 md:py-14">
-    <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Recursos de Desarrollo</h1>
-    <p class="opacity-80 mt-3 max-w-2xl">
-      Recursos seleccionados de nuestros socios. Al comprar con estos enlaces,
-      apoyas SwiftyJourney sin costo extra para ti.
+  <HeroBlog
+    title="Recursos."
+    subtitle="Herramientas, libros y cursos seleccionados de SwiftUI e iOS. Los enlaces de afiliado apoyan esta escritura sin costo extra para ti."
+  />
+
+  <div class="max-w-[640px] mx-auto flex flex-col gap-20 pb-24">
+    <section>
+      <SectionHeading
+        eyebrow="Partner"
+        title="BigMountainStudio"
+        lede="Enfoque visual y actualizado para aprender SwiftUI."
+      />
+      <p class="mt-4 text-sm text-text-muted">
+        <a
+          href={bmsStoreES}
+          rel="sponsored noopener"
+          target="_blank"
+          class="text-accent underline underline-offset-4 decoration-border-strong hover:decoration-accent transition-colors"
+          >Visitar la tienda →</a
+        >
+      </p>
+
+      <ul class="list-none p-0 m-0 mt-10 flex flex-col">
+        {bmsProductsES.map((p) => (
+          <li class="py-8 border-t border-border first:border-t-0">
+            <ResourceRow
+              title={p.title}
+              desc={p.desc}
+              price={p.price}
+              tags={p.tags}
+              href={p.link}
+              cta="Ver"
+            />
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section>
+      <SectionHeading
+        eyebrow="Partner"
+        title="RocketSim"
+        lede="Potencia tu simulador de iOS con funciones avanzadas de debugging y testing."
+      />
+      <p class="mt-4 text-sm text-text-muted">
+        <a
+          href={rocketSimStoreES}
+          rel="sponsored noopener"
+          target="_blank"
+          class="text-accent underline underline-offset-4 decoration-border-strong hover:decoration-accent transition-colors"
+          >Saber más →</a
+        >
+      </p>
+
+      <ul class="list-none p-0 m-0 mt-10 flex flex-col">
+        {rocketSimProductsES.map((p) => (
+          <li class="py-8 border-t border-border first:border-t-0">
+            <ResourceRow
+              title={p.title}
+              desc={p.desc}
+              price={p.price}
+              tags={p.tags}
+              href={p.link}
+              cta="Ver"
+            />
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <p class="text-[12px] text-text-subtle">
+      Aviso de afiliados: algunos enlaces son de afiliado. Pagas lo mismo;
+      una pequeña comisión puede apoyar este sitio.
     </p>
-
-    <h2 class="mt-10 text-xl font-semibold">BigMountainStudio</h2>
-    <p class="opacity-80 mt-1">
-      Enfoque visual y actualizado para aprender SwiftUI.
-      <a
-        href={bmsStoreES}
-        rel="sponsored noopener"
-        target="_blank"
-        class="underline">Visitar la tienda</a
-      >.
-    </p>
-
-    <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {
-        bmsProductsES.map((p) => (
-          <AffiliateCard
-            title={p.title}
-            desc={p.desc}
-            image={p.image}
-            price={p.price}
-            tags={p.tags}
-            href={p.link}
-          />
-        ))
-      }
-    </div>
-
-    <h2 class="mt-12 text-xl font-semibold">RocketSim</h2>
-    <p class="opacity-80 mt-1">
-      Potencia tu simulador de iOS con funciones avanzadas de debugging y testing.
-      <a
-        href={rocketSimStoreES}
-        rel="sponsored noopener"
-        target="_blank"
-        class="underline">Saber más</a
-      >.
-    </p>
-
-    <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {
-        rocketSimProductsES.map((p) => (
-          <AffiliateCard
-            title={p.title}
-            desc={p.desc}
-            image={p.image}
-            price={p.price}
-            tags={p.tags}
-            href={p.link}
-          />
-        ))
-      }
-    </div>
-
-    <p class="text-xs opacity-60 mt-12">
-      Aviso de afiliados: algunos enlaces son de afiliado. Pagas lo mismo; una
-      pequeña comisión puede apoyar este sitio.
-    </p>
-  </section>
+  </div>
 </BaseLayout>

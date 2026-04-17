@@ -1,0 +1,44 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import ArticleList from "../../../components/ArticleList.astro";
+import Pagination from "../../../components/Pagination.astro";
+import { getPublishedPosts } from "../../../utils/posts";
+
+export async function getStaticPaths() {
+  const PAGE_SIZE = 10;
+  const allPosts = await getPublishedPosts();
+  const posts = allPosts
+    .filter((post) => post.data.lang === "en")
+    .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+  const totalPages = Math.ceil(posts.length / PAGE_SIZE);
+  return Array.from({ length: Math.max(totalPages - 1, 0) }, (_, i) => ({
+    params: { page: String(i + 2) },
+    props: {
+      posts: posts.slice((i + 1) * PAGE_SIZE, (i + 2) * PAGE_SIZE),
+      currentPage: i + 2,
+      totalPages,
+    },
+  }));
+}
+
+const { posts, currentPage, totalPages } = Astro.props;
+---
+
+<BaseLayout
+  title={`Writing — Page ${currentPage} — Swifty Journey`}
+  description="Real-world iOS engineering, explained clearly."
+  lang="en"
+>
+  <div class="pt-20 md:pt-24">
+    <p
+      class="max-w-[640px] mx-auto text-[12px] font-medium uppercase tracking-[0.08em] text-text-muted mb-6 px-2"
+    >
+      Page {currentPage} of {totalPages}
+    </p>
+
+    <ArticleList posts={posts} lang="en" />
+
+    <Pagination currentPage={currentPage} totalPages={totalPages} baseUrl="/en/" />
+  </div>
+</BaseLayout>

@@ -1,8 +1,8 @@
 ---
 type Props = {
   lang: "en" | "es";
-  toEn: string; // URL equivalente en inglés
-  toEs: string; // URL equivalente en español
+  toEn: string;
+  toEs: string;
 };
 const { lang, toEn, toEs } = Astro.props;
 
@@ -15,9 +15,7 @@ const label = isES ? "Switch to English" : "Cambiar a español";
 <a
   href={targetHref}
   aria-label={label}
-  class="text-xl rounded-full px-2 py-1 border border-zinc-300 dark:border-zinc-700
-         hover:scale-110 transition focus:outline-none focus:ring-2
-         focus:ring-zinc-400 dark:focus:ring-zinc-600 opacity-90 hover:opacity-100"
+  class="text-lg rounded-md px-2 py-1 border border-border hover:border-border-strong transition-colors focus:outline-none focus:ring-2 focus:ring-coral-500/40"
 >
   {flag}
 </a>

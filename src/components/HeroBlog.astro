@@ -1,0 +1,25 @@
+---
+type Props = {
+  title: string;
+  subtitle?: string;
+  eyebrow?: string;
+};
+
+const { title, subtitle, eyebrow } = Astro.props;
+---
+
+<section class="max-w-[640px] mx-auto pt-24 md:pt-30 pb-16 md:pb-20 px-2">
+  {eyebrow && (
+    <p class="text-[12px] font-medium uppercase tracking-[0.08em] text-text-muted mb-4">
+      {eyebrow}
+    </p>
+  )}
+  <h1
+    class="text-display-md md:text-display-lg font-semibold tracking-tight text-text"
+  >
+    {title}
+  </h1>
+  {subtitle && (
+    <p class="mt-5 text-lead text-text-muted">{subtitle}</p>
+  )}
+</section>
