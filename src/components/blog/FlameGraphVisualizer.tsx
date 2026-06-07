@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { coral600, coral600Alpha } from "../../lib/brand-colors";
 
 // ─── TYPES ───
 
@@ -19,59 +20,16 @@ type ViewMode = "timeline" | "flamegraph";
 // ─── THEME ───
 
 function useTheme() {
-  const [isDark, setIsDark] = useState(false);
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.documentElement.classList.contains("dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark
-    ? {
-        bg: "#18181b",
-        surface: "#27272a",
-        border: "rgba(255,255,255,0.08)",
-        text: "#e4e4e7",
-        textMuted: "#a1a1aa",
-        textFaint: "#71717a",
-        badgeBg: "rgba(236,105,91,0.15)",
-        badgeText: "#F59B90",
-        accentText: "#EC695B",
-        btnActiveBg: "#3f3f46",
-        btnActiveText: "#fff",
-        btnBg: "#27272a",
-        btnText: "#a1a1aa",
-        btnBorder: "rgba(255,255,255,0.08)",
-        appColor: "#60a5fa",
-        libraryColor: "#a78bfa",
-        systemColor: "#6b7280",
-        runtimeColor: "#f472b6",
-        appColorBg: "rgba(96,165,250,0.85)",
-        libraryColorBg: "rgba(167,139,250,0.85)",
-        systemColorBg: "rgba(107,114,128,0.75)",
-        runtimeColorBg: "rgba(244,114,182,0.85)",
-        tooltipBg: "#3f3f46",
-        tooltipText: "#e4e4e7",
-        flattenBg: "rgba(34,197,94,0.12)",
-        flattenText: "#4ade80",
-        flattenBorder: "rgba(34,197,94,0.3)",
-      }
-    : {
+  return {
         bg: "#fff",
         surface: "#F8F8F5",
         border: "rgba(0,0,0,0.06)",
         text: "#333",
         textMuted: "#666",
         textFaint: "#999",
-        badgeBg: "rgba(220,86,72,0.1)",
-        badgeText: "#DC5648",
-        accentText: "#DC5648",
+        badgeBg: coral600Alpha(0.1),
+        badgeText: coral600,
+        accentText: coral600,
         btnActiveBg: "#1a1a1a",
         btnActiveText: "#fff",
         btnBg: "#f5f5f0",

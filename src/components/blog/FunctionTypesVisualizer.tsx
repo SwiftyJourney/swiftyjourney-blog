@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { coral600, coral600Alpha } from "../../lib/brand-colors";
 
 // ─── TYPES ───
 
@@ -14,48 +15,7 @@ interface FuncDef {
 // ─── THEME ───
 
 function useTheme() {
-  const [isDark, setIsDark] = useState(false);
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.documentElement.classList.contains("dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark
-    ? {
-        bg: "#18181b",
-        surface: "#27272a",
-        surfaceAlt: "#1f1f23",
-        border: "rgba(255,255,255,0.08)",
-        text: "#e4e4e7",
-        textMuted: "#a1a1aa",
-        textFaint: "#71717a",
-        accentText: "#EC695B",
-        badgeBg: "rgba(236,105,91,0.15)",
-        badgeText: "#F59B90",
-        activeBg: "#3f3f46",
-        activeText: "#fff",
-        btnBg: "#27272a",
-        btnText: "#a1a1aa",
-        btnBorder: "rgba(255,255,255,0.08)",
-        resultBg: "rgba(34,197,94,0.12)",
-        resultBorder: "#22c55e",
-        resultText: "#4ade80",
-        typeBg: "rgba(99,102,241,0.12)",
-        typeBorder: "#6366f1",
-        typeText: "#a5b4fc",
-        varBg: "rgba(236,105,91,0.08)",
-        varBorder: "rgba(236,105,91,0.3)",
-        sliderTrack: "#3f3f46",
-        sliderThumb: "#EC695B",
-      }
-    : {
+  return {
         bg: "#fff",
         surface: "#F8F8F5",
         surfaceAlt: "#F0F0EC",
@@ -63,9 +23,9 @@ function useTheme() {
         text: "#333",
         textMuted: "#666",
         textFaint: "#999",
-        accentText: "#DC5648",
-        badgeBg: "rgba(220,86,72,0.1)",
-        badgeText: "#DC5648",
+        accentText: coral600,
+        badgeBg: coral600Alpha(0.1),
+        badgeText: coral600,
         activeBg: "#1a1a1a",
         activeText: "#fff",
         btnBg: "#f5f5f0",
@@ -77,10 +37,10 @@ function useTheme() {
         typeBg: "rgba(99,102,241,0.06)",
         typeBorder: "#6366f1",
         typeText: "#4f46e5",
-        varBg: "rgba(220,86,72,0.04)",
-        varBorder: "rgba(220,86,72,0.2)",
+        varBg: coral600Alpha(0.04),
+        varBorder: coral600Alpha(0.2),
         sliderTrack: "#e5e5e0",
-        sliderThumb: "#DC5648",
+        sliderThumb: coral600,
       };
 }
 

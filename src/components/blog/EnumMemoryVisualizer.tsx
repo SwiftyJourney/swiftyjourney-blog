@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createHighlighterCoreSync } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
+import { coral500, coral600, coral500Alpha, coral600Alpha } from "../../lib/brand-colors";
 import langSwift from "shiki/langs/swift.mjs";
 import themeOneDarkPro from "shiki/themes/one-dark-pro.mjs";
 
@@ -46,42 +47,16 @@ interface Step {
 // ─── THEME ───
 
 function useTheme() {
-  const [isDark, setIsDark] = useState(false);
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.documentElement.classList.contains("dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark
-    ? {
-        bg: "#18181b", surface: "#27272a", border: "rgba(255,255,255,0.08)",
-        text: "#e4e4e7", textMuted: "#a1a1aa", textFaint: "#71717a",
-        accentText: "#EC695B", badgeBg: "rgba(236,105,91,0.15)", badgeText: "#F59B90",
-        activeBg: "#3f3f46", activeText: "#fff", btnBg: "#27272a", btnText: "#a1a1aa",
-        btnBorder: "rgba(255,255,255,0.08)", slotBg: "rgba(255,255,255,0.06)",
-        stackBg: "rgba(99,102,241,0.08)", heapBg: "rgba(6,182,212,0.08)",
-        arrowColor: "#a1a1aa", highlightBg: "rgba(34,197,94,0.15)",
-        highlightBorder: "#22c55e", highlightText: "#4ade80",
-        tagColor: "#EC695B", payloadColor: "#6366f1", unusedColor: "#3f3f46",
-        heapColor: "#06b6d4", spareBitColor: "#a855f7",
-      }
-    : {
+  return {
         bg: "#fff", surface: "#F8F8F5", border: "rgba(0,0,0,0.06)",
         text: "#333", textMuted: "#666", textFaint: "#999",
-        accentText: "#DC5648", badgeBg: "rgba(220,86,72,0.1)", badgeText: "#DC5648",
+        accentText: coral600, badgeBg: coral600Alpha(0.1), badgeText: coral600,
         activeBg: "#1a1a1a", activeText: "#fff", btnBg: "#f5f5f0", btnText: "#666",
         btnBorder: "rgba(0,0,0,0.08)", slotBg: "#fff",
         stackBg: "rgba(99,102,241,0.04)", heapBg: "rgba(6,182,212,0.04)",
         arrowColor: "#999", highlightBg: "rgba(34,197,94,0.06)",
         highlightBorder: "#22c55e", highlightText: "#16a34a",
-        tagColor: "#DC5648", payloadColor: "#6366f1", unusedColor: "#d4d4d8",
+        tagColor: coral600, payloadColor: "#6366f1", unusedColor: "#d4d4d8",
         heapColor: "#06b6d4", spareBitColor: "#7c3aed",
       };
 }
@@ -89,7 +64,7 @@ function useTheme() {
 // ─── STEP DATA ───
 
 function getSteps(l: boolean): Step[] {
-  const tag = "#EC695B";
+  const tag = coral500;
   const payload = "#6366f1";
   const unused = "#71717a";
   const heap = "#06b6d4";
@@ -286,7 +261,7 @@ export default function EnumMemoryVisualizer({ lang = "es" }: { lang?: Lang }) {
         },
         line(node, line) {
           if (step.highlightLine && line === step.highlightLine) {
-            node.properties.style = `${node.properties.style ?? ""};background:rgba(236,105,91,0.13);margin:0 -16px;padding:0 16px;display:inline-block;width:calc(100% + 32px);border-left:3px solid #EC695B;padding-left:13px;`;
+            node.properties.style = `${node.properties.style ?? ""};background:${coral500Alpha(0.13)};margin:0 -16px;padding:0 16px;display:inline-block;width:calc(100% + 32px);border-left:3px solid ${coral500};padding-left:13px;`;
           }
         },
       },

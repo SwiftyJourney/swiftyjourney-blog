@@ -4,7 +4,7 @@ Official blog for [Swifty Journey](https://swiftyjourney.com) - Exploring iOS, S
 
 ## ✨ **Enhanced Features**
 
-🎨 **Advanced Code Highlighting** - Powered by Shiki with dual theme support (light/dark)  
+🎨 **Advanced Code Highlighting** - Powered by Shiki with the GitHub-light theme  
 📋 **Enhanced Copy Code Functionality** - Intelligent copy system with visual feedback, automatic language labels, and legacy browser support  
 🌍 **Multilingual Support** - Seamless English/Spanish content with linked translations  
 📱 **Mobile-First Design** - Perfect reading experience on all devices  
@@ -208,7 +208,7 @@ struct ContentView: View {
 **Supported Languages**: Swift, TypeScript, JavaScript, JSON, HTML, CSS, Bash, Python, and many more.
 
 **Features**:
-- 🎨 Dual theme support (automatically switches with site theme)
+- 🎨 Single GitHub-light theme, consistent across the whole site
 - 📋 Copy button on hover for easy code sharing
 - 🏷️ Language labels automatically displayed
 - 📱 Mobile-optimized with proper line wrapping
@@ -236,7 +236,6 @@ Link to other blog posts:
 
 The blog uses Tailwind CSS with a custom `.prose` class for article content. The styling automatically handles:
 - Typography scaling
-- Dark/light mode
 - Responsive design
 - Code block styling
 - Link colors (coral accent on cream)

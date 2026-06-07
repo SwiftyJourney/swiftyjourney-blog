@@ -11,9 +11,8 @@ tags: ['swift', 'swift-cero-experto', 'swift-fundamentals']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
-import ValueVsReferenceVisualizer from '../../../../../components/blog/ValueVsReferenceVisualizer';
 
-En el [artículo anterior](/es/blog/swift-cero-experto-enumeraciones) vimos que los enums son value types con una representación en memoria increíblemente eficiente. Hoy abordamos la decisión más fundamental en Swift: **struct o class**. No es una preferencia estética — es una elección que afecta directamente dónde vive tu dato (stack vs heap), cómo se copia, cómo se despacha cada método, y cuánta presión ejerces sobre el garbage collector (bueno, sobre ARC).
+En el [artículo anterior](/es/blog/swift-cero-experto-enumeraciones) vimos que los enums son value types con una representación en memoria increíblemente eficiente. Hoy abordamos la decisión más fundamental en Swift: **struct o class**. No es una preferencia estética — es una elección que afecta directamente dónde vive tu dato (stack vs heap), cómo se copia, cómo se despacha cada método (es decir, cómo Swift decide qué código de función ejecutar realmente — explicado en detalle más adelante en este artículo), y cuánta presión ejerces sobre la memoria — a diferencia de Java o C# (que usan un garbage collector, un proceso en segundo plano que limpia la memoria sin uso), Swift usa ARC en su lugar. Swift usa ARC — **Automatic Reference Counting** (una referencia es una variable que apunta a un objeto en lugar de contener su valor). ARC lleva una cuenta por objeto: cada nueva variable que lo apunta suma 1, cada una que deja de apuntarlo resta 1, y cuando la cuenta llega a 0 el objeto se libera — un deep-dive completo vendrá en un artículo posterior.
 
 Este artículo te va a cambiar la forma en que piensas sobre tus tipos.
 
@@ -29,12 +28,14 @@ Antes de ver las diferencias, vale la pena notar que structs y classes tienen **
 
 ```swift
 // Ambos pueden tener:
-// ✓ Stored y computed properties
+// ✓ Stored and computed properties
+//   (computed: calculan su valor al vuelo en vez de almacenarlo — ver artículo #9)
 // ✓ Methods
 // ✓ Subscripts
+//   (subscripts permiten acceder a un tipo con [] como un array — lo vemos en el próximo artículo)
 // ✓ Initializers
-// ✓ Extensions
-// ✓ Protocol conformance
+// ✓ Extensions (extensions = agregar nuevos métodos o propiedades a un tipo existente sin editar su definición original)
+// ✓ Protocol conformance (un protocol es un contrato de métodos/propiedades que un tipo promete proveer — deep-dive completo en #13)
 ```
 
 Si solo miras la lista de features, parecen casi iguales. Las diferencias están **bajo el capó**.
@@ -42,9 +43,9 @@ Si solo miras la lista de features, parecen casi iguales. Las diferencias están
 ## Lo que las separa
 
 <InfoBox title="Solo las classes tienen">
-- **Herencia** — una class puede heredar de otra
-- **Type casting** — verificar el tipo en runtime
-- **Deinitializers** — código que corre antes de ser destruida (`deinit`)
+- **Herencia** — una class puede construirse sobre otra, obteniendo automáticamente sus propiedades y métodos mientras agrega o reemplaza algunos (detalle completo en [#10](/es/blog/swift-cero-experto-herencia-inicializacion))
+- **Type casting** — preguntar en runtime si un objeto es en realidad una subclass más específica (usando `as?` o `is`)
+- **Deinitializers** — código que corre antes de ser destruida (`deinit`), útil para limpieza como cerrar un archivo o liberar un recurso — cubierto en un artículo posterior
 - **Reference counting** — múltiples referencias al mismo objeto (ARC)
 - **Identity** — el operador `===` para verificar si dos variables apuntan al mismo objeto
 </InfoBox>
@@ -95,11 +96,9 @@ print(x.width)  // 999 — ¡también cambió!
 print(y.width)  // 999
 ```
 
-Explora el componente interactivo para ver paso a paso cómo se comportan en memoria:
+Esta es la distinción más importante entre ambos. El diagrama de abajo los muestra lado a lado: un value type hace una copia independiente, mientras que un reference type entrega un segundo puntero al mismo objeto:
 
-<div class="interactive-content">
-  <ValueVsReferenceVisualizer client:load lang="es" />
-</div>
+![Value semantics vs reference semantics: con value semantics, las variables a y b tienen cada una su propia copia independiente de un struct, así que cambiar b deja a intacto; con reference semantics, las variables x e y apuntan con flechas al mismo objeto class, así que cambiar una cambia ambas](./resources/value-vs-reference.png)
 
 <Callout type="warning" title="El bug más común con classes">
 El estado compartido es la fuente #1 de bugs sutiles. Si pasas un objeto `class` a una función y esa función lo modifica, tu variable original también cambia — sin que nadie te avise. Con structs, cada función trabaja con su propia copia. Es **más seguro por defecto**.
@@ -109,7 +108,7 @@ El estado compartido es la fuente #1 de bugs sutiles. Si pasas un objeto `class`
 
 ### Structs: el stack
 
-Los structs viven directamente en el **stack frame** de la función que los crea:
+Los structs viven directamente en el **stack frame** (el bloque de memoria del stack reservado para una llamada a función) de la función que los crea:
 
 ```swift
 func process() {
@@ -120,11 +119,11 @@ func process() {
 }
 ```
 
-El stack es **LIFO** (Last In, First Out) — alocar y liberar es simplemente mover un puntero. Es la operación de memoria más rápida que existe.
+El stack es **LIFO** (Last In, First Out) — como una pila de platos: el último plato agregado es el primero en retirarse. Por esto, alocar o liberar espacio en el stack es solo mover un único puntero una cantidad fija. Es la operación de memoria más rápida que existe.
 
 ### Classes: el heap
 
-Las classes **siempre** se alocan en el heap:
+Las classes **siempre** se alocan en el heap. Dos términos aparecen en los comentarios de abajo, así que definámoslos primero: un *puntero* es simplemente una dirección de memoria (dirección = una ranura numerada en la RAM) — 8 bytes en los dispositivos Apple de 64 bits — que indica dónde vive el objeto real en el heap. Y `malloc` y `free` son las operaciones de bajo nivel que reservan y liberan un bloque de memoria del heap — Swift las llama por ti automáticamente bajo el capó (vía ARC).
 
 ```swift
 func process() {
@@ -137,18 +136,20 @@ func process() {
 
 Cada instancia de class implica:
 1. `malloc` — buscar espacio libre en el heap
-2. **metadata** — tipo, vtable pointer
-3. **refcount** — contador de referencias (ARC)
+2. **metadata** — información de control que Swift guarda sobre el tipo del objeto, incluyendo un puntero a su vtable (una tabla de búsqueda que Swift usa para encontrar el código de los métodos — definida en la sección de dispatch más abajo)
+3. **refcount** — el contador de referencias presentado en la introducción (ARC)
 4. El dato real (propiedades)
 5. `free` — cuando el último reference desaparece
 
+![Layout en memoria stack vs heap: a la izquierda un struct vive completo dentro del stack frame de la función con sus campos width y height inline; a la derecha una class guarda solo un puntero de 8 bytes en el stack que apunta con una flecha a un bloque del heap que contiene metadata, refcount y el dato width/height alocado con malloc](./resources/stack-vs-heap.png)
+
 <Callout type="tip" title="¿Por qué importa?">
-`malloc` es **~100x más lento** que alocar en el stack. No porque sea un mal algoritmo — es que buscar espacio libre en el heap, manejar fragmentación, y mantener thread safety es inherentemente más costoso que mover un puntero. Para un solo objeto no lo notas, pero en un loop que crea miles de objetos, la diferencia es real.
+`malloc` es **órdenes de magnitud más lento en el peor caso** que alocar en el stack. No porque sea un mal algoritmo — es que buscar espacio libre y coordinar entre threads es inherentemente más lento que mover un único puntero. Para un solo objeto no lo notas, pero en un loop que crea miles de objetos, la diferencia es real. Los números exactos varían según el hardware, la contención del allocator, y el tamaño del objeto.
 </Callout>
 
 ## Memberwise initializers
 
-Los structs obtienen un **initializer automático** con todos sus stored properties:
+Los structs obtienen un **initializer automático** con todos sus stored properties. Memberwise = un parámetro por cada stored property, en orden de declaración — Swift lo genera automáticamente para cada struct.
 
 ```swift
 struct Color {
@@ -178,7 +179,7 @@ class ColorClass {
 ```
 
 <Callout type="info" title="¿Por qué las classes no tienen memberwise init?">
-Por la herencia. Un memberwise init generado podría entrar en conflicto con la cadena de inicialización de subclasses. Los structs no tienen herencia, así que no hay conflicto posible. Profundizaremos en los initializers en el artículo #10.
+Por la herencia. Un memberwise init generado podría entrar en conflicto con la cadena de inicialización de subclasses. Los structs no tienen herencia, así que no hay conflicto posible. Profundizaremos en los initializers en el [artículo #10](/es/blog/swift-cero-experto-herencia-inicializacion).
 </Callout>
 
 ## Identity: === vs ==
@@ -194,11 +195,11 @@ point1 === point2  // true — MISMO objeto
 point1 === point3  // false — objetos DIFERENTES
 ```
 
-Los structs no tienen `===` porque no tiene sentido — cada variable es su propia copia. Solo puedes comparar valores con `==` (si el tipo conforma `Equatable`).
+Los structs no tienen `===` porque no tiene sentido — cada variable es su propia copia. Solo puedes comparar valores con `==` (si el tipo conforma `Equatable` — Equatable es un protocolo de Swift integrado — un contrato — que un tipo adopta para declarar que `==` funciona sobre él; detalle completo en #13).
 
 ## mutating: la keyword que protege tus structs
 
-Como los structs son value types, Swift **prohíbe** mutar sus propiedades desde métodos por defecto:
+Como los structs son value types, Swift **prohíbe** mutar sus propiedades desde métodos por defecto — vuelves a habilitarlo marcando el método como `mutating`, una keyword que le promete al compilador "este método va a cambiar `self`" (la instancia actual):
 
 ```swift
 struct Counter {
@@ -216,7 +217,7 @@ let fixed = Counter()
 // fixed.increment()  // ERROR — no puedes mutar un let
 ```
 
-`mutating` es un contrato: le dice al compilador "este método va a modificar `self`". En las classes no existe porque las propiedades siempre son mutables a través de cualquier referencia (incluso `let`).
+`mutating` es un contrato: le dice al compilador "este método va a modificar `self`" (self = la instancia actual). En las classes no existe porque las propiedades siempre son mutables a través de cualquier referencia (incluso `let`).
 
 ```swift
 let classCounter = SomeCounterClass()
@@ -234,11 +235,11 @@ classCounter.count += 1  // OK — let solo protege la REFERENCIA, no el objeto
 Esta es la diferencia de rendimiento que menos se discute — y la que más impacta.
 
 <Callout type="info" title="Definición: Static Dispatch">
-Con **static dispatch**, el compilador sabe **en compilación** exactamente qué función llamar. No hay indirección en runtime — el CPU salta directamente al código. Los structs usan static dispatch para todos sus métodos.
+Con **static dispatch**, el compilador sabe **en compilación** exactamente qué función llamar (compile time = mientras Xcode construye tu app; runtime = después, mientras la app realmente se ejecuta en el dispositivo). No hay indirección (un salto extra antes de llegar al código) en runtime — el CPU salta directamente al código. Los structs usan static dispatch para todos sus métodos.
 </Callout>
 
 <Callout type="info" title="Definición: Dynamic Dispatch">
-Con **dynamic dispatch**, el programa consulta una **vtable** (virtual table) en runtime para determinar qué función llamar. Es necesario cuando una class podría ser subclaseada y el método overrideado. Cuesta ~2-3 nanosegundos extra por llamada.
+Con **dynamic dispatch**, el programa consulta una **vtable** (virtual table) en runtime para determinar qué función llamar. Una vtable es una tabla de búsqueda por class que mapea cada nombre de método a su implementación real. Es necesario cuando una class podría ser subclaseada y el método overrideado — una *subclass* es una class construida sobre otra, y *overridear* significa reemplazar un método heredado con su propia versión (detalle completo en el [artículo #10](/es/blog/swift-cero-experto-herencia-inicializacion)). Tiene un costo pequeño, típicamente despreciable, por llamada (un lookup en la vtable más un salto indirecto).
 </Callout>
 
 ```swift
@@ -249,15 +250,18 @@ struct Calculator {
 let calc = Calculator()
 calc.add(2, 3)
 // El compilador inserta directamente: a + b (puede hasta hacer inline)
+// (inlining = el compilador pega el cuerpo de la función directo en el call site, saltándose la llamada por completo)
 
 // CLASS — dynamic dispatch (por defecto)
-class Calculator {
+class CalculatorClass {
     func add(_ a: Int, _ b: Int) -> Int { a + b }
 }
-let calc = Calculator()
-calc.add(2, 3)
+let calcClass = CalculatorClass()
+calcClass.add(2, 3)
 // Runtime: busca add() en la vtable → salta al código → ejecuta
 ```
+
+![Static dispatch vs dynamic dispatch: a la izquierda el static dispatch va directo del call site al código de la función en un solo salto; a la derecha el dynamic dispatch enruta el call site a través de un lookup en la vtable antes de saltar al código, y marcar la class como final lo colapsa de vuelta al camino directo](./resources/static-vs-dynamic-dispatch.png)
 
 ### final: la optimización que debes conocer
 
@@ -286,6 +290,8 @@ Si los structs se copian cada vez que los asignas... ¿no es terriblemente lento
 **Copy-on-Write** es una optimización donde la copia real solo ocurre cuando **modificas** el dato. Mientras solo leas, múltiples variables comparten el mismo storage interno. `Array`, `Dictionary`, `Set` y `String` usan CoW.
 </Callout>
 
+El *buffer* que se menciona abajo es el bloque de memoria donde un `Array` realmente guarda sus elementos:
+
 ```swift
 var original = [1, 2, 3, 4, 5]
 var copy = original  // NO copia los datos — comparten el buffer interno
@@ -297,12 +303,14 @@ copy.append(6)  // AHORA se copia — copy necesita su propio buffer
 // copy tiene [1, 2, 3, 4, 5, 6] en su propio buffer
 ```
 
+![Copy-on-Write en dos estados: primero, original y copy apuntan ambos a un único buffer compartido con refcount = 2 y no se copia ningún dato; segundo, llamar a copy.append(6) fuerza una copia, así que original conserva el buffer A y copy obtiene un buffer B nuevo con el elemento añadido, cada uno ahora con refcount = 1](./resources/copy-on-write.png)
+
 CoW te da lo mejor de ambos mundos:
 - **Seguridad** de value semantics (cada variable es independiente)
 - **Rendimiento** de sharing (no copias si no modificas)
 
 <Callout type="tip" title="Para devs avanzados">
-Puedes implementar CoW en tus propios structs usando `isKnownUniquelyReferenced()`. Si el storage interno tiene un solo owner, mutas in-place; si tiene más, copias primero. Los tipos de la stdlib como Array hacen exactamente esto.
+Puedes implementar CoW en tus propios structs usando `isKnownUniquelyReferenced(&storage)` — pasa por inout el storage interno respaldado por una class; si devuelve `true` el storage es único y puedes mutar in-place; si tiene más owners, copias primero. Los tipos de la stdlib como Array hacen exactamente esto.
 </Callout>
 
 ## ¿Cuándo los structs terminan en el heap?
@@ -329,7 +337,7 @@ let shape: any Drawable = Circle(radius: 5)
 ```
 
 <Callout type="info" title="Existential containers">
-Cuando almacenas un value type como `any Protocol`, Swift usa un **existential container** — una estructura de tamaño fijo que puede guardar el valor inline (si cabe en 3 words / 24 bytes) o un puntero al heap (si es más grande). En Swift 5.9+, `any` es explícito para que seas consciente del costo.
+Cuando almacenas un value type como `any Protocol`, Swift usa un **existential container** — una estructura de tamaño fijo que puede guardar el valor inline (si cabe en 3 words / 24 bytes — un *word* es una ranura de memoria del tamaño del CPU, 8 bytes en los dispositivos Apple modernos) o un puntero al heap (si es más grande). Desde Swift 5.6, `any` hace explícitos los existential types (y Swift 6 lo requiere). No te preocupes si esto se siente abstracto — es un caso límite que rara vez necesitas razonar directamente.
 </Callout>
 
 ## ¿Cuándo usar struct? ¿Cuándo usar class?
@@ -350,7 +358,7 @@ Cuando almacenas un value type como `any Protocol`, Swift usa un **existential c
 - El ciclo de vida del objeto necesita **deinit** para cleanup
 </InfoBox>
 
-Apple lo resume en una frase: **"Usa structs por defecto. Usa classes solo cuando necesites las capacidades específicas de classes."**
+La recomendación de Apple es simple: **usa structs por defecto, y recurre a classes solo cuando necesites sus capacidades específicas.**
 
 ## La memoria: el resumen definitivo
 
@@ -372,7 +380,7 @@ Apple lo resume en una frase: **"Usa structs por defecto. Usa classes solo cuand
 │  • Reference semantics (estado compartido)      │
 │  • Dynamic dispatch (vtable en runtime)         │
 │  • Refcount management (ARC)                    │
-│  • Metadata + vtable en cada instancia          │
+│  • Metadata/vtable pointer en cada instancia    │
 │  • Herencia, deinit, identity (===)             │
 │  • final → static dispatch (optimización)       │
 └─────────────────────────────────────────────────┘

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { coral600, coral600Alpha } from "../../lib/brand-colors";
 
 type Lang = "es" | "en";
 
@@ -33,41 +34,14 @@ interface ScenarioStep {
 }
 
 function useTheme() {
-  const [isDark, setIsDark] = useState(false);
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.documentElement.classList.contains("dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark
-    ? {
-        bg: "#18181b", surface: "#27272a", border: "rgba(255,255,255,0.08)",
-        text: "#e4e4e7", textMuted: "#a1a1aa", textFaint: "#71717a",
-        badgeBg: "rgba(236,105,91,0.15)", badgeText: "#F59B90", accentText: "#EC695B",
-        btnActiveBg: "#3f3f46", btnActiveText: "#fff", btnBg: "#27272a", btnText: "#a1a1aa",
-        btnBorder: "rgba(255,255,255,0.08)",
-        freedBg: "rgba(239,68,68,0.1)", freedBorder: "rgba(239,68,68,0.3)", freedText: "#f87171",
-        strongArrow: "#EC695B", weakArrow: "#22c55e",
-        refCountBg: "rgba(99,102,241,0.2)", refCountText: "#818cf8",
-        dangerBg: "rgba(239,68,68,0.12)", dangerText: "#f87171",
-        successBg: "rgba(34,197,94,0.12)", successText: "#4ade80",
-        codeBg: "#0d1117",
-      }
-    : {
+  return {
         bg: "#fff", surface: "#F8F8F5", border: "rgba(0,0,0,0.06)",
         text: "#333", textMuted: "#666", textFaint: "#999",
-        badgeBg: "rgba(220,86,72,0.1)", badgeText: "#DC5648", accentText: "#DC5648",
+        badgeBg: coral600Alpha(0.1), badgeText: coral600, accentText: coral600,
         btnActiveBg: "#1a1a1a", btnActiveText: "#fff", btnBg: "#f5f5f0", btnText: "#666",
         btnBorder: "rgba(0,0,0,0.08)",
         freedBg: "rgba(220,38,38,0.06)", freedBorder: "rgba(220,38,38,0.2)", freedText: "#dc2626",
-        strongArrow: "#DC5648", weakArrow: "#16a34a",
+        strongArrow: coral600, weakArrow: "#16a34a",
         refCountBg: "rgba(99,102,241,0.1)", refCountText: "#6366f1",
         dangerBg: "rgba(220,38,38,0.06)", dangerText: "#dc2626",
         successBg: "rgba(22,163,74,0.08)", successText: "#16a34a",

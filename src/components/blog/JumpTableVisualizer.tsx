@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { coral600, coral600Alpha } from "../../lib/brand-colors";
 
 // ─── TYPES ───
 
@@ -16,62 +17,21 @@ interface EvalStep {
 // ─── THEME ───
 
 function useTheme() {
-  const [isDark, setIsDark] = useState(false);
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.documentElement.classList.contains("dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark
-    ? {
-        bg: "#18181b",
-        surface: "#27272a",
-        border: "rgba(255,255,255,0.08)",
-        text: "#e4e4e7",
-        textMuted: "#a1a1aa",
-        textFaint: "#71717a",
-        accentText: "#EC695B",
-        stepActiveBg: "#3f3f46",
-        stepActiveText: "#fff",
-        stepBg: "#27272a",
-        stepText: "#a1a1aa",
-        stepBorder: "rgba(255,255,255,0.08)",
-        badgeBg: "rgba(236,105,91,0.15)",
-        badgeText: "#F59B90",
-        matchBg: "rgba(34,197,94,0.15)",
-        matchBorder: "#22c55e",
-        matchText: "#4ade80",
-        evalBg: "rgba(234,179,8,0.12)",
-        evalBorder: "#eab308",
-        evalText: "#facc15",
-        skipBg: "rgba(255,255,255,0.02)",
-        skipText: "#52525b",
-        arrowColor: "#EC695B",
-        tableBg: "rgba(99,102,241,0.08)",
-        tableHeaderBg: "rgba(99,102,241,0.15)",
-      }
-    : {
+  return {
         bg: "#fff",
         surface: "#F8F8F5",
         border: "rgba(0,0,0,0.06)",
         text: "#333",
         textMuted: "#666",
         textFaint: "#999",
-        accentText: "#DC5648",
+        accentText: coral600,
         stepActiveBg: "#1a1a1a",
         stepActiveText: "#fff",
         stepBg: "#f5f5f0",
         stepText: "#666",
         stepBorder: "rgba(0,0,0,0.08)",
-        badgeBg: "rgba(220,86,72,0.1)",
-        badgeText: "#DC5648",
+        badgeBg: coral600Alpha(0.1),
+        badgeText: coral600,
         matchBg: "rgba(34,197,94,0.08)",
         matchBorder: "#22c55e",
         matchText: "#16a34a",
@@ -80,7 +40,7 @@ function useTheme() {
         evalText: "#a16207",
         skipBg: "rgba(0,0,0,0.02)",
         skipText: "#ccc",
-        arrowColor: "#DC5648",
+        arrowColor: coral600,
         tableBg: "rgba(99,102,241,0.04)",
         tableHeaderBg: "rgba(99,102,241,0.08)",
       };

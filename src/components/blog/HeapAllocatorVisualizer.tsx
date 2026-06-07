@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { coral500, coral600, coral600Alpha } from "../../lib/brand-colors";
 
 type Lang = "es" | "en";
 
@@ -11,43 +12,7 @@ interface HeapBlock {
 }
 
 function useTheme() {
-  const [isDark, setIsDark] = useState(false);
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.documentElement.classList.contains("dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark
-    ? {
-        bg: "#18181b",
-        surface: "#27272a",
-        border: "rgba(255,255,255,0.08)",
-        text: "#e4e4e7",
-        textMuted: "#a1a1aa",
-        textFaint: "#71717a",
-        freeBlock: "#27272a",
-        freeBorder: "rgba(255,255,255,0.1)",
-        badgeBg: "rgba(236,105,91,0.15)",
-        badgeText: "#F59B90",
-        accentText: "#EC695B",
-        btnBg: "#3f3f46",
-        btnText: "#fff",
-        btnDisabledBg: "#27272a",
-        btnDisabledText: "#52525b",
-        dangerBg: "rgba(239,68,68,0.15)",
-        dangerText: "#f87171",
-        logBg: "#1a1b26",
-        fragWarning: "rgba(251,191,36,0.15)",
-        fragWarningText: "#fbbf24",
-      }
-    : {
+  return {
         bg: "#fff",
         surface: "#F8F8F5",
         border: "rgba(0,0,0,0.06)",
@@ -56,9 +21,9 @@ function useTheme() {
         textFaint: "#999",
         freeBlock: "#f5f5f0",
         freeBorder: "rgba(0,0,0,0.08)",
-        badgeBg: "rgba(220,86,72,0.1)",
-        badgeText: "#DC5648",
-        accentText: "#DC5648",
+        badgeBg: coral600Alpha(0.1),
+        badgeText: coral600,
+        accentText: coral600,
         btnBg: "#1a1a1a",
         btnText: "#fff",
         btnDisabledBg: "#e5e5e0",
@@ -71,7 +36,7 @@ function useTheme() {
       };
 }
 
-const COLORS = ["#6366f1", "#06b6d4", "#22c55e", "#EC695B", "#ec4899", "#8b5cf6", "#14b8a6"];
+const COLORS = ["#6366f1", "#06b6d4", "#22c55e", coral500, "#ec4899", "#8b5cf6", "#14b8a6"];
 const TOTAL_CELLS = 32;
 
 export default function HeapAllocatorVisualizer({ lang = "es" }: { lang?: Lang }) {

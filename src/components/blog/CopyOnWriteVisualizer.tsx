@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createHighlighterCoreSync } from "shiki/core";
+import { coral500, coral600, coral500Alpha, coral600Alpha } from "../../lib/brand-colors";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
 import langSwift from "shiki/langs/swift.mjs";
 import themeOneDarkPro from "shiki/themes/one-dark-pro.mjs";
@@ -43,44 +44,7 @@ interface Step {
 // ─── THEME ───
 
 function useTheme() {
-  const [isDark, setIsDark] = useState(false);
-  useEffect(() => {
-    const check = () =>
-      setIsDark(document.documentElement.classList.contains("dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark
-    ? {
-        bg: "#18181b",
-        surface: "#27272a",
-        surfaceAlt: "#1f1f23",
-        border: "rgba(255,255,255,0.08)",
-        text: "#e4e4e7",
-        textMuted: "#a1a1aa",
-        textFaint: "#71717a",
-        pointerColor: "#EC695B",
-        stepActiveBg: "#3f3f46",
-        stepActiveText: "#fff",
-        stepBg: "#27272a",
-        stepText: "#a1a1aa",
-        stepBorder: "rgba(255,255,255,0.08)",
-        badgeBg: "rgba(236,105,91,0.15)",
-        badgeText: "#F59B90",
-        accentText: "#EC695B",
-        slotBg: "rgba(255,255,255,0.06)",
-        cowFlash: "rgba(34,197,94,0.15)",
-        arrowColor: "#a1a1aa",
-        stackBg: "rgba(99,102,241,0.08)",
-        heapBg: "rgba(6,182,212,0.08)",
-      }
-    : {
+  return {
         bg: "#fff",
         surface: "#F8F8F5",
         surfaceAlt: "#F0F0EC",
@@ -88,15 +52,15 @@ function useTheme() {
         text: "#333",
         textMuted: "#666",
         textFaint: "#999",
-        pointerColor: "#DC5648",
+        pointerColor: coral600,
         stepActiveBg: "#1a1a1a",
         stepActiveText: "#fff",
         stepBg: "#f5f5f0",
         stepText: "#666",
         stepBorder: "rgba(0,0,0,0.08)",
-        badgeBg: "rgba(220,86,72,0.1)",
-        badgeText: "#DC5648",
-        accentText: "#DC5648",
+        badgeBg: coral600Alpha(0.1),
+        badgeText: coral600,
+        accentText: coral600,
         slotBg: "#fff",
         cowFlash: "rgba(34,197,94,0.08)",
         arrowColor: "#999",
@@ -236,7 +200,7 @@ export default function CopyOnWriteVisualizer({ lang = "es" }: { lang?: Lang }) 
         },
         line(node, line) {
           if (step.highlightLine && line === step.highlightLine) {
-            node.properties.style = `${node.properties.style ?? ""};background:rgba(236,105,91,0.13);margin:0 -16px;padding:0 16px;display:inline-block;width:calc(100% + 32px);border-left:3px solid #EC695B;padding-left:13px;`;
+            node.properties.style = `${node.properties.style ?? ""};background:${coral500Alpha(0.13)};margin:0 -16px;padding:0 16px;display:inline-block;width:calc(100% + 32px);border-left:3px solid ${coral500};padding-left:13px;`;
           }
         },
       },
