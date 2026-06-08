@@ -51,7 +51,7 @@ counter += 1           // ✅ Esto funciona
 
 ![let es inmutable como una caja con candado, var es mutable y puede cambiar su contenido](./resources/let-vs-var.png)
 
-Cuando usas `let`, no solo estás comunicando tu intención al equipo — estás dándole **información al compilador**. Le estás diciendo: "este valor no va a cambiar jamás". Y el compilador usa esa promesa para tomar decisiones de optimización. Puede almacenar ese valor directamente en un registro del procesador, puede eliminar comprobaciones innecesarias, puede incluso sustituir las referencias al valor por el valor mismo (constant folding).
+Cuando usas `let`, no solo estás comunicando tu intención al equipo — estás dándole **información al compilador**. Le estás diciendo: "este valor no va a cambiar jamás". Y el compilador usa esa promesa para tomar decisiones de optimización. Puede almacenar ese valor directamente en un registro del procesador (una pequeñísima ranura de almacenamiento ultrarrápido dentro de la propia CPU), puede eliminar comprobaciones innecesarias, puede incluso sustituir las referencias al valor por el valor mismo (constant folding — el compilador calcula el valor una sola vez en tiempo de compilación y lo incrusta directamente en el código).
 
 <Callout type="tip" title="Regla de oro">
 Siempre empieza con `let`. Solo cambia a `var` cuando realmente necesites mutar el valor. No es solo buena práctica — es darle al compilador la mejor información posible para optimizar tu código.
@@ -138,7 +138,7 @@ let multiline = """
     """
 ```
 
-Los strings merecen su propio artículo — y lo tendrán en el #3 de esta serie. Por ahora, lo que necesitas saber es que `String` es un **tipo de valor** en Swift (es un `struct`), pero su contenido real — los caracteres — se almacena en un buffer que puede vivir en el heap. Volveremos a esto.
+Los strings merecen su propio artículo — y lo tendrán en el #3 de esta serie. Por ahora, lo que necesitas saber es que `String` es un **tipo de valor** en Swift (es un `struct`). Un tipo de valor significa que cada variable guarda su propia copia independiente de los datos — no un enlace compartido a ellos. Lo opuesto, los tipos de referencia, los conoceremos cuando lleguemos a las clases. Pero su contenido real — los caracteres — se almacena en un buffer que puede vivir en el heap — una zona de memoria flexible pero más lenta que explicaremos cerca del final de este artículo. Volveremos a esto.
 
 ## Type Safety: el compilador como tu aliado
 
@@ -180,7 +180,7 @@ let realDivision = 10.0 / 3.0  // 3.333... (división decimal)
 
 Un detalle clave: la división entre enteros **descarta el decimal**. `10 / 3` es `3`, no `3.333`. Esto no es un bug — es el comportamiento correcto para la aritmética de enteros. Si quieres el resultado decimal, al menos uno de los operandos debe ser `Double`.
 
-Otro detalle importante: los operadores aritméticos de Swift **detectan overflow por defecto**. Si intentas sumar dos `Int8` que exceden su rango, tu app crashea en debug con un mensaje claro. Esto es intencional — es mejor un crash predecible que un resultado silenciosamente incorrecto.
+Otro detalle importante: los operadores aritméticos de Swift **detectan overflow por defecto**. Si intentas sumar dos `Int8` que exceden su rango, tu app crashea con un mensaje claro — tanto en builds de debug como de release. Un crash determinista es mejor que un resultado silenciosamente incorrecto. Si necesitas intencionalmente el comportamiento de wrapping (como en C), usa los operadores especiales `&+` / `&-` / `&*`.
 
 ```swift
 // Si necesitas overflow wrapping (como en C), usa los operadores especiales:
@@ -214,6 +214,8 @@ if user != nil && user!.isActive {
     // Seguro — nunca llegamos al force unwrap si user es nil
 }
 ```
+
+`user!` hace force-unwrap del opcional (afirma que no es nil) — crashea si lo es, por eso la comprobación de nil lo protege. La cobertura completa de opcionales está en el #11.
 
 ### El operador ternario
 
@@ -252,6 +254,8 @@ let firstTwo = names[..<2]    // ["Ana", "Bob"]
 let fromThird = names[2...]   // ["Carlos", "Diana"]
 ```
 
+Nota: los subscripts de rango devuelven un `ArraySlice<String>`, no un nuevo `Array`; envuélvelo con `Array(names[..<2])` si necesitas un array fresco.
+
 El rango semi-abierto (`0..<array.count`) es particularmente útil para iterar arrays — y es tan común que Swift ofrece alternativas aún más expresivas que veremos en artículos futuros.
 
 ## Tuplas: agrupación ligera
@@ -272,7 +276,7 @@ let (statusCode, _) = httpResponse
 print(statusCode)  // 200
 ```
 
-Las tuplas son **tipos de valor** compuestos. Su tamaño en memoria es la suma del tamaño de sus componentes. La tupla `(Int, Bool)` ocupa 9 bytes: 8 del `Int` + 1 del `Bool` (más posible padding de alineación).
+Las tuplas son **tipos de valor** compuestos. Su tamaño en memoria es la suma del tamaño de sus componentes. La tupla `(Int, Bool)` ocupa 9 bytes: 8 del `Int` + 1 del `Bool` (padding de alineación — bytes extra sin usar que el compilador a veces inserta para que los valores queden en direcciones de memoria que la CPU puede leer eficientemente). Estrictamente, 9 bytes es el `size` lógico; el `stride` real de almacenamiento es 16 bytes por la alineación de 8 bytes.
 
 <Callout type="info" title="¿Tuplas o structs?">
 Las tuplas son perfectas para retornos temporales de funciones. Pero si vas a reutilizar esa combinación de datos en varias partes de tu código, crea un `struct` con nombres claros. Las tuplas no pueden conformar protocolos ni tener métodos.
@@ -294,7 +298,7 @@ Un `typealias` no crea un tipo nuevo — es simplemente otro nombre para un tipo
 
 Llegamos a la parte que hace diferente a esta serie. Todo lo que acabamos de ver — `Int`, `Double`, `Bool`, tuplas, `let`, `var` — son **tipos de valor**. Y los tipos de valor, en la mayoría de los casos, viven en el **Stack**.
 
-Si ya leíste [Dominando Instruments (Parte 2)](/blog/dominando-instruments-stack-heap-simbolizacion), recordarás que el Stack es esa pila de memoria rápida y predecible donde cada función crea un "frame" al entrar y lo destruye al salir. No hay `malloc`, no hay `free`, no hay ARC. Solo un puntero que sube y baja.
+Si ya leíste [Dominando Instruments (Parte 2)](/blog/dominando-instruments-stack-heap-simbolizacion), recordarás que el Stack es esa pila de memoria rápida y predecible donde cada función crea un "frame" al entrar y lo destruye al salir. No hay `malloc`/`free` (las llamadas manuales de C para reservar/liberar memoria), no hay ARC — solo un puntero (un valor que contiene una dirección de memoria) que sube y baja.
 
 ![El Stack es una pila ordenada y rápida, el Heap es un almacén flexible pero costoso](./resources/stack-memory.png)
 
@@ -322,21 +326,21 @@ Todo este proceso es increíblemente rápido — mover un puntero es literalment
 Hay casos donde incluso un tipo de valor termina en el Heap:
 
 - Cuando es capturado por un **closure** (lo veremos en el artículo #6)
-- Cuando se almacena en un **contenedor existencial** (artículo #13)
+- Cuando se almacena en un **contenedor existencial** (una especie de caja para valores de protocolo — artículo #13)
 - Cuando el tipo de valor es demasiado grande para el stack
 - Los **tipos por referencia** (`class`, `actor`) siempre van al Heap
 
 Pero por ahora, con los tipos que hemos visto hoy, estamos firmemente en territorio del Stack. Y eso es una gran noticia para el rendimiento.
 
 <Callout type="tip" title="¿Por qué importa saber esto?">
-Cuando escribes código que opera con value types en el stack, estás escribiendo código que el compilador puede optimizar agresivamente. No hay conteo de referencias, no hay sincronización, no hay indirección. Es el tipo de código que hace que Swift sea rápido — y es el tipo de código que vas a escribir naturalmente si entiendes estos fundamentos.
+Cuando escribes código que opera con value types en el stack, estás escribiendo código que el compilador puede optimizar agresivamente. No hay conteo de referencias, no hay sincronización, no hay indirección (conceptos que desglosaremos más adelante). Es el tipo de código que hace que Swift sea rápido — y es el tipo de código que vas a escribir naturalmente si entiendes estos fundamentos.
 </Callout>
 
 ### El compilador como tu copiloto
 
 Algo que quiero que te quede de este primer artículo: **el compilador de Swift no es un obstáculo — es tu mejor herramienta**. Cada restricción que impone (type safety, overflow detection, conversiones explícitas) es una clase de bug que elimina antes de que tu código se ejecute.
 
-Piensa en el costo: cero en runtime. El compilador hace todo su trabajo antes de generar el binario. Cuando tu app corre en el dispositivo del usuario, no hay verificaciones de tipo, no hay checks de overflow (en release), no hay inferencia. Todo eso ya pasó. Lo que queda es código limpio, optimizado, que sabe exactamente con qué tipos está trabajando.
+Piensa en el costo: cero en runtime. El compilador hace todo su trabajo antes de generar el binario. Cuando tu app corre en el dispositivo del usuario, no hay verificaciones de tipo, no hay inferencia. Todo eso ya pasó. Lo que queda es código limpio, optimizado, que sabe exactamente con qué tipos está trabajando.
 
 <div class="pull-quote">
 El compilador de Swift no te pone obstáculos — te construye una autopista. Y cuanta más información le des (tipos explícitos, constantes con let, value types), más lisa es esa autopista.

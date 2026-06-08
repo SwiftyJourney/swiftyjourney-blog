@@ -21,6 +21,7 @@
 - Post files are named `en.{md,mdx}` and `es.{md,mdx}` inside a date folder. This repo assumes one post per day.
 - Frontmatter in `src/content/blog/` must include `title`, `description`, `pubDate`, and `lang`; `slug` sets the URL and `translationKey` links languages. `heroImage` is part of the schema but is not rendered in the editorial redesign.
 - Use coral tokens (`text-accent`, `bg-coral-500`, `border-border`) instead of raw hex or Tailwind zinc/orange. No `dark:` utilities — the site is light-only.
+- Design tokens are canonical in the site repo: see the "Design System" section of `swiftyjourney-site/CLAUDE.md` for the source of truth on colors, typography, and patterns. Keep this repo's `@theme` aligned with it rather than diverging.
 
 ## Testing Guidelines
 - No automated tests are configured. Validate changes with `npm run build` and spot-check routes using `npm run preview`.

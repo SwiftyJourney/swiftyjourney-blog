@@ -11,7 +11,6 @@ tags: ['swift', 'swift-cero-experto', 'swift-fundamentals']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
-import FunctionTypesVisualizer from '../../../../../components/blog/FunctionTypesVisualizer';
 
 En el [artículo anterior](/es/blog/swift-cero-experto-control-flujo) dominamos el control de flujo — `switch` con pattern matching, `guard` como filosofía, y cómo el compilador convierte tus decisiones en jump tables. Hoy damos un paso que cambia todo: las funciones.
 
@@ -117,6 +116,8 @@ greet(person: "Bill", from: "Cupertino")
 - `person` es tanto label como parameter name (el default)
 - `from` es el argument label, `hometown` es el parameter name
 
+![Dos paneles: el call site greet(person: "Bill", from: "Cupertino") con person y from marcados como argument labels, y el cuerpo de la función usando person y hometown como parameter names](./resources/argument-labels.png)
+
 ¿Por qué? Porque Swift hereda la filosofía de Objective-C de que las llamadas a funciones deben leerse como **oraciones en inglés**. `greet(person: "Bill", from: "Cupertino")` se lee naturalmente.
 
 ### Omitir el label con `_`
@@ -141,7 +142,7 @@ connect(to: "api.example.com", port: 8080)    // secure=true
 connect(to: "api.example.com", secure: false)  // port=443
 ```
 
-Los parámetros con defaults van al final. El compilador genera variantes de la función para cada combinación — es compile-time sugar, sin overhead en runtime.
+Los parámetros con defaults van al final. Los argumentos por defecto los sintetiza el compilador y los inyecta en el call site — no se generan overloads extra. La expresión por defecto se evalúa en cada llamada que la omite, así que es prácticamente gratis para literales pero no necesariamente de costo cero (por ejemplo, un default de `Date()` se ejecuta cada vez).
 
 ### Variadic Parameters
 
@@ -181,8 +182,10 @@ print("x is \(x), y is \(y)")
 El `&` al pasar el argumento indica que la función puede modificar esa variable. Es explícito — no hay mutaciones ocultas.
 
 <Callout type="info" title="inout y el compilador">
-La semántica oficial de `inout` es **copy-in copy-out**: el valor se copia al entrar a la función y se copia de vuelta al salir. Pero el compilador optimiza esto a **pass-by-reference** siempre que puede — especialmente cuando la variable original es local y no hay aliasing. Resultado: la semántica de valor se mantiene, pero el rendimiento es el de una referencia.
+La semántica oficial de `inout` es **copy-in copy-out**: el valor se copia al entrar a la función y se copia de vuelta al salir. Pero el compilador optimiza esto a **pass-by-reference** siempre que puede — especialmente cuando la variable original es local y no hay aliasing (ningún otro nombre apuntando a la misma variable al mismo tiempo). Resultado: la semántica de valor se mantiene (los value types como `Int` o un struct se copian al pasarlos; semántica de valor significa que la variable de quien llama se comporta como si hubiera recibido su propia copia independiente), pero el rendimiento es el de una referencia.
 </Callout>
+
+![Lado a lado: el modelo copy-in/copy-out (el valor se copia al entrar, se muta y se copia de vuelta al salir) frente a la ruta optimizada pass-by-reference (la dirección se pasa directamente y se muta en su lugar sin copias)](./resources/inout-copy-vs-reference.png)
 
 ## Function Types: las funciones como valores
 
@@ -209,11 +212,9 @@ print(mathFunction(2, 3))  // 6
 
 ![El ave Swift mostrando que una función cabe dentro de una variable como cualquier valor](./resources/function-types.png)
 
-Pruébalo tú mismo — asigna diferentes funciones a la misma variable, ajusta los argumentos y observa cómo el resultado cambia pero el tipo siempre es `(Int, Int) -> Int`:
+Asigna diferentes funciones a la misma variable y el resultado cambia — pero el tipo siempre es `(Int, Int) -> Int`:
 
-<div class="interactive-content">
-  <FunctionTypesVisualizer client:load lang="es" />
-</div>
+![Una variable mathFunction con tipo (Int, Int) -> Int donde la etiqueta del tipo permanece fija mientras addTwoInts y multiplyTwoInts se intercambian como la función asignada](./resources/function-types-swap.png)
 
 <div class="pull-quote">
 Cuando una función cabe en una variable, deja de ser "algo que ejecutas" y se convierte en "algo que manipulas". Eso es lo que significa ser first-class citizen.
@@ -232,7 +233,7 @@ printMathResult(addTwoInts, 3, 5)       // "Result: 8"
 printMathResult(multiplyTwoInts, 3, 5)  // "Result: 15"
 ```
 
-`printMathResult` no sabe ni le importa qué hace `operation` — solo sabe que acepta dos `Int` y retorna un `Int`. Esto es **polimorfismo a través de tipos de función** — uno de los pilares de la programación funcional.
+`printMathResult` no sabe ni le importa qué hace `operation` — solo sabe que acepta dos `Int` y retorna un `Int`. Esto es **polimorfismo** (el mismo código funcionando con muchos comportamientos distintos) **a través de tipos de función** — uno de los pilares de la programación funcional.
 
 ### Funciones como valor de retorno
 
@@ -272,7 +273,7 @@ func chooseStepFunction(backward: Bool) -> (Int) -> Int {
 
 Las nested functions están ocultas del mundo exterior — solo su función contenedora puede verlas. Pero cuando una nested function es **retornada** fuera de su scope, se convierte en algo más poderoso: un **closure**.
 
-¿Por qué? Porque puede **capturar** variables del scope que la rodea. Y eso tiene implicaciones directas en memoria — que exploraremos a fondo en el próximo artículo.
+¿Por qué? Porque puede **capturar** (mantener una referencia a) variables del scope que la rodea para que sigan vivas después de que la función externa retorne. Y eso tiene implicaciones directas en memoria — que exploraremos a fondo en el próximo artículo.
 
 <Callout type="tip" title="Preview del artículo #6">
 Una nested function que captura variables externas necesita que esas variables sobrevivan más allá del scope donde fueron creadas. Swift resuelve esto alocando esas variables en el **heap** en lugar del stack. Eso es exactamente lo que es un closure — y es la razón por la que los closures son reference types.
@@ -308,9 +309,11 @@ func increment(_ value: inout Int) {
 
 Semánticamente es copy-in/copy-out. Pero el compilador genera:
 - **Pass-by-reference** cuando puede demostrar que no hay aliasing
-- **Copy-in/copy-out real** solo cuando hay acceso concurrente o aliasing potencial
+- **Copy-in/copy-out real** solo cuando el argumento no tiene una dirección estable (por ejemplo, una computed property o un subscript)
 
-La exclusivity rule de Swift (que veremos en el artículo #17) es lo que hace posible esta optimización — el compilador puede asumir acceso exclusivo gracias a las reglas del lenguaje.
+La exclusivity rule de Swift (un solo acceso a una variable a la vez — artículo #17) es lo que hace posible esta optimización — el compilador puede asumir acceso exclusivo gracias a las reglas del lenguaje.
+
+![Diagrama de segmentos de memoria con tres regiones: __TEXT para el código de la función de solo lectura y compartido, el stack frame para los parámetros value type, las variables locales y el puntero de función de 8 bytes, y el closure context en el heap creado solo cuando una función captura variables](./resources/function-memory-segments.png)
 
 <InfoBox title="Funciones y memoria — resumen">
 - Código de la función → **`__TEXT`** segment (de solo lectura, compartido)
@@ -327,8 +330,8 @@ El compilador de Swift puede hacer cosas impresionantes con funciones:
 
 - **Inlining**: si la función es pequeña, el compilador copia su código directamente en el call site, eliminando el overhead de la llamada
 - **Constant folding**: si los argumentos son constantes conocidas en compilación, el compilador puede calcular el resultado sin generar una llamada
-- **Dead code elimination**: si el resultado de una función no se usa, el compilador puede eliminar la llamada por completo (si no tiene side effects)
-- **Specialization**: para funciones genéricas, el compilador genera versiones especializadas para cada tipo concreto
+- **Dead code elimination**: si el resultado de una función no se usa, el compilador puede eliminar la llamada por completo (si no tiene side effects — no imprime, no muta estado externo, ni hace nada observable más allá de retornar un valor)
+- **Specialization**: para funciones genéricas (los generics — cubiertos en un artículo posterior), el compilador genera versiones especializadas para cada tipo concreto
 
 <div class="pull-quote">
 Una función no es solo código — es un contrato con el compilador. Los tipos de parámetros, el tipo de retorno, la ausencia de side effects: todo eso es información que el compilador usa para optimizar.

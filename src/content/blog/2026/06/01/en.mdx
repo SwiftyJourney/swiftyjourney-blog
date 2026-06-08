@@ -11,11 +11,10 @@ tags: ['swift', 'swift-zero-expert', 'swift-fundamentals']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
-import EnumMemoryVisualizer from '../../../../../components/blog/EnumMemoryVisualizer';
 
 In the [previous article](/en/blog/swift-zero-expert-closures) we discovered that closures are **reference types** that live on the heap when they escape. Today we shift gears entirely: **enumerations** are value types that the compiler optimizes so aggressively they can be represented with just 2 bits.
 
-If you come from C or Java, you probably think of enums as a list of named integers. In Swift, an enum is a **full algebraic type** — with methods, computed properties, associated values of different types, protocol conformance, and even recursion. They're one of the most expressive tools in the language, and understanding how the compiler represents them in memory will change how you design them.
+If you come from C or Java, you probably think of enums as a list of named integers. In Swift, an enum is a **sum type** — meaning a value that is exactly ONE of several possible shapes at a time (north OR south, a UPC OR a QR code), known in type theory as a *full algebraic type* — with methods, computed properties, associated values of different types, protocol conformance, and even recursion. They're one of the most expressive tools in the language, and understanding how the compiler represents them in memory will change how you design them.
 
 <div class="pull-quote">
 A Swift enum is not a list of disguised integers — it's a full algebraic type that the compiler can represent in as few as 2 bits.
@@ -111,7 +110,7 @@ func navigate(_ point: CompassPoint) {
 ## CaseIterable — iterating over all cases
 
 <Callout type="info" title="Definition: CaseIterable">
-The **CaseIterable** protocol tells the compiler to synthesize an `allCases` property that returns a collection with all possible enum values.
+A **protocol** is a checklist of capabilities a type can declare it supports (full coverage in article #13). When a type adopts `CaseIterable`, the compiler auto-writes the required code for you — that's what **synthesize** means here. Specifically, it gives the enum an `allCases` property that returns a collection with all possible enum values.
 </Callout>
 
 ```swift
@@ -177,6 +176,8 @@ let unknown = Planet(rawValue: 99)         // nil — doesn't exist
 ```
 
 This connects directly with optionals, which we'll explore in depth in article #11.
+
+![Byte diagram showing a Planet instance stays 1 byte (the tag) while raw values live in a separate compile-time lookup table](./resources/enum-raw-values-metadata.png)
 
 <Callout type="tip" title="Memory fact">
 Raw values are **not stored** in each enum instance. They're compile-time metadata — the compiler generates a lookup table, but each instance still uses only the tag size (1 byte for enums with few cases). We'll verify this in the memory section.
@@ -246,7 +247,7 @@ func handle(_ response: NetworkResponse) {
 }
 ```
 
-Notice the `where` — you can filter within the same case to handle subcases. The combination of associated values + pattern matching + where clauses is incredibly powerful.
+Notice the `where` — you can filter within the same case to handle subcases. `where` adds an extra condition: the case only matches if its pattern fits AND the `where` test is true; otherwise Swift keeps checking the cases below. The combination of associated values + pattern matching + where clauses is incredibly powerful.
 
 ![The capybara holding boxes of different sizes while the Swift bird explains the space each one takes](./resources/associated-values-memory.png)
 
@@ -370,7 +371,7 @@ The combination of cases + mutating methods makes enums excellent **state machin
 
 ## Protocols and automatic synthesis
 
-The Swift compiler can automatically synthesize conformance to several protocols for enums:
+The Swift compiler can automatically synthesize *conformance* to several protocols for enums — *conformance* simply means the type satisfies the protocol's checklist, and here the compiler writes that code for you:
 
 ```swift
 // Equatable and Hashable — automatic for enums WITHOUT associated values
@@ -419,14 +420,6 @@ let data = try JSONEncoder().encode(code)
 
 Unlabeled parameters get generated keys (`_0`, `_1`). If you want custom keys, you can declare `CodingKeys` per case.
 
-## Exploring memory
-
-Navigate through the interactive component to see how the memory layout changes based on the enum type:
-
-<div class="interactive-content">
-  <EnumMemoryVisualizer client:load lang="en" />
-</div>
-
 ## The memory behind enums
 
 Now let's connect everything to our memory thread — the part that separates a developer who *uses* enums from one who *understands* them.
@@ -451,6 +444,8 @@ The compiler chooses the smallest possible representation:
 - **Empty enum (0 cases)** → 0 bytes (uninhabitable type)
 </InfoBox>
 
+![Byte diagram of a 4-case enum: a single byte with 2 bits used for the tag and 6 bits unused](./resources/enum-tag-bits.png)
+
 ### Associated values: the largest case wins
 
 When the enum has associated values, the size is: **tag + largest case's payload**.
@@ -465,7 +460,9 @@ MemoryLayout<Barcode>.size       // 33 bytes (32 payload + 1 tag)
 MemoryLayout<Barcode>.stride     // 40 bytes (alignment to 8 bytes)
 ```
 
-When `Barcode` is `.qrCode`, it uses 16 of the 32 payload bytes — the other 16 go unused. That's the price of having a fixed size for the type.
+These exact figures aren't language guarantees: on a 64-bit platform, current toolchains report 33/40 bytes here, but the numbers are platform- and toolchain-dependent implementation details. When `Barcode` is `.qrCode`, it uses 16 of the 32 payload bytes — the other 16 go unused. That's the price of having a fixed size for the type.
+
+![Byte-bar diagram comparing Barcode cases: .upc fills the 32-byte payload, .qrCode uses 16 bytes and wastes 16, both plus a 1-byte tag for 33 bytes total](./resources/enum-associated-values-size.png)
 
 ### Spare bit optimization
 
@@ -480,6 +477,8 @@ How? `Bool` only uses two bit patterns: `0` (false) and `1` (true). A byte has 2
 
 For reference types (classes), it's even better: `Optional<AnyObject>` needs **no extra bytes** because the compiler uses the null pointer (`0x0`) to represent `.none`. That's why `Optional<String>.size == String.size` — the tag is free.
 
+![Diagram of the spare bit optimization: Bool? fits in 1 byte by using bit pattern 2 for .none, and String? uses the null pointer 0x0 as .none for zero extra bytes](./resources/enum-optional-spare-bit.png)
+
 ### indirect: the cost of the heap
 
 When an enum uses `indirect`, each recursive case stores an **8-byte pointer** to the heap instead of the value directly:
@@ -489,6 +488,8 @@ MemoryLayout<ArithmeticExpression>.size  // 8 bytes (just the pointer)
 ```
 
 Without `indirect`, the compiler would need to calculate: size of `ArithmeticExpression` = size of `ArithmeticExpression` + size of `ArithmeticExpression` + ... — an unsolvable equation. The pointer breaks the recursion and fixes the size.
+
+![Diagram of an indirect enum: an 8-byte heap pointer stored inline points to a heap-allocated .addition box holding tag, left and right cases](./resources/enum-indirect-heap.png)
 
 The cost: each recursive instance means a `malloc` to the heap, with its refcount and eventual `free`. It's the same trade-off we saw with escaping closures in article #6.
 
@@ -519,6 +520,8 @@ var handle = FileHandle.open(descriptor: 42)
 handle.close()  // consumes the value
 // handle is no longer usable here — the compiler guarantees it
 ```
+
+Don't worry about the `~` and `consuming` syntax now — it's an advanced ownership feature you'll meet later.
 
 ### @nonexhaustive — SE-0487
 
@@ -555,7 +558,7 @@ For C interoperability:
 ```
 
 <Callout type="info" title="About versions">
-`~Copyable` requires Swift 5.9+, `@nonexhaustive` requires Swift 6.2+, and `@c` requires Swift 6.3. You don't need to use them today, but knowing they exist prepares you for when you need them — especially if you write libraries or systems code.
+`~Copyable` requires Swift 5.9+, `@nonexhaustive` requires Swift 6.2.3+ (a recent Swift 6.2 toolchain), and `@c` requires Swift 6.3. You don't need to use them today, but knowing they exist prepares you for when you need them — especially if you write libraries or systems code.
 </Callout>
 
 ## Recap
@@ -589,5 +592,5 @@ Swift enumerations are full algebraic types — each case is a value with meanin
 - [SE-0266: Synthesized Comparable conformance for enum types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0266-synthesized-comparable-for-enumerations.md)
 - [SE-0295: Codable synthesis for enums with associated values](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0295-codable-synthesis-for-enums-with-associated-values.md)
 - [SE-0390: Noncopyable structs and enums](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0390-noncopyable-structs-and-enums.md)
-- [SE-0487: Non-exhaustive enums](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0487-non-exhaustive-enums.md)
+- [SE-0487: Nonexhaustive enums](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0487-non-exhaustive-enums.md)
 - [SE-0495: C interop enums](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0495-c-enums.md)

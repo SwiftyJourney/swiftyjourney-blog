@@ -11,7 +11,6 @@ tags: ['swift', 'swift-cero-experto', 'swift-fundamentals']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
-import ClosureCaptureVisualizer from '../../../../../components/blog/ClosureCaptureVisualizer';
 
 En el [artículo anterior](/es/blog/swift-cero-experto-funciones) descubrimos que las funciones en Swift son ciudadanos de primera clase — valores que puedes almacenar, pasar y retornar. Hoy damos el paso que cambia todo: los **closures**.
 
@@ -165,11 +164,9 @@ func makeIncrementer(forIncrement amount: Int) -> () -> Int {
 
 Swift resuelve esto moviendo `runningTotal` y `amount` a una **capture box en el heap**. El closure apunta a esa box, y cada vez que lo llamas, accede a las variables ahí.
 
-Navega paso a paso para ver cómo funciona:
+Paso a paso, así es como las variables capturadas se mueven del stack a una capture box en el heap:
 
-<div class="interactive-content">
-  <ClosureCaptureVisualizer client:load lang="es" />
-</div>
+![Diagrama de cinco estados: un stack frame con runningTotal y amount; al retornar el closure se mueven a una capture box en el heap (refCount 1); las llamadas repetidas mutan runningTotal en esa box; un segundo closure obtiene su propia box independiente; asignar el closure comparte la misma box y sube su refCount a 2](./resources/closure-capture.png)
 
 ```swift
 let incrementByTen = makeIncrementer(forIncrement: 10)
@@ -220,7 +217,7 @@ let c2 = c1  // c2 apunta al MISMO closure — no hay copia
 Este es uno de los conceptos que más confusión genera — y el que más impacta en memoria. Necesitamos definirlo con claridad.
 
 <Callout type="info" title="Definición: Escaping Closure">
-Un closure **escapa** (escapes) una función cuando sobrevive más allá de la ejecución de esa función. Esto sucede cuando el closure se guarda en una variable externa, se almacena en un array, o se ejecuta de forma asíncrona después de que la función retorna.
+Un closure **escapa** (escapes) una función cuando sobrevive más allá de la ejecución de esa función. Esto sucede cuando el closure se guarda en una variable externa, se almacena en un array, o se ejecuta de forma asíncrona después de que la función retorna. (El código asíncrono — código que termina más tarde, como una respuesta de red — se cubre en el artículo #16.)
 </Callout>
 
 <Callout type="info" title="Definición: Non-escaping Closure">
@@ -248,7 +245,7 @@ func saveForLater(closure: @escaping () -> Void) {
 - **@escaping**: el closure debe vivir en el **heap** porque necesita sobrevivir. El capture context se aloca con `malloc`, tiene refcount, y se libera con ARC cuando ya no hay referencias.
 
 <Callout type="warning" title="self explícito en escaping closures">
-En un escaping closure dentro de una clase, debes escribir `self` explícitamente al acceder a propiedades. Esto es intencional — Swift te obliga a ser consciente de que estás capturando `self`, porque es fácil crear **retain cycles** (referencias circulares que nunca se liberan). Profundizaremos en esto en el artículo #16 sobre ARC.
+En un escaping closure dentro de una clase, debes escribir `self` explícitamente al acceder a propiedades. Esto es intencional — Swift te obliga a ser consciente de que estás capturando `self` — cómo una instancia se refiere a sí misma desde dentro de sus propios métodos — porque es fácil crear **retain cycles** (referencias circulares que nunca se liberan). Profundizaremos en esto en el artículo #16 sobre ARC.
 
 ```swift
 class DataLoader {
@@ -269,6 +266,8 @@ Hasta ahora, las capturas han sido automáticas — Swift decide qué capturar y
 
 <Callout type="info" title="Definición: Capture List">
 Una **capture list** es una lista de instrucciones entre corchetes `[]` al inicio de un closure que especifica *cómo* capturar las variables. Puedes capturar por valor (copia), por referencia weak, o por referencia unowned.
+
+Una referencia *weak* no mantiene vivo al objeto — si todo lo demás lo libera, el objeto se destruye y la referencia weak se vuelve `nil` automáticamente (por eso `self` es opcional dentro del closure). Una referencia normal es *strong*: mantiene vivo al objeto mientras la referencia exista.
 </Callout>
 
 ### Captura por valor vs por referencia
@@ -316,7 +315,7 @@ class ViewController {
 
 <InfoBox title="¿Cuándo usar cuál?">
 - `[weak self]` → Cuando el closure puede sobrevivir al objeto. Ejemplo: timers, network requests, animaciones. **Es la opción segura por defecto.**
-- `[unowned self]` → Cuando estás seguro de que self vivirá más que el closure. Más rápido que weak (no necesita side table), pero crashea si te equivocas.
+- `[unowned self]` → Cuando estás seguro de que self vivirá más que el closure. Más rápido que weak (menos trabajo de registro para el runtime), pero crashea si te equivocas.
 - `[value]` → Cuando quieres congelar el valor actual en lugar de capturar la referencia.
 </InfoBox>
 
@@ -337,6 +336,8 @@ func serve(customer provider: () -> String) {
 }
 serve(customer: { customers.remove(at: 0) })
 
+// Ahora reescrito con @autoclosure (reemplaza la versión de arriba —
+// no declares ambas en el mismo scope o tendrás un error de redeclaración).
 // Con @autoclosure — se ve como una llamada normal
 func serve(customer provider: @autoclosure () -> String) {
     print("Serving \(provider())!")
@@ -393,16 +394,7 @@ Llegamos a la sección que conecta todo con nuestro hilo de memoria.
 
 Un closure en Swift no es solo un puntero a código. Es una estructura de dos partes:
 
-```
-┌─────────────────────────┐
-│     Closure             │
-│  ┌───────────────────┐  │
-│  │ function pointer   │──── → código en __TEXT
-│  ├───────────────────┤  │
-│  │ capture context    │──── → capture box en el heap
-│  └───────────────────┘  │
-└─────────────────────────┘
-```
+![Anatomía de un closure: una estructura Closure con dos slots — un function pointer que apunta a código compartido de solo lectura en el segmento __TEXT, y un capture context que apunta a una capture box en el heap con runningTotal y amount y un refCount](./resources/closure-anatomy.png)
 
 1. **Function pointer** — apunta al código ejecutable en `__TEXT` (igual que una función normal)
 2. **Capture context** — apunta a la capture box en el heap donde viven las variables capturadas
@@ -452,8 +444,8 @@ El compilador de Swift no se queda ahí:
 - **Capture optimization**: si una variable capturada no se muta, el compilador puede capturar una copia en lugar de una referencia (evitando la capture box)
 
 <InfoBox title="Closures y memoria — resumen">
-- **Non-escaping closure sin capturas** → Zero cost, puede vivir en registros
-- **Non-escaping closure con capturas** → Stack allocation, zero heap cost
+- **Non-escaping closure sin capturas** → Zero cost, puede vivir en registros (registros del CPU — el almacenamiento más rápido)
+- **Non-escaping closure con capturas** → puede alocarse en el stack (típicamente zero heap cost)
 - **@escaping closure** → Heap allocation obligatorio (capture box + refcount)
 - **Closures en map/filter/reduce** → El compilador puede inlinear, eliminando overhead
 - **Cada capture box** → malloc + refcount + eventual free

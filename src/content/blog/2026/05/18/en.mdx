@@ -11,7 +11,6 @@ tags: ['swift', 'swift-zero-expert', 'swift-fundamentals']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
-import FunctionTypesVisualizer from '../../../../../components/blog/FunctionTypesVisualizer';
 
 In the [previous article](/blog/swift-zero-expert-control-flow) we mastered control flow — `switch` with pattern matching, `guard` as a philosophy, and how the compiler turns your decisions into jump tables. Today we take a step that changes everything: functions.
 
@@ -117,6 +116,8 @@ greet(person: "Bill", from: "Cupertino")
 - `person` is both label and parameter name (the default)
 - `from` is the argument label, `hometown` is the parameter name
 
+![Two panels: the call site greet(person: "Bill", from: "Cupertino") with person and from marked as argument labels, and the function body using person and hometown as parameter names](./resources/argument-labels.png)
+
 Why? Because Swift inherits Objective-C's philosophy that function calls should read like **English sentences**. `greet(person: "Bill", from: "Cupertino")` reads naturally.
 
 ### Omitting the label with `_`
@@ -141,7 +142,7 @@ connect(to: "api.example.com", port: 8080)    // secure=true
 connect(to: "api.example.com", secure: false)  // port=443
 ```
 
-Parameters with defaults go last. The compiler generates function variants for each combination — it's compile-time sugar with no runtime overhead.
+Parameters with defaults go last. Default arguments are synthesized by the compiler and supplied at the call site — no extra overloads are generated. The default expression is evaluated at each call that omits it, so it's essentially free for literals but not necessarily zero-cost (e.g., a default of `Date()` runs every time).
 
 ### Variadic Parameters
 
@@ -181,8 +182,10 @@ print("x is \(x), y is \(y)")
 The `&` when passing the argument indicates the function can modify that variable. It's explicit — no hidden mutations.
 
 <Callout type="info" title="inout and the compiler">
-The official semantics of `inout` is **copy-in copy-out**: the value is copied into the function and copied back out when it returns. But the compiler optimizes this to **pass-by-reference** whenever it can — especially when the original variable is local with no aliasing. Result: value semantics are maintained, but performance is that of a reference.
+The official semantics of `inout` is **copy-in copy-out**: the value is copied into the function and copied back out when it returns. But the compiler optimizes this to **pass-by-reference** whenever it can — especially when the original variable is local with no aliasing (no other name pointing at the same variable at the same time). Result: value semantics are maintained (value types like `Int` or a struct are copied when passed; value semantics means the caller's variable behaves as if it received its own independent copy), but performance is that of a reference.
 </Callout>
+
+![Side by side: the copy-in/copy-out model (value copied in, mutated, copied out) versus the optimized pass-by-reference path (address passed directly, mutated in place with no copies)](./resources/inout-copy-vs-reference.png)
 
 ## Function Types: functions as values
 
@@ -209,11 +212,9 @@ print(mathFunction(2, 3))  // 6
 
 ![The Swift bird showing that a function fits inside a variable like any value](./resources/function-types.png)
 
-Try it yourself — assign different functions to the same variable, adjust the arguments, and watch how the result changes but the type is always `(Int, Int) -> Int`:
+Assign different functions to the same variable and the result changes — but the type is always `(Int, Int) -> Int`:
 
-<div class="interactive-content">
-  <FunctionTypesVisualizer client:load lang="en" />
-</div>
+![A variable mathFunction typed (Int, Int) -> Int with the type label fixed while addTwoInts and multiplyTwoInts swap in as the assigned function](./resources/function-types-swap.png)
 
 <div class="pull-quote">
 When a function fits in a variable, it stops being "something you execute" and becomes "something you manipulate." That's what being a first-class citizen means.
@@ -232,7 +233,7 @@ printMathResult(addTwoInts, 3, 5)       // "Result: 8"
 printMathResult(multiplyTwoInts, 3, 5)  // "Result: 15"
 ```
 
-`printMathResult` doesn't know or care what `operation` does — it only knows it accepts two `Int`s and returns an `Int`. This is **polymorphism through function types** — one of the pillars of functional programming.
+`printMathResult` doesn't know or care what `operation` does — it only knows it accepts two `Int`s and returns an `Int`. This is **polymorphism** (the same code working with many different behaviors) **through function types** — one of the pillars of functional programming.
 
 ### Functions as return values
 
@@ -272,7 +273,7 @@ func chooseStepFunction(backward: Bool) -> (Int) -> Int {
 
 Nested functions are hidden from the outside world — only their enclosing function can see them. But when a nested function is **returned** outside its scope, it becomes something more powerful: a **closure**.
 
-Why? Because it can **capture** variables from the surrounding scope. And that has direct memory implications — which we'll explore in depth in the next article.
+Why? Because it can **capture** (keep a reference to) variables from the surrounding scope so they stay alive after the outer function returns. And that has direct memory implications — which we'll explore in depth in the next article.
 
 <Callout type="tip" title="Preview of article #6">
 A nested function that captures external variables needs those variables to survive beyond the scope where they were created. Swift solves this by allocating those variables on the **heap** instead of the stack. That's exactly what a closure is — and it's the reason closures are reference types.
@@ -308,9 +309,11 @@ func increment(_ value: inout Int) {
 
 Semantically it's copy-in/copy-out. But the compiler generates:
 - **Pass-by-reference** when it can prove there's no aliasing
-- **Actual copy-in/copy-out** only when there's concurrent access or potential aliasing
+- **Actual copy-in/copy-out** only when the argument has no stable address (e.g., a computed property or subscript)
 
-Swift's exclusivity rule (which we'll cover in article #17) is what makes this optimization possible — the compiler can assume exclusive access thanks to the language's rules.
+Swift's exclusivity rule (only one access to a variable at a time — article #17) is what makes this optimization possible — the compiler can assume exclusive access thanks to the language's rules.
+
+![Memory-segment diagram with three regions: __TEXT for the read-only shared function code, the stack frame for value parameters, locals and the 8-byte function pointer, and the heap closure context created only when a function captures variables](./resources/function-memory-segments.png)
 
 <InfoBox title="Functions and memory — summary">
 - Function code → **`__TEXT`** segment (read-only, shared)
@@ -327,8 +330,8 @@ Swift's compiler can do impressive things with functions:
 
 - **Inlining**: if the function is small, the compiler copies its code directly into the call site, eliminating call overhead
 - **Constant folding**: if arguments are compile-time constants, the compiler can calculate the result without generating a call
-- **Dead code elimination**: if a function's result isn't used, the compiler can remove the call entirely (if it has no side effects)
-- **Specialization**: for generic functions, the compiler generates specialized versions for each concrete type
+- **Dead code elimination**: if a function's result isn't used, the compiler can remove the call entirely (if it has no side effects — it doesn't print, mutate external state, or do anything observable beyond returning a value)
+- **Specialization**: for generic functions (generics — covered in a later article), the compiler generates specialized versions for each concrete type
 
 <div class="pull-quote">
 A function isn't just code — it's a contract with the compiler. Parameter types, return type, absence of side effects: all of that is information the compiler uses to optimize.

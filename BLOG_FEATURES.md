@@ -33,7 +33,7 @@ struct MiVista: View {
 
 ### Características Automáticas
 
-1. **Temas Duales**: Automáticamente cambia entre `github-light` y `one-dark-pro`
+1. **Tema Único**: Usa el tema `github-light` (sin modo oscuro ni cambio automático)
 2. **Botón de Copia**: Aparece al hacer hover sobre cualquier bloque de código
 3. **Números de Línea**: Disponibles para bloques largos
 4. **Etiquetas de Lenguaje**: Aparecen automáticamente en la esquina superior derecha
@@ -243,18 +243,26 @@ struct LoginView: View {
 ### Variables CSS Disponibles
 
 ```css
-/* Colores principales */
---color-primary: #f97316;  /* Orange-500 */
---color-primary-dark: #ea580c;  /* Orange-600 */
+/* Escala coral (acento de marca) */
+--color-coral-500: #EC695B;
+--color-coral-600: #DC5648;
 
-/* Colores de texto */
---color-text: #374151;  /* Gray-700 */
---color-text-dark: #d1d5db;  /* Gray-300 */
+/* Alias de acento (úsalos en los componentes) */
+--color-accent:       var(--color-coral-500);  /* #EC695B */
+--color-accent-hover: var(--color-coral-600);  /* #DC5648 */
 
-/* Backgrounds */
---color-bg: #ffffff;
---color-bg-dark: #111827;
+/* Neutros cálidos */
+--color-bg:            #F5F3EF;  /* fondo crema cálido */
+--color-surface:       #FFFFFF;
+--color-surface-alt:   #EBE8E2;
+--color-text:          #0B0B0C;  /* casi negro */
+--color-text-muted:    #5B5B60;
+--color-text-subtle:   #8A8A90;
+--color-border:        #E2DED7;
+--color-border-strong: #CFC9BF;
 ```
+
+> **Nota:** el tema es **light-only** — no existen variables `*-dark` ni modo oscuro. No introduzcas naranjas (`#f97316`) ni tokens de dark mode.
 
 ### Clases Utility Disponibles
 

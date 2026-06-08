@@ -11,7 +11,6 @@ tags: ['swift', 'swift-zero-expert', 'swift-fundamentals']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
-import JumpTableVisualizer from '../../../../../components/blog/JumpTableVisualizer';
 
 In the [previous article](/blog/swift-zero-expert-strings-characters) we discovered that Strings in Swift are much more than text — they're collections of grapheme clusters with deep memory implications. Today we'll explore how Swift makes decisions: control flow.
 
@@ -25,7 +24,7 @@ Control flow is where a language shows its personality. And Swift has plenty of 
 
 ## For-In Loops: iterating over everything
 
-`for-in` is the most natural way to traverse sequences in Swift — arrays, dictionaries, ranges, strings, anything that conforms to `Sequence`.
+`for-in` is the most natural way to traverse sequences in Swift — arrays, dictionaries, ranges, strings, anything iterable (technically, any type that conforms to the `Sequence` protocol — more on protocols in a later article).
 
 ```swift
 // Iterating an array
@@ -346,6 +345,8 @@ func readFile(at path: String) throws -> String {
 }
 ```
 
+(`throws` and `try?` are Swift's error-handling syntax — covered in a later article; focus here on how `defer` runs on every exit path.)
+
 Multiple defers execute in **reverse** order (LIFO):
 
 ```swift
@@ -360,6 +361,8 @@ func example() {
 // Second defer
 // First defer
 ```
+
+![Defer LIFO order: defers A, B, C are registered top-to-bottom, then executed in reverse — C, B, A — when the scope exits](./resources/defer-lifo.png)
 
 <Callout type="tip" title="When to use defer?">
 For resource cleanup: closing files, releasing locks, restoring state. Place it right after acquiring the resource — that way it's impossible to forget cleanup.
@@ -460,11 +463,7 @@ default: handleUnknown()
 }
 ```
 
-Try it yourself — select a status code and compare how if/else vs jump table resolves it:
-
-<div class="interactive-content">
-  <JumpTableVisualizer client:load lang="en" />
-</div>
+![Jump table versus if/else chain: the left panel checks values 0, 1, 2, 3 one by one until a match (O(n)); the right panel indexes table[3] directly to the matching slot in a single lookup (O(1))](./resources/jump-table.png)
 
 <Callout type="info" title="When does the compiler generate a jump table?">
 Not always. The compiler decides based on the values:

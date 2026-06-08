@@ -11,7 +11,6 @@ tags: ['swift', 'swift-zero-expert', 'swift-fundamentals']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
-import ClosureCaptureVisualizer from '../../../../../components/blog/ClosureCaptureVisualizer';
 
 In the [previous article](/blog/swift-zero-expert-functions) we discovered that functions in Swift are first-class citizens — values you can store, pass, and return. Today we take the step that changes everything: **closures**.
 
@@ -165,11 +164,9 @@ func makeIncrementer(forIncrement amount: Int) -> () -> Int {
 
 Swift solves this by moving `runningTotal` and `amount` to a **capture box on the heap**. The closure points to that box, and every time you call it, it accesses the variables there.
 
-Navigate step by step to see how it works:
+Step by step, here is how the captured variables move from the stack to a capture box on the heap:
 
-<div class="interactive-content">
-  <ClosureCaptureVisualizer client:load lang="en" />
-</div>
+![Five-state diagram: a stack frame holding runningTotal and amount; the closure returned moves them to a capture box on the heap (refCount 1); repeated calls mutate runningTotal in that box; a second closure gets its own independent box; assigning the closure shares the same box and raises its refCount to 2](./resources/closure-capture.png)
 
 ```swift
 let incrementByTen = makeIncrementer(forIncrement: 10)
@@ -220,7 +217,7 @@ let c2 = c1  // c2 points to the SAME closure — no copy
 This is one of the most confusing concepts — and the one with the biggest memory impact. Let's define it clearly.
 
 <Callout type="info" title="Definition: Escaping Closure">
-A closure **escapes** a function when it survives beyond that function's execution. This happens when the closure is saved to an external variable, stored in an array, or executed asynchronously after the function returns.
+A closure **escapes** a function when it survives beyond that function's execution. This happens when the closure is saved to an external variable, stored in an array, or executed asynchronously after the function returns. (Asynchronous code — code that finishes later, like a network response — is covered in article #16.)
 </Callout>
 
 <Callout type="info" title="Definition: Non-escaping Closure">
@@ -248,7 +245,7 @@ Why does this matter? Because of **memory**:
 - **@escaping**: the closure must live on the **heap** because it needs to survive. The capture context is allocated with `malloc`, has a refcount, and is freed by ARC when there are no more references.
 
 <Callout type="warning" title="Explicit self in escaping closures">
-In an escaping closure inside a class, you must write `self` explicitly when accessing properties. This is intentional — Swift forces you to be aware that you're capturing `self`, because it's easy to create **retain cycles** (circular references that never get freed). We'll dive deep into this in article #16 on ARC.
+In an escaping closure inside a class, you must write `self` explicitly when accessing properties. This is intentional — Swift forces you to be aware that you're capturing `self` — how an instance refers to itself from inside its own methods — because it's easy to create **retain cycles** (circular references that never get freed). We'll dive deep into this in article #16 on ARC.
 
 ```swift
 class DataLoader {
@@ -269,6 +266,8 @@ So far, captures have been automatic — Swift decides what to capture and how. 
 
 <Callout type="info" title="Definition: Capture List">
 A **capture list** is a list of instructions in square brackets `[]` at the start of a closure that specifies *how* to capture variables. You can capture by value (copy), by weak reference, or by unowned reference.
+
+A *weak* reference doesn't keep the object alive — if everything else releases it, the object is freed and the weak reference automatically becomes `nil` (which is why `self` is optional inside the closure). A normal reference is *strong*: it keeps the object alive as long as the reference exists.
 </Callout>
 
 ### Capture by value vs by reference
@@ -316,7 +315,7 @@ class ViewController {
 
 <InfoBox title="When to use which?">
 - `[weak self]` → When the closure can outlive the object. Example: timers, network requests, animations. **The safe default choice.**
-- `[unowned self]` → When you're certain self will outlive the closure. Faster than weak (no side table needed), but crashes if you're wrong.
+- `[unowned self]` → When you're certain self will outlive the closure. Faster than weak (less bookkeeping for the runtime), but crashes if you're wrong.
 - `[value]` → When you want to freeze the current value instead of capturing the reference.
 </InfoBox>
 
@@ -337,6 +336,8 @@ func serve(customer provider: () -> String) {
 }
 serve(customer: { customers.remove(at: 0) })
 
+// Now rewritten with @autoclosure (replaces the version above —
+// don't declare both in the same scope or you'll get a redeclaration error).
 // With @autoclosure — looks like a regular call
 func serve(customer provider: @autoclosure () -> String) {
     print("Serving \(provider())!")
@@ -393,16 +394,7 @@ Time for the section that connects everything with our memory thread.
 
 A closure in Swift isn't just a pointer to code. It's a two-part structure:
 
-```
-┌─────────────────────────┐
-│     Closure             │
-│  ┌───────────────────┐  │
-│  │ function pointer   │──── → code in __TEXT
-│  ├───────────────────┤  │
-│  │ capture context    │──── → capture box on the heap
-│  └───────────────────┘  │
-└─────────────────────────┘
-```
+![Anatomy of a closure: a Closure struct with two slots — a function pointer that points to shared read-only code in the __TEXT segment, and a capture context that points to a capture box on the heap holding runningTotal and amount with a refCount](./resources/closure-anatomy.png)
 
 1. **Function pointer** — points to executable code in `__TEXT` (just like a regular function)
 2. **Capture context** — points to the capture box on the heap where captured variables live
@@ -452,8 +444,8 @@ Swift's compiler doesn't stop there:
 - **Capture optimization**: if a captured variable isn't mutated, the compiler can capture a copy instead of a reference (avoiding the capture box)
 
 <InfoBox title="Closures and memory — summary">
-- **Non-escaping closure without captures** → Zero cost, can live in registers
-- **Non-escaping closure with captures** → Stack allocation, zero heap cost
+- **Non-escaping closure without captures** → Zero cost, can live in registers (CPU registers — fastest storage)
+- **Non-escaping closure with captures** → can be stack-allocated (typically zero heap cost)
 - **@escaping closure** → Mandatory heap allocation (capture box + refcount)
 - **Closures in map/filter/reduce** → The compiler can inline, eliminating overhead
 - **Each capture box** → malloc + refcount + eventual free

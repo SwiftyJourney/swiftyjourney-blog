@@ -124,7 +124,11 @@ let family = "👨‍👩‍👧‍👦"
 print(family.count) // 1
 // One single Character composed of 7 Unicode scalars!
 // 👨 + ZWJ + 👩 + ZWJ + 👧 + ZWJ + 👦
+// ZWJ (Zero-Width Joiner) is an invisible Unicode scalar (U+200D)
+// that tells the text engine to fuse the surrounding emojis into one glyph.
 ```
+
+![Diagram showing the family emoji as a chain of 7 Unicode scalars (👨 U+1F468, ZWJ U+200D, 👩 U+1F469, ZWJ, 👧 U+1F467, ZWJ, 👦 U+1F466) collapsing into a single Character box where family.count equals 1](./resources/grapheme-cluster-zwj.png)
 
 <Callout type="tip" title="Why does this matter?">
 Because it means a `Character` in Swift can occupy a variable number of bytes in memory. You can't assume all characters are the same size. And that's exactly why `string[0]` doesn't exist.
@@ -171,8 +175,8 @@ for index in greeting.indices {
 ## Counting characters: O(n) by design
 
 ```swift
-let zoo = "Koala 🐨, Snail 🐌, Penguin 🐧"
-print(zoo.count) // 30
+let zoo = "Koala 🐨, Snail 🐌, Penguin 🐧, Dromedary 🐪"
+print(zoo.count) // 40
 ```
 
 `.count` is **O(n)** — Swift has to walk through the entire string to count extended grapheme clusters. This is a direct consequence of Characters having variable size.
@@ -255,20 +259,6 @@ Why? **Memory.** A `Substring` shares the buffer of the original `String`. Nothi
 
 ![Technical diagram showing how Substring shares the buffer of the original String](./resources/substring-memory.png)
 
-```
-┌──────────────────────────────────────┐
-│             Heap Buffer              │
-│  [H][e][l][l][o][,][ ][w][o][r][l][d][!] │
-│   ↑                                  │
-│   │                                  │
-│   └── greeting (String) ─────────────┘
-│   ↑───────────┐
-│               │
-│   beginning (Substring) — only points
-│   to range [0..<5] of the SAME buffer
-└──────────────────────────────────────┘
-```
-
 <Callout type="warning" title="Be careful retaining Substrings">
 If you keep a `Substring` in memory, the entire original `String` can't be freed — because the `Substring` points to its buffer. If you have a 1 MB string and only need the first 5 characters, convert to `String` to release the original buffer:
 
@@ -279,7 +269,7 @@ let tiny = String(huge.prefix(5)) // Copies only 5 chars, frees the rest
 </Callout>
 
 <Callout type="info" title="StringProtocol">
-Both `String` and `Substring` conform to `StringProtocol`. If you write functions that accept text, use `some StringProtocol` as the parameter type to accept both without forcing a copy.
+Both `String` and `Substring` conform to `StringProtocol`. If you write functions that accept text, use `some StringProtocol` as the parameter type to accept both without forcing a copy. (`some` means "some concrete type that conforms" — opaque types are covered later in the series.)
 </Callout>
 
 ## Comparing strings
@@ -333,6 +323,8 @@ for scalar in dogString.unicodeScalars {
 // 68 111 103 8252 128054
 ```
 
+![Diagram aligning the string "Dog‼🐶" against its three encodings in parallel rows: UTF-8 bytes (10 total), UTF-16 code units (6 total), and Unicode scalar values (5 total), showing how the wider characters expand into more code units](./resources/unicode-encodings-triple.png)
+
 <InfoBox title="When to use each representation?">
 - `.utf8` → C interoperability, networking, files
 - `.utf16` → Foundation/NSString interoperability
@@ -353,12 +345,14 @@ let short = "Hello"      // 5 bytes — fits inline, no heap allocation
 let long = String(repeating: "x", count: 100) // 100 bytes — goes to the heap
 ```
 
+![Diagram comparing two String values: on the left "Hello" (5 bytes) stored inline inside the 16-byte struct with no heap arrow, on the right a 100-byte string whose struct holds a pointer to a heap buffer](./resources/small-string-optimization.png)
+
 ### The cost of each operation
 
 <InfoBox title="String complexity">
 - `count` → **O(n)** — walks all grapheme clusters
 - `startIndex`, `endIndex` → **O(1)**
-- `index(after:)` → **O(1)** amortized
+- `index(after:)` → **O(1)** per grapheme cluster
 - `index(_:offsetBy: k)` → **O(k)** — walks k positions
 - Index access `string[i]` → **O(1)** if you already have the index
 - `hasPrefix`, `hasSuffix` → **O(n)** of the prefix/suffix
@@ -381,7 +375,7 @@ chars[7]                // O(1) always — "w"
 Today we discovered why String in Swift is much more than "text":
 
 - **String Literals** — simple, multiline, extended delimiters, type-safe interpolation
-- **Value Type with CoW** — struct on the stack, buffer on the heap, copy-on-write
+- **Value Type with CoW** — value-type struct; character buffer on the heap (unless the string is short enough for Small String Optimization — then bytes live inline in the struct), copy-on-write
 - **Characters = Extended Grapheme Clusters** — what a human perceives, not bytes
 - **String.Index** — why `string[0]` doesn't exist and how to navigate correctly
 - **count is O(n)** — direct consequence of variable-size Characters

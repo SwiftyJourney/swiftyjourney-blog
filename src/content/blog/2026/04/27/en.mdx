@@ -11,7 +11,6 @@ tags: ['swift', 'swift-zero-expert', 'swift-fundamentals']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
-import CopyOnWriteVisualizer from '../../../../../components/blog/CopyOnWriteVisualizer';
 
 In the [previous article](/blog/swift-zero-expert-data-types-operators) we explored fundamental data types — all value types living comfortably on the stack. Today the story changes. Swift's collections (`Array`, `Set`, `Dictionary`) are structs — value types on paper — but their actual content lives on the heap.
 
@@ -31,7 +30,7 @@ Swift provides three collection types to cover virtually any data storage need. 
 - **Set** — Unordered collection of unique values.
 - **Dictionary** — Unordered collection of key-value pairs.
 
-All three share something in common: they're **generic types**. When you write `[String]`, you're really writing `Array<String>`. The compiler generates specialized code for each concrete type — and that has performance implications we'll explore later.
+All three share something in common: they're **generic types** — generic means the same code works for any element type (`Array<String>`, `Array<Int>`, etc.) without rewriting it. When you write `[String]`, you're really writing `Array<String>`. The compiler generates specialized code for each concrete type — and that has performance implications we'll explore later. (We cover generics in depth in article #12.)
 
 <Callout type="info" title="Mutability with let and var">
 If you assign a collection to `var`, you can add, remove, and modify elements. If you assign it to `let`, the collection is immutable — you can't change its size or contents. This isn't just good practice: as we saw in article #1, `let` gives the compiler information to optimize.
@@ -108,6 +107,8 @@ for (index, fruit) in fruits.enumerated() {
 
 This is where a good developer stands out from a great one. It's not enough to know *what* each operation does — you need to know *how much it costs*:
 
+Quick note on notation: **O(1)** means the cost stays constant no matter how many elements there are; **O(n)** means the cost grows in proportion to the number of elements `n`.
+
 <InfoBox title="Array complexity">
 - Access by index `array[i]` → **O(1)** — instant
 - `append(_:)` → **O(1)** amortized — almost always instant
@@ -124,12 +125,14 @@ var numbers = [Int]()
 print(numbers.capacity) // 0
 
 numbers.append(1)
-print(numbers.capacity) // 2 — Swift pre-allocated space
+print(numbers.capacity) // grows (exact value is implementation-defined)
 
 numbers.append(2)
 numbers.append(3)
-print(numbers.capacity) // 4 — doubled when it filled up
+print(numbers.capacity) // grows exponentially — you may see different numbers
 ```
+
+The exact capacity values are an implementation detail of the standard library and toolchain, not a guarantee — what's promised is that capacity grows *exponentially*, which is what makes `append` O(1) amortized.
 
 <Callout type="tip" title="Performance tip">
 If you know how many elements you'll be adding, use `reserveCapacity(_:)` to avoid re-allocations:
@@ -158,8 +161,8 @@ var letters = Set<Character>()
 // With array literal (needs type annotation)
 var genres: Set<String> = ["Rock", "Jazz", "Hip hop"]
 
-// Short form (Set must be declared, element type is inferred)
-var genres: Set = ["Rock", "Jazz", "Hip hop"]
+// Short form — pick one of the two (Set must be declared, element type is inferred)
+var shortFormGenres: Set = ["Rock", "Jazz", "Hip hop"]
 ```
 
 Note that `Set` doesn't have syntactic sugar like `[Element]` for Array. You always need to write `Set<Element>` or at least `Set`.
@@ -181,11 +184,15 @@ if let removed = genres.remove("Rock") {
 genres.contains("Jazz")  // true — O(1)!
 ```
 
+`remove` returns an Optional — a box that either holds a value or is `nil`. `if let removed = ...` unwraps it only when there is a value. Full coverage in article #11.
+
 ![The Swift bird showing a Venn diagram with Set operations](./resources/set-operations.png)
 
 ### Set operations
 
 This is the real power of `Set` — mathematical set operations in a single line:
+
+![Venn diagram of the four Set operations: union, intersection, subtracting and symmetricDifference, with A = oddDigits and B = primes, showing each result as a shaded region](./resources/set-operations-venn.png)
 
 ```swift
 let oddDigits: Set = [1, 3, 5, 7, 9]
@@ -230,7 +237,7 @@ farm.isDisjoint(with: city)     // true — nothing in common
 - `union`, `intersection`, etc. → **O(n)** — proportional to size
 </InfoBox>
 
-`contains` in O(1) is the key difference. If you have 1 million elements and need to check if one exists, an `Array` needs to check up to 1 million elements. A `Set` does it in constant time thanks to its hash table.
+`contains` in O(1) is the key difference. If you have 1 million elements and need to check if one exists, an `Array` needs to check up to 1 million elements. A `Set` does it in constant time thanks to its hash table — it runs the value through a hash function to compute a number pointing almost directly to its slot, so it finds the element without scanning the whole collection.
 
 <Callout type="tip" title="When to use Set instead of Array?">
 Whenever you need to check membership frequently and don't care about order. A classic case: checking if a user has a permission.
@@ -251,12 +258,8 @@ A `Dictionary` stores associations between keys of the same type and values of t
 // Empty
 var names: [Int: String] = [:]
 
-// With literal
+// With literal (type inferred as [String: String])
 var airports = ["LAX": "Los Angeles", "JFK": "New York"]
-
-// Type inference
-var airports = ["LAX": "Los Angeles", "JFK": "New York"]
-// Inferred type: [String: String]
 ```
 
 The key must conform to `Hashable` — just like in `Set`.
@@ -324,7 +327,7 @@ let names = [String](airports.values)
 - `count` → **O(1)**
 </InfoBox>
 
-Dictionary shares the same hash table-based implementation as Set. All key access is O(1).
+Dictionary uses the same hash table mechanism as Set. All key access is O(1).
 
 ## Which collection to use?
 
@@ -368,16 +371,14 @@ Copy-on-Write is the reason Swift can give you the safety of value types with th
 
 The idea is brilliant in its simplicity:
 
-1. **When you assign** an array to another variable, Swift **doesn't copy the elements**. Both variables point to the same buffer on the heap. It only increments a reference counter.
+1. **When you assign** an array to another variable, Swift **doesn't copy the elements**. Both variables point to the same buffer on the heap. It only increments a reference counter — simply a number tracking how many variables currently point to the same buffer. When it's greater than 1, more than one variable shares the buffer, so any mutation must copy first. (We'll cover this counting mechanism — ARC — in depth in #18.)
 2. **When you mutate** one of the variables, Swift checks the counter: is there more than one reference to the buffer?
    - **Yes** → Creates a copy of the buffer, modifies the copy. Now each variable has its own buffer.
    - **No** → Modifies directly. Nobody else is using this buffer.
 
-Navigate step by step to see it in action:
+Follow it step by step:
 
-<div class="interactive-content">
-  <CopyOnWriteVisualizer client:load lang="en" />
-</div>
+![Four-step copy-on-write diagram: (1) create the array, refcount 1; (2) assign a copy, refcount 2 sharing one buffer; (3) mutate while shared, which copies first so each variable owns its buffer; (4) mutate when refcount is 1, which mutates the buffer in place with no copy](./resources/copy-on-write.png)
 
 ### Why does this matter?
 
@@ -395,10 +396,12 @@ let result = processData(original)
 // original was passed "by value" but with zero copy cost
 ```
 
+Here `filter` keeps only the elements matching a condition, and `{ $0 > 0 }` is a closure — an inline mini-function where `$0` is each element. (We cover closures in detail in article #6.)
+
 Without CoW, passing an array of 10,000 elements to a function would copy 80,000 bytes (10,000 × 8 bytes per Int). With CoW, only a pointer is copied — 8 bytes. The actual copy only happens if the function *modifies* the array.
 
 <Callout type="tip" title="The compiler goes further">
-Swift's compiler can even eliminate the refCount check altogether. If it analyzes your code and proves there's only one reference to the buffer (for example, a local variable that's never shared), it generates code that mutates directly without checking. This is called **guaranteed unique reference optimization**.
+Swift's compiler can even eliminate the refCount check altogether. If it analyzes your code and proves there's only one reference to the buffer (for example, a local variable that's never shared), the optimizer can elide the uniqueness check and generate code that mutates directly — the same idea behind `isKnownUniquelyReferenced(_:)`.
 </Callout>
 
 ### The internal structure
@@ -411,8 +414,6 @@ Every Swift collection has this structure in memory:
 │  ┌───────────────────────┐  │
 │  │ var fruits            │  │
 │  │   → pointer to buffer │  │──────┐
-│  │   → count: 3          │  │      │
-│  │   → capacity: 4       │  │      │
 │  └───────────────────────┘  │      │
 └─────────────────────────────┘      │
                                      │
@@ -421,24 +422,26 @@ Every Swift collection has this structure in memory:
 │  ┌───────────────────────┐  │      │
 │  │ Buffer                │◄─┼──────┘
 │  │   refCount: 1         │  │
+│  │   count: 3            │  │
+│  │   capacity: 4         │  │
 │  │   [🍎] [🍊] [🍋] [_] │  │
 │  └───────────────────────┘  │
 └─────────────────────────────┘
 ```
 
-The struct on the stack is small — just a pointer, the count, and the capacity. The actual data lives in a buffer on the heap. This buffer has its own `refCount` that Swift uses to decide whether it needs to copy.
+The struct on the stack is tiny — really just a single pointer to a heap buffer (in fact `MemoryLayout<[Int]>.size` is 8). The `count` and `capacity` live in the buffer's header on the heap, alongside the `refCount` that Swift uses to decide whether it needs to copy.
 
 ![Technical diagram showing the internal structure of an Array: struct on stack, buffer on heap](./resources/array-memory-layout.png)
 
 <Callout type="info" title="Why not put everything on the stack?">
-Because the compiler needs to know the exact size of each type on the stack at compile time. An `Array` can have 3 elements or 3 million — that dynamic size can only live on the heap. The struct on the stack always has the same fixed size: pointer + count + capacity.
+Because the compiler needs to know the exact size of each type on the stack at compile time. An `Array` can have 3 elements or 3 million — that dynamic size can only live on the heap. The struct on the stack always has the same fixed size: a single pointer (8 bytes). The `count` and `capacity` travel in the buffer header on the heap.
 </Callout>
 
 ## Collections and the compiler
 
 There's something we mentioned at the beginning that's worth digging into: Swift's collections are **generic types**. `Array<Int>` and `Array<String>` are different types, and the compiler generates specialized code for each one.
 
-This is called **generic specialization**, and it's one of the reasons Swift is faster than languages with generics based on type erasure (like Java). When the compiler sees `Array<Int>`, it generates code that works directly with 64-bit integers — no boxing, no indirection, no overhead.
+This is called **generic specialization**, and it's one of the reasons Swift is faster than languages with generics based on type erasure (the generic type info is discarded at runtime, like Java). When the compiler sees `Array<Int>`, it generates code that works directly with 64-bit integers — no boxing (wrapping values in heap objects), no indirection, no overhead.
 
 ```swift
 // The compiler generates specialized code for each type

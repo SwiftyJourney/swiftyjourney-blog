@@ -11,11 +11,10 @@ tags: ['swift', 'swift-cero-experto', 'swift-fundamentals']
 
 import Callout from '../../../../../components/Callout.astro';
 import InfoBox from '../../../../../components/InfoBox.astro';
-import EnumMemoryVisualizer from '../../../../../components/blog/EnumMemoryVisualizer';
 
 En el [artículo anterior](/es/blog/swift-cero-experto-closures) descubrimos que los closures son **reference types** que viven en el heap cuando escapan. Hoy cambiamos completamente de dirección: las **enumeraciones** son value types que el compilador optimiza tan agresivamente que pueden representarse con solo 2 bits.
 
-Si vienes de C o Java, probablemente piensas en los enums como una lista de enteros con nombre. En Swift, un enum es un **tipo algebraico completo** — con métodos, computed properties, associated values de distintos tipos, conformance a protocolos, y hasta recursión. Son una de las herramientas más expresivas del lenguaje, y entender cómo el compilador los representa en memoria te va a cambiar la forma en que los diseñas.
+Si vienes de C o Java, probablemente piensas en los enums como una lista de enteros con nombre. En Swift, un enum es un **sum type** — es decir, un valor que es exactamente UNA de varias formas posibles a la vez (north O south, un UPC O un QR), lo que en la teoría de tipos se conoce como un *tipo algebraico completo* — con métodos, computed properties, associated values de distintos tipos, conformance a protocolos, y hasta recursión. Son una de las herramientas más expresivas del lenguaje, y entender cómo el compilador los representa en memoria te va a cambiar la forma en que los diseñas.
 
 <div class="pull-quote">
 Un enum de Swift no es una lista de enteros disfrazados — es un tipo algebraico completo que el compilador puede representar en tan solo 2 bits.
@@ -111,7 +110,7 @@ func navigate(_ point: CompassPoint) {
 ## CaseIterable — recorrer todos los casos
 
 <Callout type="info" title="Definición: CaseIterable">
-El protocolo **CaseIterable** le dice al compilador que sintetice una propiedad `allCases` que retorna una colección con todos los valores posibles del enum.
+Un **protocolo** es una lista de capacidades que un tipo puede declarar que soporta (cobertura completa en el artículo #13). Cuando un tipo adopta `CaseIterable`, el compilador escribe por ti el código requerido — eso es lo que significa **sintetizar** aquí. En concreto, le da al enum una propiedad `allCases` que retorna una colección con todos los valores posibles del enum.
 </Callout>
 
 ```swift
@@ -177,6 +176,8 @@ let unknown = Planet(rawValue: 99)         // nil — no existe
 ```
 
 Esto lo conecta directamente con los opcionales que veremos a profundidad en el artículo #11.
+
+![Diagrama de bytes que muestra que una instancia de Planet sigue ocupando 1 byte (el tag) mientras los raw values viven en una tabla de lookup separada de compilación](./resources/enum-raw-values-metadata.png)
 
 <Callout type="tip" title="Dato de memoria">
 Los raw values **no se almacenan** en cada instancia del enum. Son metadata de compilación — el compilador genera una tabla de lookup, pero cada instancia sigue ocupando solo el tamaño del tag (1 byte para enums con pocos casos). Verificaremos esto en la sección de memoria.
@@ -246,7 +247,7 @@ func handle(_ response: NetworkResponse) {
 }
 ```
 
-Fíjate en el `where` — puedes filtrar dentro del mismo case para manejar subcasos. La combinación de associated values + pattern matching + where clauses es increíblemente poderosa.
+Fíjate en el `where` — puedes filtrar dentro del mismo case para manejar subcasos. El `where` agrega una condición extra: el case solo coincide si su patrón encaja Y la prueba del `where` es verdadera; de lo contrario Swift sigue revisando los cases de abajo. La combinación de associated values + pattern matching + where clauses es increíblemente poderosa.
 
 ![El capibara sosteniendo cajas de distintos tamaños mientras el ave Swift explica el espacio que ocupa cada una](./resources/associated-values-memory.png)
 
@@ -370,7 +371,7 @@ La combinación de cases + mutating methods convierte a los enums en excelentes 
 
 ## Protocolos y síntesis automática
 
-El compilador de Swift puede sintetizar automáticamente conformance a varios protocolos para enums:
+El compilador de Swift puede sintetizar automáticamente la *conformance* a varios protocolos para enums — *conformance* significa simplemente que el tipo cumple la lista de capacidades del protocolo, y aquí el compilador escribe ese código por ti:
 
 ```swift
 // Equatable y Hashable — automático para enums SIN associated values
@@ -419,14 +420,6 @@ let data = try JSONEncoder().encode(code)
 
 Los labels sin nombre obtienen keys generadas (`_0`, `_1`). Si quieres keys personalizadas, puedes declarar `CodingKeys` por case.
 
-## Explorando la memoria
-
-Navega por el componente interactivo para ver cómo cambia el layout en memoria según el tipo de enum:
-
-<div class="interactive-content">
-  <EnumMemoryVisualizer client:load lang="es" />
-</div>
-
 ## La memoria detrás de los enums
 
 Ahora conectemos todo con nuestro hilo de memoria — la parte que distingue a un desarrollador que *usa* enums de uno que los *entiende*.
@@ -451,6 +444,8 @@ El compilador elige la representación más pequeña posible:
 - **Enum vacío (0 cases)** → 0 bytes (tipo inhabitable)
 </InfoBox>
 
+![Diagrama de bytes de un enum de 4 casos: un solo byte con 2 bits usados para el tag y 6 bits sin usar](./resources/enum-tag-bits.png)
+
 ### Associated values: el caso más grande gana
 
 Cuando el enum tiene associated values, el tamaño es: **tag + payload del caso más grande**.
@@ -465,7 +460,9 @@ MemoryLayout<Barcode>.size       // 33 bytes (32 payload + 1 tag)
 MemoryLayout<Barcode>.stride     // 40 bytes (alignment a 8 bytes)
 ```
 
-Cuando `Barcode` es `.qrCode`, usa 16 de los 32 bytes de payload — los otros 16 quedan sin usar. Es el precio de tener un tamaño fijo para el tipo.
+Estas cifras exactas no son garantías del lenguaje: en una plataforma de 64 bits, los toolchains actuales reportan 33/40 bytes aquí, pero los números son detalles de implementación que dependen de la plataforma y el toolchain. Cuando `Barcode` es `.qrCode`, usa 16 de los 32 bytes de payload — los otros 16 quedan sin usar. Es el precio de tener un tamaño fijo para el tipo.
+
+![Diagrama de barras de bytes comparando los casos de Barcode: .upc llena el payload de 32 bytes, .qrCode usa 16 bytes y desperdicia 16, ambos más un tag de 1 byte para un total de 33 bytes](./resources/enum-associated-values-size.png)
 
 ### Spare bit optimization
 
@@ -480,6 +477,8 @@ MemoryLayout<Bool?>.size   // 1 byte — ¡no 2!
 
 Para tipos de referencia (clases), es aún mejor: `Optional<AnyObject>` no necesita **ningún byte extra** porque el compilador usa el null pointer (`0x0`) para representar `.none`. Por eso `Optional<String>.size == String.size` — el tag es gratis.
 
+![Diagrama de la spare bit optimization: Bool? cabe en 1 byte usando el patrón de bits 2 para .none, y String? usa el null pointer 0x0 como .none sin bytes extra](./resources/enum-optional-spare-bit.png)
+
 ### indirect: el costo del heap
 
 Cuando un enum usa `indirect`, cada case recursivo almacena un **puntero de 8 bytes** al heap en lugar del valor directamente:
@@ -489,6 +488,8 @@ MemoryLayout<ArithmeticExpression>.size  // 8 bytes (solo el puntero)
 ```
 
 Sin `indirect`, el compilador necesitaría calcular: tamaño de `ArithmeticExpression` = tamaño de `ArithmeticExpression` + tamaño de `ArithmeticExpression` + ... — una ecuación sin solución. El puntero rompe la recursión y fija el tamaño.
+
+![Diagrama de un enum indirect: un puntero al heap de 8 bytes almacenado inline apunta a una caja .addition en el heap que contiene los casos tag, left y right](./resources/enum-indirect-heap.png)
 
 El costo: cada instancia recursiva implica un `malloc` al heap, con su refcount y eventual `free`. Es el mismo trade-off que vimos con los closures escaping en el artículo #6.
 
@@ -519,6 +520,8 @@ var handle = FileHandle.open(descriptor: 42)
 handle.close()  // consume el valor
 // handle ya no es usable aquí — el compilador lo garantiza
 ```
+
+No te preocupes por la sintaxis `~` y `consuming` ahora — es una feature avanzada de ownership que verás más adelante.
 
 ### @nonexhaustive — SE-0487
 
@@ -555,7 +558,7 @@ Para interoperabilidad con C:
 ```
 
 <Callout type="info" title="Sobre versiones">
-`~Copyable` requiere Swift 5.9+, `@nonexhaustive` requiere Swift 6.2+, y `@c` requiere Swift 6.3. No necesitas usarlos hoy, pero saber que existen te prepara para cuando los necesites — especialmente si escribes librerías o código de sistemas.
+`~Copyable` requiere Swift 5.9+, `@nonexhaustive` requiere Swift 6.2.3+ (un toolchain reciente de Swift 6.2), y `@c` requiere Swift 6.3. No necesitas usarlos hoy, pero saber que existen te prepara para cuando los necesites — especialmente si escribes librerías o código de sistemas.
 </Callout>
 
 ## Recapitulación
@@ -589,5 +592,5 @@ Las enumeraciones de Swift son tipos algebraicos completos — cada case es un v
 - [SE-0266: Synthesized Comparable conformance for enum types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0266-synthesized-comparable-for-enumerations.md)
 - [SE-0295: Codable synthesis for enums with associated values](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0295-codable-synthesis-for-enums-with-associated-values.md)
 - [SE-0390: Noncopyable structs and enums](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0390-noncopyable-structs-and-enums.md)
-- [SE-0487: Non-exhaustive enums](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0487-non-exhaustive-enums.md)
+- [SE-0487: Nonexhaustive enums](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0487-non-exhaustive-enums.md)
 - [SE-0495: C interop enums](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0495-c-enums.md)

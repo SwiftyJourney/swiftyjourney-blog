@@ -77,6 +77,8 @@ print(manager.importer.filename)
 // AHORA se crea DataImporter — solo cuando realmente lo necesitas
 ```
 
+![Timeline of a lazy property: the instance is created with importer still nil at zero cost, stays nil while untouched, and DataImporter() runs only on first access](./resources/lazy-init-timeline.png)
+
 When should you use `lazy`?
 
 - The value depends on external factors not known until after `init`
@@ -84,7 +86,7 @@ When should you use `lazy`?
 - The property depends on `self` (which doesn't exist during initialization)
 
 <Callout type="warning" title="Lazy is not thread-safe">
-If two threads access a lazy property simultaneously for the first time, the property could be initialized **twice**. If you need thread-safe initialization, use `static` (which relies on `dispatch_once` internally) or an explicit synchronization mechanism.
+A thread is a separate line of execution — when two run at once they can touch the same property simultaneously. If two threads access a lazy property simultaneously for the first time, the property could be initialized **twice**. If you need thread-safe initialization, use `static` (the Swift runtime guarantees it's initialized exactly once, even across threads — via `swift_once`, the modern equivalent of the old Objective-C `dispatch_once`) or an explicit synchronization mechanism.
 </Callout>
 
 ## Computed properties: functions in disguise
@@ -136,9 +138,11 @@ struct Cuboid {
 <InfoBox title="Stored vs Computed — in memory">
 - **Stored property** → occupies real bytes in every instance. Determines `MemoryLayout.size`
 - **Computed property** → zero bytes. It's a function the compiler can inline
-- **Lazy stored** → occupies bytes + 1 byte flag (to track whether it's been initialized)
-- **Compiler trick**: if a computed property is simple enough, the compiler inlines it — equivalent to accessing the field directly
+- **Lazy stored** → occupies bytes for the value plus a small amount of extra state to track whether it has been initialized (implementation-defined)
+- **Compiler trick**: if a computed property is simple enough, the compiler inlines it (inline = the compiler pastes the function body directly at the call site, eliminating the function-call overhead) — equivalent to accessing the field directly
 </InfoBox>
+
+![Comparison of the four property storage kinds — stored, lazy stored, computed, observers — showing their relative byte footprint in the instance: stored costs N bytes, lazy stored N plus a 1-byte flag, computed and observers zero](./resources/property-storage-taxonomy.png)
 
 ## Property observers: willSet and didSet
 
@@ -208,7 +212,7 @@ print(AudioChannel.maxInputLevelForAllChannels)  // 7 — compartido
 ```
 
 <Callout type="tip" title="Thread-safe by nature">
-Stored type properties (`static let/var`) are initialized **lazily and thread-safely** by default. Swift uses `dispatch_once` internally — the first time you access the property, it's initialized exactly once regardless of how many threads access it simultaneously. It's the cleanest singleton pattern there is.
+Stored type properties (`static let/var`) are initialized **lazily and thread-safely** by default. The Swift runtime guarantees initialization happens exactly once, even across threads (via `swift_once` — the modern equivalent of the old Objective-C `dispatch_once`): the first time you access the property, it's initialized exactly once regardless of how many threads access it simultaneously. It's the cleanest singleton (one shared instance) pattern there is.
 </Callout>
 
 ## Property wrappers: reusable logic
@@ -216,6 +220,8 @@ Stored type properties (`static let/var`) are initialized **lazily and thread-sa
 <Callout type="info" title="Definition: Property Wrapper">
 A **property wrapper** (SE-0258) encapsulates reusable access logic behind an `@` attribute. You define the logic once and apply it to any property with `@WrapperName`.
 </Callout>
+
+A note before the code: `0...100` is a `ClosedRange<Int>` — a range including both ends; `.lowerBound` and `.upperBound` return its first and last values.
 
 ```swift
 @propertyWrapper
@@ -240,6 +246,8 @@ var player = Player()
 player.health = 150   // se clampea a 100
 player.health = -10   // se clampea a 0
 ```
+
+`wrappedValue` is the required name Swift looks for: reading or writing `player.health` goes through the wrapper's `wrappedValue`, and `@Clamped(0...100)` passes `0...100` into the wrapper's `init`.
 
 SwiftUI is packed with property wrappers: `@State`, `@Binding`, `@ObservedObject`, `@Environment`. Now you know how they work under the hood.
 
@@ -332,6 +340,7 @@ struct LevelTracker {
         return level <= highestUnlockedLevel
     }
 
+    // @discardableResult: calling this method and ignoring its Bool return value won't trigger a compiler warning
     @discardableResult
     mutating func advance(to level: Int) -> Bool {
         if LevelTracker.isUnlocked(level) {
@@ -347,13 +356,15 @@ var tracker = LevelTracker()
 tracker.advance(to: 2)  // true
 ```
 
-In classes, use `class func` instead of `static func` if you want to allow subclasses to override the method.
+In classes, use `class func` instead of `static func` when you need subclasses to override it — more on that in #10.
 
 ## Subscripts: bracket-based access
 
 <Callout type="info" title="Definition: Subscript">
 A **subscript** is a way to access elements of a type using bracket syntax `[]`. They're shortcuts for accessing members of a collection, list, or sequence.
 </Callout>
+
+In the example below, `assert(...)` crashes during development if its condition is false — here it guards against out-of-range indices:
 
 ```swift
 struct Matrix {
@@ -393,15 +404,17 @@ A type's stored properties define its **memory layout**:
 ```swift
 struct UserProfile {
     let id: Int            // 8 bytes
-    var name: String       // 16 bytes (String = 16 bytes inline)
+    var name: String       // 16 bytes (the String struct footprint; its backing character buffer is heap-allocated for larger strings)
     var age: Int           // 8 bytes
-    var isActive: Bool     // 1 byte + 7 padding (alignment a 8)
-}
+    var isActive: Bool     // 1 byte
+}                          // + 7 bytes padding to reach the stride
 
-MemoryLayout<UserProfile>.size       // 41 bytes (dato real)
-MemoryLayout<UserProfile>.stride     // 48 bytes (con alignment padding)
+MemoryLayout<UserProfile>.size       // 33 bytes (8 + 16 + 8 + 1)
+MemoryLayout<UserProfile>.stride     // 40 bytes (con alignment padding)
 MemoryLayout<UserProfile>.alignment  // 8 bytes
 ```
+
+![Memory layout of UserProfile: stored fields id (8 bytes), name (16 bytes), age (8 bytes), and isActive (1 byte) occupy labeled blocks followed by 7 bytes of alignment padding, reaching size 33 and stride 40 with alignment 8, while computed properties sit outside the layout as zero-byte function arrows](./resources/property-memory-layout.png)
 
 Computed properties **don't appear** in the layout. No matter how many computed properties you have, the type's size doesn't change:
 
@@ -427,7 +440,7 @@ Design your types by thinking about what needs to be stored (real data that chan
 - **Computed properties** — functions in disguise, zero storage, can be inlined
 - **Lazy properties** — allocated on demand, useful for expensive objects
 - **Property observers** — willSet/didSet, add no storage, SE-0268 optimizes oldValue
-- **Type properties** — `static`, one shared copy, thread-safe via dispatch_once
+- **Type properties** — `static`, one shared copy, initialized exactly once even across threads (via `swift_once`)
 - **Property wrappers** — reusable logic with `@`, the foundation of SwiftUI
 - **Instance methods** — implicit `self`, `mutating` for value types
 - **Type methods** — `static func` / `class func`, called on the type
