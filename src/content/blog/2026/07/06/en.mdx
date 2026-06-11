@@ -357,7 +357,7 @@ do {
 }
 ```
 
-Here `any Error` means "some value whose concrete type conforms to `Error`, decided at runtime" — the `any` keyword signals type erasure; we'll meet it properly with protocols in #13.
+Here `any Error` means "some value whose concrete type conforms to `Error`, decided at runtime" — the `any` keyword signals type erasure; we'll meet it properly with [protocols in #13](/en/blog/swift-zero-expert-protocols).
 
 <Callout type="info" title="Result is the value form of try">
 `throw`/`try` is error handling as **control flow** — the failure moves through your code. `Result` is error handling as **data** — the failure sits in a value you can store, pass, and `map` over. `Result { try f() }` and `result.get()` are the two doors between them. `Result` even uses [typed throws](#typed-throws-naming-the-error) in its modern signatures: `init(catching:)` is `init(catching: () throws(Failure) -> Success)` and `get()` is `func get() throws(Failure) -> Success`.
@@ -447,7 +447,7 @@ Plain <code>throws</code> says "something might go wrong — I won't promise wha
 
 ## What's next
 
-In the next article we explore **Protocols** — the contracts that let unrelated types share an interface without sharing a superclass. We've leaned on one already: `Error` is a protocol, and conforming to it is what made our enums throwable. Next we'll see how protocols define requirements, how types adopt them, and why protocol-oriented design is the backbone of idiomatic Swift.
+In the next article we explore [**Protocols**](/en/blog/swift-zero-expert-protocols) — the contracts that let unrelated types share an interface without sharing a superclass. We've leaned on one already: `Error` is a protocol, and conforming to it is what made our enums throwable. Next we'll see how protocols define requirements, how types adopt them, and why protocol-oriented design is the backbone of idiomatic Swift.
 
 See you next week.
 

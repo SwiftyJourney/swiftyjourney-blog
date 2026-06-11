@@ -357,7 +357,7 @@ do {
 }
 ```
 
-Aquí `any Error` significa "algún valor cuyo tipo concreto conforma a `Error`, decidido en tiempo de ejecución" — la palabra clave `any` indica borrado de tipos (type erasure); lo veremos como corresponde con los protocolos en el #13.
+Aquí `any Error` significa "algún valor cuyo tipo concreto conforma a `Error`, decidido en tiempo de ejecución" — la palabra clave `any` indica borrado de tipos (type erasure); lo veremos como corresponde con los [protocolos en el #13](/es/blog/swift-cero-experto-protocolos).
 
 <Callout type="info" title="Result es la forma-valor de try">
 `throw`/`try` es manejo de errores como **flujo de control** — el fallo se mueve por tu código. `Result` es manejo de errores como **datos** — el fallo se queda en un valor que puedes guardar, pasar y `map`ear. `Result { try f() }` y `result.get()` son las dos puertas entre ambos. `Result` incluso usa [typed throws](#typed-throws-nombrar-el-error) en sus firmas modernas: `init(catching:)` es `init(catching: () throws(Failure) -> Success)` y `get()` es `func get() throws(Failure) -> Success`.
@@ -447,7 +447,7 @@ Hay un rincón más. `Never` es el tipo vacío de Swift — un tipo sin valores 
 
 ## Lo que viene
 
-En el próximo artículo exploramos los **Protocols** — los contratos que dejan a tipos no relacionados compartir una interfaz sin compartir una superclase. Ya nos apoyamos en uno: `Error` es un protocolo, y conformarlo es lo que hizo lanzables a nuestros enums. A continuación veremos cómo los protocolos definen requisitos, cómo los tipos los adoptan, y por qué el diseño orientado a protocolos es la columna vertebral del Swift idiomático.
+En el próximo artículo exploramos los [**Protocols**](/es/blog/swift-cero-experto-protocolos) — los contratos que dejan a tipos no relacionados compartir una interfaz sin compartir una superclase. Ya nos apoyamos en uno: `Error` es un protocolo, y conformarlo es lo que hizo lanzables a nuestros enums. A continuación veremos cómo los protocolos definen requisitos, cómo los tipos los adoptan, y por qué el diseño orientado a protocolos es la columna vertebral del Swift idiomático.
 
 Nos vemos la próxima semana.
 

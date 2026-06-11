@@ -221,7 +221,7 @@ struct VerticalShapes {
 `[any Shape]` is an array whose elements can each be a *different* concrete type — a triangle here, a square there — as long as every one conforms to `Shape`. Because the box hides the concrete type, you may only touch what `Shape` itself promises: `draw()` is fine; a triangle's `size` property is not, unless you cast back to the concrete type first.
 
 <Callout type="info" title="The box has a cost — and that's why any is spelled out">
-To store differently-typed values uniformly, Swift wraps each one in a **box**, adding a layer of indirection that has a runtime performance cost. The `any` keyword makes that trade-off *visible* at the type level — the same philosophy as `try` making failure visible. Two future chapters offer the alternatives: **generics** (#14) let the *caller* pick one concrete type with no box, and **opaque types** (`some`, #15) let a function hide one specific type while keeping it concrete. `any` is the most flexible and the most expensive of the three.
+To store differently-typed values uniformly, Swift wraps each one in a **box**, adding a layer of indirection that has a runtime performance cost. The `any` keyword makes that trade-off *visible* at the type level — the same philosophy as `try` making failure visible. Two future chapters offer the alternatives: [**generics**](/en/blog/swift-zero-expert-generics) (#14) let the *caller* pick one concrete type with no box, and **opaque types** (`some`, #15) let a function hide one specific type while keeping it concrete. `any` is the most flexible and the most expensive of the three.
 </Callout>
 
 ![An [any Shape] array shown as a row of three boxes. Each box presents the same Shape interface lid with draw(), but wraps a different concrete type inside: Triangle, Square, and Circle. A callout notes the box is a runtime indirection that costs performance, which is why any is spelled out; generics and opaque some remove the box.](./resources/any-shape-existential-boxes.png)
@@ -345,7 +345,7 @@ extension Array: TextRepresentable where Element: TextRepresentable {
 }
 ```
 
-Here `Element` is the built-in generic name for whatever type the array holds — you'll meet generics properly in #14. Now `[Dice]` is `TextRepresentable` (because `Dice` is), but `[SomeRandomType]` isn't. The conformance is **conditional** on the element type.
+Here `Element` is the built-in generic name for whatever type the array holds — you'll meet generics properly in [#14](/en/blog/swift-zero-expert-generics). Now `[Dice]` is `TextRepresentable` (because `Dice` is), but `[SomeRandomType]` isn't. The conformance is **conditional** on the element type.
 
 ### Declaring adoption with an empty extension
 
@@ -730,7 +730,7 @@ print(Pirate(name: "Redbeard").greeting()) // Arr, I be Redbeard!
 
 ## What's next
 
-We kept bumping into one wall: `any Shape` and `[any TextRepresentable]` *box* their values at a runtime cost, and a protocol with an `associatedtype` (which we deliberately skipped here) can't even be used as `any` without limits. The answer is **Generics** — the next article — where the *caller* picks one concrete type, the compiler specializes the code, and the box disappears. We've been writing `where Element: Equatable` and `Result<Success, Failure>` all along; #14 finally explains the machinery. After that, #15 covers **opaque types** (`some`) — the third door alongside `any` and generics.
+We kept bumping into one wall: `any Shape` and `[any TextRepresentable]` *box* their values at a runtime cost, and a protocol with an `associatedtype` (which we deliberately skipped here) can't even be used as `any` without limits. The answer is [**Generics**](/en/blog/swift-zero-expert-generics) — the next article — where the *caller* picks one concrete type, the compiler specializes the code, and the box disappears. We've been writing `where Element: Equatable` and `Result<Success, Failure>` all along; [#14](/en/blog/swift-zero-expert-generics) finally explains the machinery. After that, #15 covers **opaque types** (`some`) — the third door alongside `any` and generics.
 
 See you next week.
 

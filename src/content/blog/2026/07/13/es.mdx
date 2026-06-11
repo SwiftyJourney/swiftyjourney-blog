@@ -221,7 +221,7 @@ struct VerticalShapes {
 `[any Shape]` es un array cuyos elementos pueden ser cada uno de un tipo concreto *distinto* — un triángulo aquí, un cuadrado allá — siempre que cada uno conforme a `Shape`. Como la caja oculta el tipo concreto, solo puedes tocar lo que `Shape` mismo promete: `draw()` está bien; la propiedad `size` de un triángulo no, a menos que primero hagas un cast de vuelta al tipo concreto.
 
 <Callout type="info" title="La caja tiene un costo — y por eso any se escribe explícito">
-Para almacenar de forma uniforme valores de tipos distintos, Swift envuelve cada uno en una **caja** (box), agregando una capa de indirección que tiene un costo de rendimiento en runtime. La palabra clave `any` hace ese trade-off *visible* a nivel de tipo — la misma filosofía que `try` haciendo visible el fallo. Dos capítulos futuros ofrecen las alternativas: los **generics** (#14) dejan que *el llamador* elija un tipo concreto sin caja, y los **tipos opacos** (`some`, #15) dejan que una función oculte un tipo específico manteniéndolo concreto. `any` es el más flexible y el más caro de los tres.
+Para almacenar de forma uniforme valores de tipos distintos, Swift envuelve cada uno en una **caja** (box), agregando una capa de indirección que tiene un costo de rendimiento en runtime. La palabra clave `any` hace ese trade-off *visible* a nivel de tipo — la misma filosofía que `try` haciendo visible el fallo. Dos capítulos futuros ofrecen las alternativas: los [**generics**](/es/blog/swift-cero-experto-genericos) (#14) dejan que *el llamador* elija un tipo concreto sin caja, y los **tipos opacos** (`some`, #15) dejan que una función oculte un tipo específico manteniéndolo concreto. `any` es el más flexible y el más caro de los tres.
 </Callout>
 
 ![Un arreglo [any Shape] mostrado como una fila de tres cajas. Cada caja presenta la misma tapa de interfaz Shape con draw(), pero envuelve dentro un tipo concreto distinto: Triangle, Square y Circle. Una nota indica que la caja es una indirección en runtime con coste de rendimiento, razón por la que se escribe any; los genéricos y el opaco some eliminan la caja.](./resources/any-shape-existential-boxes.png)
@@ -345,7 +345,7 @@ extension Array: TextRepresentable where Element: TextRepresentable {
 }
 ```
 
-Aquí `Element` es el nombre genérico incorporado para cualquier tipo que el array contenga — verás los generics en condiciones en el #14. Ahora `[Dice]` es `TextRepresentable` (porque `Dice` lo es), pero `[SomeRandomType]` no. La conformidad es **condicional** al tipo del elemento.
+Aquí `Element` es el nombre genérico incorporado para cualquier tipo que el array contenga — verás los generics en condiciones en el [#14](/es/blog/swift-cero-experto-genericos). Ahora `[Dice]` es `TextRepresentable` (porque `Dice` lo es), pero `[SomeRandomType]` no. La conformidad es **condicional** al tipo del elemento.
 
 ### Declarar adopción con una extensión vacía
 
@@ -730,7 +730,7 @@ print(Pirate(name: "Redbeard").greeting()) // Arr, I be Redbeard!
 
 ## Lo que viene
 
-Seguimos chocando con un muro: `any Shape` y `[any TextRepresentable]` *encajan* sus valores a un costo de runtime, y un protocolo con un `associatedtype` (que deliberadamente saltamos aquí) ni siquiera puede usarse como `any` sin límites. La respuesta son los **Generics** — el próximo artículo — donde *el llamador* elige un tipo concreto, el compilador especializa el código, y la caja desaparece. Hemos estado escribiendo `where Element: Equatable` y `Result<Success, Failure>` todo este tiempo; el #14 por fin explica la maquinaria. Después de eso, el #15 cubre los **tipos opacos** (`some`) — la tercera puerta junto a `any` y los generics.
+Seguimos chocando con un muro: `any Shape` y `[any TextRepresentable]` *encajan* sus valores a un costo de runtime, y un protocolo con un `associatedtype` (que deliberadamente saltamos aquí) ni siquiera puede usarse como `any` sin límites. La respuesta son los [**Generics**](/es/blog/swift-cero-experto-genericos) — el próximo artículo — donde *el llamador* elige un tipo concreto, el compilador especializa el código, y la caja desaparece. Hemos estado escribiendo `where Element: Equatable` y `Result<Success, Failure>` todo este tiempo; el [#14](/es/blog/swift-cero-experto-genericos) por fin explica la maquinaria. Después de eso, el #15 cubre los **tipos opacos** (`some`) — la tercera puerta junto a `any` y los generics.
 
 Nos vemos la próxima semana.
 
