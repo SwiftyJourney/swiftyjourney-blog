@@ -1,0 +1,463 @@
+---
+title: "Swift de Cero a Experto #12: Manejo de Errores"
+description: "throw, try, do/catch, defer, rethrows, Result y los typed throws de Swift 6. Un error no es una excepción mágica — es solo un valor de un tipo que conforma Error, enrutado por tu call stack tan barato como un return."
+pubDate: 'Jul 06 2026'
+lang: 'es'
+translationKey: 'swift-zero-expert-error-handling'
+slug: 'swift-cero-experto-manejo-errores'
+tags: ['swift', 'swift-cero-experto', 'swift-fundamentals']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+
+En el [artículo anterior](/es/blog/swift-cero-experto-opcionales) trazamos una línea: un opcional es la forma de Swift de decir "aquí podría **no haber valor**". Pero la ausencia no siempre cuenta toda la historia. Cuando `Int("hello")` retorna `nil`, sabes que falló — pero no sabes *por qué*. Para convertir un string a entero, "no se parseó" es suficiente. Para "abre este archivo", no lo es: ¿el archivo no existía? ¿Estaba bloqueado? ¿Corrupto? El **manejo de errores** es la mitad que los opcionales dejan fuera — un *fallo esperado, con una razón adjunta*.
+
+Y así como un opcional resultó ser *solo un enum*, un error resulta ser *solo un valor*. No hay objeto de excepción especial, ni magia en runtime desenrollando el stack. Un error de Swift es un valor de un tipo que conforma un único protocolo vacío — y `throw`, `try` y `catch` son la fontanería que enruta ese valor desde donde ocurrió hasta donde lo manejas.
+
+<div class="pull-quote">
+Los errores de Swift no son excepciones. Lanzar un error tiene las características de rendimiento de un <em>return</em>, no de una catástrofe que desenrolla el stack. Un error es un valor que viaja hacia arriba por la cadena de llamadas — nada más exótico que eso.
+</div>
+
+## El protocolo Error: los errores son valores
+
+<Callout type="info" title="Definición: El Protocolo Error">
+En Swift, los errores se representan con valores de tipos que conforman el protocolo **`Error`**. `Error` es un protocolo **vacío** — no tiene requisitos. Conformarlo es simplemente una marca que dice "un valor de este tipo puede lanzarse y atraparse como error".
+</Callout>
+
+Como `Error` no tiene requisitos, *cualquier* tipo puede ser un error. Pero los [enumerations del #6](/es/blog/swift-cero-experto-enumeraciones) encajan de forma natural: un grupo de condiciones de fallo relacionadas es exactamente un conjunto de cases, y los valores asociados dejan que cada case lleve detalle extra sobre qué salió mal.
+
+```swift
+enum VendingMachineError: Error {
+    case invalidSelection
+    case insufficientFunds(coinsNeeded: Int)
+    case outOfStock
+}
+```
+
+`insufficientFunds` no solo dice "no hay suficiente dinero" — lleva *cuántas monedas más* hacen falta. Ese es el punto entero de un error frente a un mero `nil`: responde **por qué**, no solo **si**.
+
+Para señalar un fallo, lanzas (`throw`) uno de estos valores:
+
+```swift
+throw VendingMachineError.insufficientFunds(coinsNeeded: 5)
+```
+
+Una sentencia `throw` transfiere el control de inmediato, exactamente como `return` — solo que en vez de entregar un valor *de vuelta* al que llama, entrega un valor de error *hacia arriba* por la cadena hasta que alguien lo atrapa.
+
+## throws: marcar una función que puede fallar
+
+<Callout type="info" title="Definición: Función que Lanza (Throwing Function)">
+Una función, método o initializer que puede lanzar un error es una **throwing function**. La marcas escribiendo `throws` después de su lista de parámetros (y *antes* de la flecha de retorno `->`, si la hay). Una throwing function **propaga** cualquier error lanzado dentro de ella hacia el código que la llamó.
+</Callout>
+
+```swift
+func canThrowErrors() throws -> String
+
+func cannotThrowErrors() -> String
+```
+
+La palabra clave `throws` es un contrato, exigido por el compilador en ambas direcciones. Dentro de la función, tienes *permiso* de hacer `throw`. Fuera, todo llamador está *obligado* a reconocer que podría lanzar.
+
+<Callout type="warning" title="Solo las throwing functions propagan">
+Los errores no se escapan. Cualquier error lanzado dentro de una función que **no** lanza debe manejarse *dentro* de esa función — el compilador no lo deja escapar. Si quieres que un error viaje más arriba, la función tiene que anunciarlo con `throws`. No hay propagación silenciosa, ni escotilla "sin chequear".
+</Callout>
+
+Este es el ejemplo canónico del libro de Swift — una máquina expendedora cuyo método `vend` usa [el `guard` de salida temprana del #5](/es/blog/swift-cero-experto-control-flujo) para lanzar el error correcto en el instante en que falla una precondición:
+
+```swift
+struct Item {
+    var price: Int
+    var count: Int
+}
+
+class VendingMachine {
+    var inventory = [
+        "Candy Bar": Item(price: 12, count: 7),
+        "Chips": Item(price: 10, count: 4),
+        "Pretzels": Item(price: 7, count: 11),
+    ]
+    var coinsDeposited = 0
+
+    func vend(itemNamed name: String) throws {
+        guard let item = inventory[name] else {
+            throw VendingMachineError.invalidSelection
+        }
+        guard item.count > 0 else {
+            throw VendingMachineError.outOfStock
+        }
+        guard item.price <= coinsDeposited else {
+            throw VendingMachineError.insufficientFunds(coinsNeeded: item.price - coinsDeposited)
+        }
+
+        coinsDeposited -= item.price
+        var newItem = item
+        newItem.count -= 1
+        inventory[name] = newItem
+        print("Dispensing \(name)")
+    }
+}
+```
+
+Como un `throw` transfiere el control de inmediato, el artículo se entrega **solo** si cada `guard` pasa. El happy path queda plano y sin indentar; los fallos se desprenden arriba.
+
+## try: el costo visible de llamar a algo que lanza
+
+No puedes llamar a una throwing function en silencio. Cada llamada a una debe marcarse con `try` — una palabra clave que hace *visible la posibilidad de fallo en el punto de llamada*.
+
+```swift
+let favoriteSnacks = [
+    "Alice": "Chips",
+    "Bob": "Licorice",
+    "Eve": "Pretzels",
+]
+
+func buyFavoriteSnack(person: String, vendingMachine: VendingMachine) throws {
+    let snackName = favoriteSnacks[person] ?? "Candy Bar"
+    try vendingMachine.vend(itemNamed: snackName)
+}
+```
+
+`buyFavoriteSnack` no *maneja* el error — no tiene `do`/`catch`. Así que debe ser ella misma `throws`, y el error de `vend` fluye directo a través de ella hasta *su* llamador. Eso es **propagación**: un error sube por cada `try` de su camino hasta que algún scope decide detenerlo.
+
+Los **initializers** que lanzan propagan igual — útil cuando [el contrato de init del #10](/es/blog/swift-cero-experto-herencia-inicializacion) no puede satisfacerse porque una dependencia falló:
+
+```swift
+struct PurchasedSnack {
+    let name: String
+    init(name: String, vendingMachine: VendingMachine) throws {
+        try vendingMachine.vend(itemNamed: name)
+        self.name = name
+    }
+}
+```
+
+![Diagrama del call stack: un throw dentro de vend() sube por el try en buyFavoriteSnack() hasta un do/catch en el scope de nivel superior que lo detiene, reflejando cómo un valor de retorno fluye de vuelta por el mismo camino; una nota lateral advierte que un error sin manejar que llega al nivel superior es un crash en runtime](./resources/error-propagation.png)
+
+<div class="pull-quote">
+Cada <code>try</code> es una admisión: "la llamada que estoy por hacer podría no terminar normalmente". Swift se niega a ocultártelo — la propagación siempre se escribe, un <code>try</code> a la vez.
+</div>
+
+## do / catch: detener el error
+
+Las cuatro formas de manejar un error lanzado son: propagarlo (acabamos de verlo), convertirlo en opcional, afirmar que no puede ocurrir o — el caballo de batalla — atraparlo con `do`/`catch`.
+
+<Callout type="info" title="Definición: do-catch">
+Una sentencia **`do`-`catch`** corre un bloque de código (la cláusula `do`) que puede lanzar. Si se lanza un error, la ejecución salta de inmediato a las cláusulas `catch`, que se comparan contra el error en orden — el primer patrón que coincide lo maneja. Si no se lanza error, las cláusulas `catch` se omiten por completo.
+</Callout>
+
+La forma general te deja comparar errores específicos, agregar condiciones `where`, agrupar patrones con comas y terminar con un catch-all:
+
+```swift
+var vendingMachine = VendingMachine()
+vendingMachine.coinsDeposited = 8
+do {
+    try buyFavoriteSnack(person: "Alice", vendingMachine: vendingMachine)
+    print("Success! Yum.")
+} catch VendingMachineError.invalidSelection {
+    print("Invalid Selection.")
+} catch VendingMachineError.outOfStock {
+    print("Out of Stock.")
+} catch VendingMachineError.insufficientFunds(let coinsNeeded) {
+    print("Insufficient funds. Please insert an additional \(coinsNeeded) coins.")
+} catch {
+    print("Unexpected error: \(error).")
+}
+// Insufficient funds. Please insert an additional 2 coins.
+```
+
+Fíjate en `catch VendingMachineError.insufficientFunds(let coinsNeeded)` — esto es de nuevo el [pattern matching de enums del #6](/es/blog/swift-cero-experto-enumeraciones), ligando el valor asociado directo desde el error atrapado. Y el `catch` pelado final es especial:
+
+<Callout type="info" title="El catch pelado liga 'error'">
+Una cláusula `catch` **sin patrón** coincide con *cualquier* error y lo liga a una constante local automáticamente llamada **`error`**. Es el case por defecto del manejo de errores — la red de seguridad que atrapa lo que las cláusulas específicas dejaron pasar. No declaras `error`; Swift te lo da.
+</Callout>
+
+### Manejo parcial y re-propagación
+
+Las cláusulas `catch` **no** tienen que manejar todos los errores posibles. Si ninguna coincide, el error sigue propagándose al scope que rodea — que entonces carga con la misma responsabilidad. Puedes atrapar por *tipo* con el patrón `is`, manejando una familia entera de una vez y dejando pasar todo lo demás:
+
+```swift
+func nourish(with item: String) throws {
+    do {
+        try vendingMachine.vend(itemNamed: item)
+    } catch is VendingMachineError {
+        print("Couldn't buy that from the vending machine.")
+    }
+}
+
+do {
+    try nourish(with: "Beet-Flavored Chips")
+} catch {
+    print("Unexpected non-vending-machine-related error: \(error)")
+}
+// Couldn't buy that from the vending machine.
+```
+
+O lista varios errores relacionados tras un solo `catch`, separados por comas:
+
+```swift
+func eat(item: String) throws {
+    do {
+        try vendingMachine.vend(itemNamed: item)
+    } catch VendingMachineError.invalidSelection,
+            VendingMachineError.insufficientFunds,
+            VendingMachineError.outOfStock {
+        print("Invalid selection, out of stock, or not enough money.")
+    }
+}
+```
+
+<Callout type="warning" title="Un error sin manejar arriba es un crash">
+El error propagado debe ser manejado por *algún* scope que lo rodee. En una función que no lanza, un `do`-`catch` que la encierre debe manejarlo. En una throwing function, o bien un `do`-`catch` que la encierre *o* el llamador. Si un error se propaga hasta el scope de nivel superior sin atraparse, obtienes un **error en runtime** — tu programa crashea.
+</Callout>
+
+## try? y try!: colapsar un error en un opcional (o en un crash)
+
+A veces no quieres la ceremonia de un `do`/`catch`. Dos variantes de `try` encogen todo el asunto a una sola palabra clave — y este es exactamente el puente de vuelta a [los opcionales del capítulo pasado](/es/blog/swift-cero-experto-opcionales) que prometimos.
+
+<Callout type="info" title="Definición: try?">
+**`try?`** maneja un error convirtiéndolo en un opcional. Si la expresión lanza, el resultado es `nil`; si no, es el valor retornado envuelto en `.some`. Una llamada que lanza y retorna `T` se vuelve un `T?` bajo `try?` — la *razón* del error se descarta, dejando solo "¿tuvo éxito?".
+</Callout>
+
+```swift
+func someThrowingFunction() throws -> Int {
+    // ...
+}
+
+let x = try? someThrowingFunction()
+
+// x se comporta exactamente como y aquí abajo:
+let y: Int?
+do {
+    y = try someThrowingFunction()
+} catch {
+    y = nil
+}
+```
+
+Esa es la personalidad entera de `try?`: tira el *por qué* y se queda solo con el *si*, convirtiendo un error de vuelta en el `nil` con el que empezamos el capítulo pasado. Brilla cuando quieres intentar varios enfoques y caer al siguiente, apoyándote en [el if-let binding del #11](/es/blog/swift-cero-experto-opcionales):
+
+```swift
+func fetchData() -> Data? {
+    if let data = try? fetchDataFromDisk() { return data }
+    if let data = try? fetchDataFromServer() { return data }
+    return nil
+}
+```
+
+El hermano temerario es `try!`:
+
+<Callout type="warning" title="try! es el ! otra vez">
+**`try!`** deshabilita la propagación de errores y envuelve la llamada en una aserción de runtime de que *no se lanzará ningún error*. Si de todos modos se lanza uno, haces **trap** — crash instantáneo. Es el [forced unwrap `!` del #11](/es/blog/swift-cero-experto-opcionales) con otro sombrero: una promesa al compilador que el runtime te cobrará. Úsalo solo cuando un fallo sería un bug genuino del programador, como cargar un recurso que envías dentro de la app:
+</Callout>
+
+```swift
+let photo = try! loadImage(atPath: "./Resources/John Appleseed.jpg")
+```
+
+![Diagrama de la familia try como tres puertas desde una sola llamada que lanza: try propaga y necesita do/catch o throws, try? convierte el error en nil y entrega T?, try! hace trap en runtime y entrega T — reflejando la caja de herramientas de desempaque de opcionales](./resources/try-family.png)
+
+## defer: limpieza que siempre corre
+
+Abres un archivo, debes cerrarlo. Adquieres un lock, debes liberarlo. El problema: entre adquirir y liberar, *cualquier cosa* podría hacer `throw` — y una salida temprana saltaría tu limpieza. `defer` resuelve esto.
+
+<Callout type="info" title="Definición: defer">
+Una sentencia **`defer`** agenda un bloque de código para correr *justo antes* de que la ejecución abandone el scope actual — **sin importar cómo** lo abandone: una caída normal, un `return`, un `break` o un error lanzado. Es como garantizas que la limpieza ocurre en cada camino de salida.
+</Callout>
+
+```swift
+func processFile(filename: String) throws {
+    if exists(filename) {
+        let file = open(filename)
+        defer {
+            close(file)
+        }
+        while let line = try file.readline() {
+            // Work with the file.
+        }
+        // close(file) corre aquí, al final del scope —
+        // y con la misma fiabilidad si file.readline() lanza.
+    }
+}
+```
+
+El `try file.readline()` podría lanzar a media iteración. Sin `defer`, el `close(file)` tras el loop se saltaría en ese camino. Con él, `close(file)` está garantizado de correr a la salida — haya error o no.
+
+<Callout type="info" title="defer corre en orden inverso">
+Si un scope tiene varias sentencias `defer`, corren en el orden **inverso** al que se escribieron — el último `defer` primero, el primer `defer` último. Esto refleja cómo se anidan los recursos: lo que adquiriste de último es lo que liberas primero, exactamente como un stack que se desenrolla. Un bloque diferido no puede transferir el control fuera de sí mismo (sin `break`, `return` ni `throw` dentro).
+</Callout>
+
+![Diagrama de línea de tiempo con dos defers: en el camino feliz adquieres A y luego B en el orden escrito, y a la salida del scope se desenrollan en orden inverso — liberas B y luego A — exactamente como un stack que se desenrolla](./resources/defer-reverse-order.png)
+
+## rethrows: lanzar solo si tu closure lanza
+
+Considera una función que recibe un closure y lo llama — como `map`. ¿Debería ser `throws`? Solo si el closure que le pasas lanza. Si pasas un closure que no lanza, la función no puede fallar, y forzar un `try` en cada llamada sería ruido. `rethrows` expresa exactamente este contrato condicional.
+
+<Callout type="info" title="Definición: rethrows">
+Una función marcada **`rethrows`** lanza *solo si* uno de sus **argumentos closure** lanza. Llamada con un closure que no lanza, se trata como que no lanza (sin `try`). Llamada con un closure que lanza, se trata como que lanza (se requiere `try`). El cuerpo de la función solo puede hacer `throw` propagando desde uno de esos closures.
+</Callout>
+
+```swift
+func transform(_ value: Int, using f: (Int) throws -> Int) rethrows -> Int {
+    try f(value)
+}
+
+// closure que no lanza -> no hace falta try:
+let doubled = transform(21) { $0 * 2 }
+
+// closure que lanza -> se requiere try:
+let parsed = try transform(21) { try riskyTransform($0) }
+```
+
+Por eso las funciones de orden superior de la librería estándar sobre colecciones — `map`, `filter`, `reduce`, las que conocimos con [los closures del #7](/es/blog/swift-cero-experto-closures) — son `rethrows`. Se mantienen invisibles cuando tu closure es puro, y se vuelven throwing en el instante en que les entregas trabajo que puede fallar.
+
+## Result: un error que puedes guardar y pasar
+
+`throw`/`try`/`catch` enrutan un error *a través del flujo de control* — ocurre, se propaga, lo atrapas, se fue. Pero a veces necesitas *guardar* el resultado de una operación que puede fallar como un valor común: para entregarlo a un callback de completado, almacenarlo, compararlo o transformarlo después. Para eso es `Result`.
+
+<Callout type="info" title="Definición: Result">
+**`Result<Success, Failure>`** es un enum de la librería estándar con dos cases — `success(Success)` y `failure(Failure)` — donde `Failure` conforma `Error`. Es un *valor* de primera clase que representa "o un valor o un error", de la misma forma en que `Optional` es un valor que representa "o un valor o nada".
+</Callout>
+
+Reducido a lo esencial, es un enum que casi podrías haber escrito tú:
+
+```swift
+enum Result<Success, Failure> where Failure: Error {
+    case success(Success)
+    case failure(Failure)
+}
+```
+
+Lo consumes con [el mismo pattern matching de `switch` del #6](/es/blog/swift-cero-experto-enumeraciones):
+
+```swift
+func loadConfig() -> Result<Config, ConfigError> { /* ... */ }
+
+switch loadConfig() {
+case .success(let config):
+    print("Loaded \(config).")
+case .failure(let error):
+    print("Failed: \(error).")
+}
+```
+
+El puente entre los dos mundos — errores lanzados y resultados guardados — viene incorporado en el tipo. El initializer `init(catching:)` corre un closure que lanza y *captura* el resultado en un `Result`; `get()` hace lo inverso, *re-lanzando* el error guardado si lo hay:
+
+```swift
+// mundo del throw -> mundo del valor:
+let result = Result { try someThrowingFunction() }
+// result es Result<Int, any Error>
+
+// mundo del valor -> mundo del throw:
+do {
+    let value = try result.get()   // retorna el success, o re-lanza el failure
+    print(value)
+} catch {
+    print("Got error: \(error)")
+}
+```
+
+Aquí `any Error` significa "algún valor cuyo tipo concreto conforma a `Error`, decidido en tiempo de ejecución" — la palabra clave `any` indica borrado de tipos (type erasure); lo veremos como corresponde con los protocolos en el #13.
+
+<Callout type="info" title="Result es la forma-valor de try">
+`throw`/`try` es manejo de errores como **flujo de control** — el fallo se mueve por tu código. `Result` es manejo de errores como **datos** — el fallo se queda en un valor que puedes guardar, pasar y `map`ear. `Result { try f() }` y `result.get()` son las dos puertas entre ambos. `Result` incluso usa [typed throws](#typed-throws-nombrar-el-error) en sus firmas modernas: `init(catching:)` es `init(catching: () throws(Failure) -> Success)` y `get()` es `func get() throws(Failure) -> Success`.
+</Callout>
+
+## Typed throws: nombrar el error
+
+Todo lo anterior borra el tipo del error (type-erases). Una función con `throws` simple puede lanzar *cualquier* `Error` — en un `catch`, todo lo que sabes estáticamente es "algún error", razón por la cual recurres a un catch-all. La mayor parte del tiempo ese es el default correcto: las versiones nuevas de una librería lanzan errores nuevos, y no quieres conocerlos todos de antemano.
+
+Pero ocasionalmente *sí* puedes enumerar cada fallo — una librería pequeña, un sistema embebido, un closure que solo reenvía un error conocido — y te gustaría que el compilador te lo exigiera. Los **typed throws** (Swift 6) te dejan nombrar el tipo de error exacto.
+
+<Callout type="info" title="Definición: Typed Throws">
+Escribir **`throws(SomeError)`** en vez de `throws` a secas declara que una función lanza *solo* valores de tipo `SomeError`. El compilador entonces verifica que nunca lances otra cosa, y un `catch` sobre esa función ve un error de tipo concreto en lugar de `any Error`. `throws` a secas es exactamente azúcar para `throws(any Error)`.
+</Callout>
+
+```swift
+enum StatisticsError: Error {
+    case noRatings
+    case invalidRating(Int)
+}
+
+func summarize(_ ratings: [Int]) throws(StatisticsError) {
+    guard !ratings.isEmpty else { throw .noRatings }
+
+    var counts = [1: 0, 2: 0, 3: 0]
+    for rating in ratings {
+        guard rating > 0 && rating <= 3 else { throw .invalidRating(rating) }
+        counts[rating]! += 1
+    }
+    print("*", counts[1]!, "-- **", counts[2]!, "-- ***", counts[3]!)
+}
+```
+
+Dos recompensas ya son visibles. Primera, como el tipo de error es fijo, puedes escribir la **forma corta** `throw .noRatings` en vez de `throw StatisticsError.noRatings` — Swift infiere el tipo. Segunda, si intentaras hacer `throw VendingMachineError.outOfStock` dentro de `summarize`, **fallaría en tiempo de compilación**: ese no es el tipo de error declarado.
+
+Una función con typed throws encaja limpiamente en el mundo sin tipar — `StatisticsError` es un `any Error` válido:
+
+```swift
+func someThrowingFunction() throws {            // es decir, throws(any Error)
+    let ratings = [1, 2, 3, 2, 2, 1]
+    try summarize(ratings)
+}
+```
+
+También puedes tipar un `do`-`catch`. La recompensa es un catch **exhaustivo y type-safe** — el `error` atrapado es un `StatisticsError` concreto, así que puedes hacer `switch` sobre él sin catch-all:
+
+```swift
+let ratings: [Int] = []
+do throws(StatisticsError) {
+    try summarize(ratings)
+} catch {
+    switch error {          // error es un StatisticsError, no any Error
+    case .noRatings:
+        print("No ratings available")
+    case .invalidRating(let rating):
+        print("Invalid rating: \(rating)")
+    }
+}
+// No ratings available
+```
+
+<Callout type="tip" title="Agrega un case, obtén un error de compilación — a propósito">
+Como `error` es de tipo concreto, el `switch` debe ser **exhaustivo**. Agrega un case nuevo a `StatisticsError` después y olvida manejarlo, y el compilador marca el `switch` ahora incompleto. Ese es el atractivo entero de los typed throws para una librería autocontenida: los fallos nuevos no pueden colarse en silencio. Swift incluso *infiere* typed throws cuando un bloque `do` lanza un solo tipo de error, así que el `do throws(StatisticsError)` explícito de arriba suele ser opcional.
+</Callout>
+
+<Callout type="info" title="throws(Never): una función que no puede lanzar">
+Hay un rincón más. `Never` es el tipo vacío de Swift — un tipo sin valores posibles, así que una función que lo retorna nunca puede retornar de verdad, y nada puede lanzarse jamás como un `Never`. Por eso una función declarada **`throws(Never)`** nunca puede lanzar — porque no puedes crear un valor de tipo `Never` para lanzarlo. Es la prueba a nivel de tipos de "esto no lanza", y es cómo los typed throws unifican las funciones que lanzan y las que no bajo una sola sintaxis.
+</Callout>
+
+<div class="pull-quote">
+<code>throws</code> a secas dice "algo podría salir mal — no prometo qué". <code>throws(E)</code> dice "solo un <code>E</code> puede salir mal, y el compilador me lo exigirá". <code>throws(Never)</code> dice "nada puede". Tres puntos precisos en un mismo dial.
+</div>
+
+## Recapitulación
+
+![Tabla comparativa de las cuatro estrategias de manejo de errores — throws + try, do/catch, try? y try! — según qué hace cada una, qué te devuelve y cuándo usarla, con un panel lateral que muestra Result como la forma-valor y el dial de precisión throws / throws(E) / throws(Never)](./resources/error-handling-strategies.png)
+
+- **Protocolo Error** — los errores son *valores* de tipos que conforman el protocolo vacío `Error`; los enums con valores asociados encajan de forma natural
+- **throw** — transfiere el control de inmediato, como `return`, pero entrega un error *hacia arriba* por la cadena; tan barato como un return, no una excepción
+- **throws** — marca una función que puede fallar; solo las throwing functions propagan, y los llamadores *deben* reconocerlo con `try`
+- **try / try? / try!** — `try` propaga; `try?` convierte el error en `nil` (un `T?`); `try!` afirma que no hay error y hace trap si se equivoca
+- **do / catch** — detiene un error lanzado; el `catch` pelado liga `error`; las cláusulas pueden comparar por patrón, por tipo con `is`, o por listas separadas por comas; un error sin manejar a nivel superior crashea
+- **defer** — limpieza que corre en *cada* camino de salida; varios defers corren en orden inverso
+- **rethrows** — lanza solo si un argumento closure lanza; cómo `map`/`filter`/`reduce` se mantienen sin lanzar para closures puros
+- **Result&lt;Success, Failure&gt;** — manejo de errores como *valor* guardado; `Result { try f() }` captura, `get()` re-lanza
+- **Typed throws** — `throws(E)` nombra el tipo de error exacto para exhaustividad en tiempo de compilación; `throws` a secas es `throws(any Error)`; `throws(Never)` no puede lanzar
+
+## Lo que viene
+
+En el próximo artículo exploramos los **Protocols** — los contratos que dejan a tipos no relacionados compartir una interfaz sin compartir una superclase. Ya nos apoyamos en uno: `Error` es un protocolo, y conformarlo es lo que hizo lanzables a nuestros enums. A continuación veremos cómo los protocolos definen requisitos, cómo los tipos los adoptan, y por qué el diseño orientado a protocolos es la columna vertebral del Swift idiomático.
+
+Nos vemos la próxima semana.
+
+<div class="pull-quote">
+Un opcional respondía "¿hay un valor?". Un error responde "y si no, ¿por qué no?". Juntos cubren los dos modos de fallo honestos de cualquier operación — y ninguno es magia. Uno es un enum con dos cases; el otro es un valor enrutado hacia arriba por tu call stack. Una vez que lo ves, el manejo de errores deja de dar miedo y empieza a ser solo otra forma que tus datos pueden tomar.
+</div>
+
+## Referencias
+
+- [The Swift Programming Language — Error Handling](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/errorhandling)
+- [Swift Evolution — SE-0413: Typed throws](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md)
+- [Swift Standard Library — Result](https://developer.apple.com/documentation/swift/result)
+- [Swift Standard Library — Error](https://developer.apple.com/documentation/swift/error)

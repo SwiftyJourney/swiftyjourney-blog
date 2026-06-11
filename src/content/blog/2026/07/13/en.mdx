@@ -1,0 +1,746 @@
+---
+title: "Swift from Zero to Expert #13: Protocols"
+description: "A protocol is a contract, not a class. It says what a type must do without saying what it is — and that single idea powers delegation, synthesized Equatable, existentials, and the protocol extensions that make Swift idiomatic."
+pubDate: 'Jul 13 2026'
+lang: 'en'
+translationKey: 'swift-zero-expert-protocols'
+slug: 'swift-zero-expert-protocols'
+tags: ['swift', 'swift-zero-expert', 'swift-fundamentals']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+
+In the [previous article](/en/blog/swift-zero-expert-error-handling) we made our enums throwable by conforming them to one tiny protocol: `Error`. It had no methods, no properties — conforming to it was just a *marker* that said "a value of this type can be thrown." That was your first protocol, and it hid the whole idea in plain sight. A protocol is a **contract**: it states what a type must be able to *do*, while staying completely silent about what that type *is*.
+
+That separation is the point. [Inheritance from #10](/en/blog/swift-zero-expert-inheritance-initialization) lets types share behavior only by sharing a superclass — a rigid, single-parent family tree that [only classes can join](/en/blog/swift-zero-expert-structs-vs-classes). A protocol lets *unrelated* types — a struct, an enum, a class, even types you didn't write — promise the same capability without sharing an ancestor. A `Circle` and a `Country` have nothing in common, yet both can promise "I have an `area`." That promise is a protocol.
+
+<div class="pull-quote">
+A class says "I <em>am</em> a kind of Animal." A protocol says "I can <em>do</em> what a Drawable does." One is about identity and ancestry; the other is about capability. Swift is built on the second idea.
+</div>
+
+## Protocol syntax: defining the contract
+
+<Callout type="info" title="Definition: Protocol">
+A **protocol** defines a blueprint of methods, properties, and other requirements that suit a particular task. The protocol can be **adopted** by a class, structure, or enumeration to provide an actual implementation of those requirements. Any type that satisfies a protocol's requirements is said to **conform** to it.
+</Callout>
+
+You define a protocol much like a type, with the `protocol` keyword:
+
+```swift
+protocol SomeProtocol {
+    // protocol definition goes here
+}
+```
+
+A type states that it adopts a protocol by writing the protocol's name after the type's name, separated by a colon — exactly the syntax you've used for [class inheritance](/en/blog/swift-zero-expert-inheritance-initialization). Multiple protocols are separated by commas, and if a class has a superclass, the superclass comes *first*:
+
+```swift
+struct SomeStructure: FirstProtocol, AnotherProtocol {
+    // structure definition goes here
+}
+
+class SomeClass: SomeSuperclass, FirstProtocol, AnotherProtocol {
+    // class definition goes here
+}
+```
+
+<Callout type="tip" title="Adoption looks like inheritance, but it isn't">
+The colon syntax is shared, but the meaning differs. After the colon, *at most one* class superclass may appear (always first), and *any number* of protocols. You inherit *implementation* from a superclass; you only inherit *requirements* from a protocol. A protocol hands you a to-do list, not finished work.
+</Callout>
+
+## Property requirements
+
+A protocol can require a conforming type to provide a property with a particular name and type. Crucially, it does **not** say whether that property is stored or computed — only its name, its type, and whether it must be *gettable*, or gettable *and* settable.
+
+Property requirements are always written with `var`. You write `{ get set }` for a read-write requirement and `{ get }` for a read-only one:
+
+```swift
+protocol SomeProtocol {
+    var mustBeSettable: Int { get set }
+    var doesNotNeedToBeSettable: Int { get }
+}
+```
+
+The rule is about *minimums*. A `{ get set }` requirement can't be satisfied by a `let` or a read-only computed property — the conformer must offer both. A `{ get }` requirement is satisfied by *any* property, and it's fine for that property to also be settable if that's useful to you.
+
+Here's a protocol with one instance-property requirement:
+
+```swift
+protocol FullyNamed {
+    var fullName: String { get }
+}
+```
+
+A struct can satisfy `fullName` with a plain stored property:
+
+```swift
+struct Person: FullyNamed {
+    var fullName: String
+}
+let john = Person(fullName: "John Appleseed")
+// john.fullName is "John Appleseed"
+```
+
+…and a class can satisfy the *same* requirement with a [computed property from #9](/en/blog/swift-zero-expert-properties-methods-subscripts) — the protocol never knew or cared about the difference:
+
+```swift
+class Starship: FullyNamed {
+    var prefix: String?
+    var name: String
+    init(name: String, prefix: String? = nil) {
+        self.name = name
+        self.prefix = prefix
+    }
+    var fullName: String {
+        return (prefix != nil ? prefix! + " " : "") + name
+    }
+}
+var ncc1701 = Starship(name: "Enterprise", prefix: "USS")
+// ncc1701.fullName is "USS Enterprise"
+```
+
+<Callout type="info" title="Type property requirements use static">
+To require a *type* property (rather than an instance one), prefix it with `static`. You always write `static` in the protocol, even though a class implementing it may use either `static` or `class`:
+
+```swift
+protocol AnotherProtocol {
+    static var someTypeProperty: Int { get set }
+}
+```
+</Callout>
+
+![The FullyNamed protocol requires fullName: String { get }. Two arrows lead to two conformers: Person, a struct, satisfies it with a stored property, while Starship, a class, satisfies it with a computed property built from prefix and name. The protocol only sees the interface, never the storage.](./resources/protocol-requirement-two-ways.png)
+
+## Method requirements
+
+A protocol can require instance and type methods. You write them exactly like normal method declarations, but with **no body and no braces** — just the signature:
+
+```swift
+protocol RandomNumberGenerator {
+    func random() -> Double
+}
+```
+
+`RandomNumberGenerator` demands one method, `random()`, returning a `Double`. It says nothing about *how* the number is produced — that's the conformer's business. Here a class implements it as a linear congruential generator:
+
+```swift
+class LinearCongruentialGenerator: RandomNumberGenerator {
+    var lastRandom = 42.0
+    let m = 139968.0
+    let a = 3877.0
+    let c = 29573.0
+    func random() -> Double {
+        lastRandom = ((lastRandom * a + c)
+            .truncatingRemainder(dividingBy: m))
+        return lastRandom / m
+    }
+}
+```
+
+As with properties, type-method requirements are prefixed with `static` in the protocol. Default parameter values aren't allowed in a protocol's method requirements — the contract states the signature, not convenience defaults.
+
+## Mutating method requirements
+
+A method on a [value type — a struct or enum from #8](/en/blog/swift-zero-expert-structs-vs-classes) — that needs to change `self` must be marked `mutating`. When a protocol requires such a method, it carries the `mutating` keyword into the contract, so that value types are allowed to satisfy it:
+
+```swift
+protocol Togglable {
+    mutating func toggle()
+}
+```
+
+An enum can now conform and flip its own state:
+
+```swift
+enum OnOffSwitch: Togglable {
+    case off, on
+    mutating func toggle() {
+        switch self {
+        case .off:
+            self = .on
+        case .on:
+            self = .off
+        }
+    }
+}
+var lightSwitch = OnOffSwitch.off
+lightSwitch.toggle()
+// lightSwitch is now equal to .on
+```
+
+<Callout type="info" title="Classes drop the mutating keyword">
+If you mark a protocol method `mutating`, only **structures and enumerations** write `mutating` when they implement it. A class implementing the same requirement omits the keyword entirely — a class is a reference type, so its methods can already change its properties without ceremony. The `mutating` in the protocol exists *to let value types in*; classes simply ignore it.
+</Callout>
+
+## Initializer requirements
+
+A protocol can also require an [initializer from #10](/en/blog/swift-zero-expert-inheritance-initialization) — again, just the signature, no body:
+
+```swift
+protocol SomeProtocol {
+    init(someParameter: Int)
+}
+```
+
+A class satisfying an initializer requirement must mark its implementation `required`. That word forces every subclass to also provide the initializer, so the entire class hierarchy keeps conforming:
+
+```swift
+class SomeClass: SomeProtocol {
+    required init(someParameter: Int) {
+        // initializer implementation goes here
+    }
+}
+```
+
+<Callout type="info" title="required, final, and override">
+A `final` class doesn't need `required` on a protocol initializer — it can't be subclassed, so there are no subclasses to constrain. And if a single initializer both satisfies a protocol requirement *and* overrides a superclass's designated initializer, it's marked with **both** modifiers: `required override init()`. A failable `init?` requirement, meanwhile, can be satisfied by a failable or a nonfailable initializer; a nonfailable requirement can be satisfied by a nonfailable or an [implicitly-unwrapped-failable](/en/blog/swift-zero-expert-optionals) one.
+</Callout>
+
+## Protocols as types: the existential `any`
+
+So far a protocol has been a checklist. But a protocol is also a **type** — you can use it where you'd use `Int` or `String`: as a variable's type, a function parameter, an array's element type. You met this already at the very end of [#12](/en/blog/swift-zero-expert-error-handling), where `Result { try f() }` produced a `Result<Int, any Error>`, and we promised the `any` keyword would get its explanation here. This is it.
+
+<Callout type="info" title="Definition: Boxed Protocol Type (Existential)">
+When you use a protocol as a type, you write **`any ProtocolName`** — a *boxed protocol type*, also called an **existential**. The name comes from the phrase "there *exists* a type *T* such that *T* conforms to the protocol." It can hold a value of *any* conforming type, decided at runtime, and the concrete type is hidden behind the protocol's interface.
+</Callout>
+
+```swift
+protocol Shape {
+    func draw() -> String
+}
+
+struct VerticalShapes {
+    var shapes: [any Shape]
+    func draw() -> String {
+        return shapes.map { $0.draw() }.joined(separator: "\n\n")
+    }
+}
+```
+
+`[any Shape]` is an array whose elements can each be a *different* concrete type — a triangle here, a square there — as long as every one conforms to `Shape`. Because the box hides the concrete type, you may only touch what `Shape` itself promises: `draw()` is fine; a triangle's `size` property is not, unless you cast back to the concrete type first.
+
+<Callout type="info" title="The box has a cost — and that's why any is spelled out">
+To store differently-typed values uniformly, Swift wraps each one in a **box**, adding a layer of indirection that has a runtime performance cost. The `any` keyword makes that trade-off *visible* at the type level — the same philosophy as `try` making failure visible. Two future chapters offer the alternatives: **generics** (#14) let the *caller* pick one concrete type with no box, and **opaque types** (`some`, #15) let a function hide one specific type while keeping it concrete. `any` is the most flexible and the most expensive of the three.
+</Callout>
+
+![An [any Shape] array shown as a row of three boxes. Each box presents the same Shape interface lid with draw(), but wraps a different concrete type inside: Triangle, Square, and Circle. A callout notes the box is a runtime indirection that costs performance, which is why any is spelled out; generics and opaque some remove the box.](./resources/any-shape-existential-boxes.png)
+
+## Delegation: a protocol as a hand-off
+
+One of the oldest and most useful protocol patterns is **delegation** — a type handing off part of its job to another object that promises, via a protocol, to handle it.
+
+<Callout type="info" title="Definition: Delegation">
+**Delegation** is a design pattern where a type delegates some of its responsibilities to an instance of another type. You define a protocol that captures the delegated responsibilities; any conforming type (the *delegate*) is then guaranteed to provide that functionality. The delegating type talks only to the protocol — it never needs to know the delegate's concrete type.
+</Callout>
+
+Here a dice game reports its progress to a delegate. The game holds an *optional* delegate and calls back at key moments:
+
+```swift
+class DiceGame {
+    let sides: Int
+    let generator = LinearCongruentialGenerator()
+    weak var delegate: Delegate?
+
+    init(sides: Int) {
+        self.sides = sides
+    }
+
+    func roll() -> Int {
+        return Int(generator.random() * Double(sides)) + 1
+    }
+
+    func play(rounds: Int) {
+        delegate?.gameDidStart(self)
+        for round in 1...rounds {
+            let player1 = roll()
+            let player2 = roll()
+            if player1 == player2 {
+                delegate?.game(self, didEndRound: round, winner: nil)
+            } else if player1 > player2 {
+                delegate?.game(self, didEndRound: round, winner: 1)
+            } else {
+                delegate?.game(self, didEndRound: round, winner: 2)
+            }
+        }
+        delegate?.gameDidEnd(self)
+    }
+
+    protocol Delegate: AnyObject {
+        func gameDidStart(_ game: DiceGame)
+        func game(_ game: DiceGame, didEndRound round: Int, winner: Int?)
+        func gameDidEnd(_ game: DiceGame)
+    }
+}
+```
+
+Two patterns from earlier chapters carry the whole design. `delegate` is `Delegate?`, so each call goes through [optional chaining from #11](/en/blog/swift-zero-expert-optionals) — `delegate?.gameDidStart(self)`. If nobody is listening, the call simply no-ops. And the delegate is a `weak` reference to avoid a retain cycle, which is exactly why the protocol inherits `AnyObject` — making it class-only (more on that below).
+
+Any class can become a tracker by conforming:
+
+```swift
+class DiceGameTracker: DiceGame.Delegate {
+    var playerScore1 = 0
+    var playerScore2 = 0
+    func gameDidStart(_ game: DiceGame) {
+        playerScore1 = 0
+        playerScore2 = 0
+    }
+    func game(_ game: DiceGame, didEndRound round: Int, winner: Int?) {
+        switch winner {
+        case 1: playerScore1 += 1
+        case 2: playerScore2 += 1
+        default: break
+        }
+    }
+    func gameDidEnd(_ game: DiceGame) {
+        if playerScore1 == playerScore2 {
+            print("The game ended in a draw.")
+        } else if playerScore1 > playerScore2 {
+            print("Player 1 won!")
+        } else {
+            print("Player 2 won!")
+        }
+    }
+}
+
+let tracker = DiceGameTracker()
+let game = DiceGame(sides: 6)
+game.delegate = tracker
+game.play(rounds: 3)
+```
+
+![Structural hand-off diagram. On the left, a DiceGame box (the delegating type) holds 'weak var delegate: DiceGame.Delegate?' and calls 'delegate?.gameDidStart(self)'. An arrow labeled 'optional chaining' (no-op if nil) points right through the DiceGame.Delegate protocol box — class-only via AnyObject, listing gameDidStart, game(didEndRound:winner:), and gameDidEnd — to a DiceGameTracker class on the right that conforms to the protocol and is held weak to avoid a retain cycle.](./resources/delegation-handoff.png)
+
+`DiceGame` never learns what kind of object `tracker` is. It only knows the contract — and that's the whole power of delegation.
+
+## Adding conformance with an extension
+
+You can make a type conform to a protocol in an **extension**, separately from its original declaration — even for a type whose source you don't own. This is *retroactive modeling*: teaching `Int`, `Array`, or someone else's type a new trick.
+
+```swift
+protocol TextRepresentable {
+    var textualDescription: String { get }
+}
+
+extension Dice: TextRepresentable {
+    var textualDescription: String {
+        return "A \(sides)-sided dice"
+    }
+}
+```
+
+After this extension, every `Dice` — including ones created *before* the extension was written — is a `TextRepresentable`. The conformance applies to all existing and future instances.
+
+### Conditional conformance with `where`
+
+A generic type can conform to a protocol *only when* its elements do. You express this with a `where` clause on the extension:
+
+```swift
+extension Array: TextRepresentable where Element: TextRepresentable {
+    var textualDescription: String {
+        let itemsAsText = self.map { $0.textualDescription }
+        return "[" + itemsAsText.joined(separator: ", ") + "]"
+    }
+}
+```
+
+Here `Element` is the built-in generic name for whatever type the array holds — you'll meet generics properly in #14. Now `[Dice]` is `TextRepresentable` (because `Dice` is), but `[SomeRandomType]` isn't. The conformance is **conditional** on the element type.
+
+### Declaring adoption with an empty extension
+
+If a type *already* meets every requirement but hasn't said so, an empty extension makes the adoption official:
+
+```swift
+struct Hamster {
+    var name: String
+    var textualDescription: String {
+        return "A hamster named \(name)"
+    }
+}
+extension Hamster: TextRepresentable {}
+```
+
+<Callout type="warning" title="Satisfying requirements isn't the same as conforming">
+`Hamster` already had a `textualDescription` property — but until that empty extension, it was **not** a `TextRepresentable` and couldn't be used as one. Swift never makes a type adopt a protocol implicitly just because it happens to satisfy the requirements. Adoption is always an explicit, deliberate declaration. The empty extension is how you say "yes, I mean this."
+</Callout>
+
+## Synthesized conformance: Equatable, Hashable, Comparable
+
+Some conformances are so mechanical that Swift writes them for you. For `Equatable`, `Hashable`, and `Comparable`, you often just declare the conformance and stop — the compiler **synthesizes** the implementation.
+
+<Callout type="info" title="Definition: Synthesized Conformance">
+For `Equatable`, `Hashable`, and `Comparable`, Swift can **synthesize** the required implementation automatically in many simple cases, so you don't write the boilerplate. You declare the conformance in the *same file* as the type's original declaration and provide *no* implementation of the operator yourself.
+</Callout>
+
+Declare `Equatable` on a struct whose stored properties are all `Equatable`, and `==` is generated for you (comparing every property), along with a free `!=`:
+
+```swift
+struct Vector3D: Equatable {
+    var x = 0.0, y = 0.0, z = 0.0
+}
+
+let a = Vector3D(x: 2.0, y: 3.0, z: 4.0)
+let b = Vector3D(x: 2.0, y: 3.0, z: 4.0)
+if a == b {
+    print("These two vectors are equivalent.")
+}
+```
+
+`Hashable` is synthesized under the same conditions — structs whose stored properties are all `Hashable`, and enums whose associated values are all `Hashable` (or that have none). That's what lets your own types become [Set members and Dictionary keys, from #4](/en/blog/swift-zero-expert-collections).
+
+`Comparable` is synthesized for **enumerations without a raw value**; if cases carry associated values, those must be `Comparable` too. Source order defines the ordering — earlier cases are "less than" later ones:
+
+```swift
+enum SkillLevel: Comparable {
+    case beginner
+    case intermediate
+    case expert(stars: Int)
+}
+var levels = [SkillLevel.intermediate, SkillLevel.beginner,
+              SkillLevel.expert(stars: 5), SkillLevel.expert(stars: 3)]
+for level in levels.sorted() {
+    print(level)
+}
+// beginner
+// intermediate
+// expert(stars: 3)
+// expert(stars: 5)
+```
+
+Defining `<` once buys you `<=`, `>`, and `>=` for free, because `Comparable` provides those on top of the one operator you (or the compiler) supply.
+
+## Collections of protocol types
+
+Because a protocol is a type, you can store mixed concrete types in one array as long as they share a protocol. This is the existential array from earlier, put to work:
+
+```swift
+let things: [any TextRepresentable] = [game, d12, simonTheHamster]
+
+for thing in things {
+    print(thing.textualDescription)
+}
+```
+
+Inside the loop, `thing` is statically `any TextRepresentable` — *not* `DiceGame`, `Dice`, or `Hamster`, even though that's what each box really holds. You can call `textualDescription` because the protocol guarantees it; reaching for anything specific to the concrete type would require a cast.
+
+## Protocol inheritance
+
+A protocol can **inherit** other protocols, adding requirements on top. The syntax mirrors class inheritance, but you can list several parents:
+
+```swift
+protocol PrettyTextRepresentable: TextRepresentable {
+    var prettyTextualDescription: String { get }
+}
+```
+
+Anything adopting `PrettyTextRepresentable` must satisfy *both* its own `prettyTextualDescription` requirement *and* the inherited `textualDescription`. The child can lean on the parent's guarantee — a `PrettyTextRepresentable` implementation can call `textualDescription`, knowing it's always there.
+
+## Class-only protocols with AnyObject
+
+By default any kind of type can adopt a protocol. To restrict adoption to **classes only**, inherit from `AnyObject`:
+
+```swift
+protocol SomeClassOnlyProtocol: AnyObject, SomeInheritedProtocol {
+    // class-only protocol definition goes here
+}
+```
+
+A struct or enum that tries to adopt it is a compile-time error. This is the rule that made `DiceGame.Delegate: AnyObject` work: only reference types can be held `weak`, so a delegate protocol that wants a weak reference *must* be class-only.
+
+<Callout type="tip" title="When to make a protocol class-only">
+Reach for `AnyObject` when the protocol's behavior *assumes reference semantics* — shared, identity-bearing instances rather than copied values. The delegate pattern is the textbook case: you want the *same* delegate object referenced from elsewhere, held weakly to avoid a [retain cycle from #10's ARC discussion](/en/blog/swift-zero-expert-inheritance-initialization). If value types could conform, `weak` would be meaningless.
+</Callout>
+
+## Protocol composition with `&`
+
+Sometimes one protocol isn't a strong enough requirement — you need a value that conforms to *several* at once. Combine them with `&` into a **protocol composition**:
+
+```swift
+protocol Named {
+    var name: String { get }
+}
+protocol Aged {
+    var age: Int { get }
+}
+struct Person: Named, Aged {
+    var name: String
+    var age: Int
+}
+func wishHappyBirthday(to celebrator: Named & Aged) {
+    print("Happy birthday, \(celebrator.name), you're \(celebrator.age)!")
+}
+let birthdayPerson = Person(name: "Malcolm", age: 21)
+wishHappyBirthday(to: birthdayPerson)
+// Happy birthday, Malcolm, you're 21!
+```
+
+`Named & Aged` means "any type conforming to *both*." It defines no new named protocol — it's a temporary, on-the-spot combination. A composition may also include **one** class type, to require a particular superclass alongside the protocols:
+
+```swift
+func beginConcert(in location: Location & Named) {
+    print("Hello, \(location.name)!")
+}
+```
+
+Here `location` must be a subclass of `Location` *and* conform to `Named` — capability and ancestry, required together.
+
+## Checking conformance with `is` and `as?`
+
+The [`is` and `as?` operators](/en/blog/swift-zero-expert-error-handling) — which we met catching errors by type — also test *protocol conformance* at runtime, with identical syntax:
+
+- `is` returns `true` if the instance conforms to the protocol.
+- `as?` returns an optional of the protocol type — `nil` if the instance doesn't conform.
+- `as!` force-casts and traps if the instance doesn't conform.
+
+```swift
+protocol HasArea {
+    var area: Double { get }
+}
+
+class Circle: HasArea {
+    let pi = 3.1415927
+    var radius: Double
+    var area: Double { return pi * radius * radius }
+    init(radius: Double) { self.radius = radius }
+}
+class Country: HasArea {
+    var area: Double
+    init(area: Double) { self.area = area }
+}
+class Animal {
+    var legs: Int
+    init(legs: Int) { self.legs = legs }
+}
+
+let objects: [AnyObject] = [
+    Circle(radius: 2.0),
+    Country(area: 243_610),
+    Animal(legs: 4),
+]
+
+for object in objects {
+    if let objectWithArea = object as? HasArea {
+        print("Area is \(objectWithArea.area)")
+    } else {
+        print("Something that doesn't have an area")
+    }
+}
+// Area is 12.5663708
+// Area is 243610.0
+// Something that doesn't have an area
+```
+
+`Circle`, `Country`, and `Animal` share no base class — yet `as? HasArea` sorts the conformers from the rest at runtime. This is the same `if let` [optional binding from #11](/en/blog/swift-zero-expert-optionals), here unwrapping the result of a protocol cast. The objects aren't changed; they're just *viewed* through the narrow `HasArea` window for the duration of the binding.
+
+## Protocol extensions: default implementations
+
+This is where protocols stop being mere checklists and become Swift's defining feature. You can **extend a protocol itself** to provide method and property implementations — behavior that every conforming type gets for free, without writing anything.
+
+```swift
+extension RandomNumberGenerator {
+    func randomBool() -> Bool {
+        return random() > 0.5
+    }
+}
+```
+
+Every `RandomNumberGenerator` now has `randomBool()`, built on the `random()` it already promised — and no conformer had to lift a finger:
+
+```swift
+let generator = LinearCongruentialGenerator()
+print(generator.random())     // 0.3746499199817101
+print(generator.randomBool()) // true
+```
+
+<Callout type="info" title="Definition: Default Implementation">
+A **protocol extension** can supply a **default implementation** of a requirement. If a conforming type provides its *own* implementation, that wins; otherwise the default from the extension is used. Unlike an optional requirement, a defaulted requirement can be called directly — no optional chaining — because *some* implementation is always guaranteed to exist.
+</Callout>
+
+![Decision diagram for default-implementation dispatch. At the top, a protocol-extension default 'func greeting() -> Hello, name!' branches down two paths. The left path, labeled 'no own greeting()', reaches a Robot struct that uses the default and prints 'Hello, R2!'. The right path, labeled 'has own greeting()', reaches a Pirate struct (highlighted in coral) whose own greeting() overrides the default, printing 'Arr, I be Redbeard!' — showing that a conformer's own implementation always beats the default.](./resources/default-impl-dispatch.png)
+
+So a protocol can both *declare* a requirement and *default* it — letting conformers override only when they have something better to offer:
+
+```swift
+extension PrettyTextRepresentable {
+    var prettyTextualDescription: String {
+        return textualDescription
+    }
+}
+```
+
+This is the heart of **protocol-oriented programming**: shared behavior lives on the protocol, attached to a *capability* rather than a place in a class tree. Where [inheritance from #10](/en/blog/swift-zero-expert-inheritance-initialization) forces shared code down a single line of descent, a protocol extension spreads it sideways to every conformer, related or not.
+
+<div class="pull-quote">
+Inheritance shares code <em>downward</em>, through a class's children. A protocol extension shares it <em>outward</em>, to every type that opts in — no superclass, no family tree, no permission needed. That sideways reach is why Swift is called protocol-oriented.
+</div>
+
+### Constrained extensions with `where`
+
+You can restrict a protocol extension so its members only appear when conforming types meet extra constraints — written, again, with a generic `where` clause:
+
+```swift
+extension Collection where Element: Equatable {
+    func allEqual() -> Bool {
+        for element in self {
+            if element != self.first {
+                return false
+            }
+        }
+        return true
+    }
+}
+```
+
+`allEqual()` exists on *any* [`Collection` from #4](/en/blog/swift-zero-expert-collections), but **only when** its `Element` is `Equatable` — because the body needs `!=` to compare elements. Arrays of integers qualify:
+
+```swift
+let equalNumbers = [100, 100, 100, 100, 100]
+let differentNumbers = [100, 100, 200, 100, 200]
+
+print(equalNumbers.allEqual())      // true
+print(differentNumbers.allEqual())  // false
+```
+
+This constrained-extension pattern is everywhere in the standard library — it's how `Array` gets `sorted()` only when its elements are `Comparable`, and `contains(_:)` only when they're `Equatable`. A capability that depends on *another* capability, expressed precisely.
+
+<Callout type="info" title="The most specialized constraint wins">
+If a type qualifies for several constrained extensions that all provide the *same* method, Swift uses the one with the **most specialized** constraints. A more specific extension (e.g. `where Element: Comparable`) overrides a more general one (`where Element: Equatable`) — the closest fit to the concrete type takes priority.
+</Callout>
+
+## Recap
+
+![A hub-and-spoke recap map. A central coral Drawable protocol box has arrows radiating out to four conformers — a struct, an enum, a class, and an extension on a foreign type — showing conformance is a capability, not ancestry. A side panel lists the chapter toolbox: requirements (property, method, mutating, init), the any existential, delegation, synthesized Equatable/Hashable/Comparable, protocol inheritance, AnyObject class-only protocols, & composition, is/as? checks, and protocol extensions with where.](./resources/protocols-recap-map.png)
+
+- **Protocol** — a contract of requirements (properties, methods, initializers) a conforming type must satisfy; about *capability*, not *identity*
+- **Requirements** — properties (`{ get }` / `{ get set }`), methods (signature only), `mutating` methods (to let value types in), and `init` (classes mark it `required`)
+- **Protocols as types** — `any ProtocolName` is a *boxed existential* holding any conforming type at runtime, at the cost of a box
+- **Delegation** — a type hands off work to a `weak`, optional, class-only delegate protocol, calling it through optional chaining
+- **Conformance via extensions** — add it retroactively, conditionally with `where`, or declare it with an empty extension; conformance is always *explicit*
+- **Synthesized conformance** — `Equatable`, `Hashable`, and `Comparable` are auto-generated for simple structs and enums in the original file
+- **Protocol inheritance** — a protocol can inherit others and add requirements; `AnyObject` makes a protocol *class-only*
+- **Composition (`&`)** — `A & B` requires conformance to several protocols (plus optionally one superclass) at once
+- **`is` / `as?`** — check and cast protocol conformance at runtime, exactly like type casting
+- **Protocol extensions** — default implementations shared *sideways* to all conformers; `where` constrains them to qualifying types — the backbone of protocol-oriented Swift
+
+## Challenges
+
+Open a playground and try each one before opening the solution.
+
+### Challenge 1: Predict the toggle
+
+A value type satisfies a `mutating` protocol requirement. What does this print?
+
+```swift
+protocol Togglable {
+    mutating func toggle()
+}
+enum OnOffSwitch: Togglable {
+    case off, on
+    mutating func toggle() {
+        switch self {
+        case .off: self = .on
+        case .on: self = .off
+        }
+    }
+}
+var lightSwitch = OnOffSwitch.off
+lightSwitch.toggle()
+lightSwitch.toggle()
+lightSwitch.toggle()
+print(lightSwitch)
+```
+
+<details class="challenge">
+<summary>Show solution</summary>
+
+```
+on
+```
+
+The enum starts at `.off`. Each `toggle()` flips `self`, so the state walks `off → on → off → on`. Three toggles land on `on`. Because the protocol carries the `mutating` keyword, a value type like an enum is allowed to reassign `self` while still satisfying the contract.
+
+</details>
+
+### Challenge 2: Fix the existential
+
+This snippet won't compile. Find the one mistake and fix it so the loop runs.
+
+```swift
+protocol Shape {
+    func draw() -> String
+}
+struct Triangle: Shape {
+    var size: Int
+    func draw() -> String { return "Triangle" }
+}
+let shapes: [any Shape] = [Triangle(size: 3), Triangle(size: 7)]
+for shape in shapes {
+    print(shape.size)
+}
+```
+
+<details class="challenge">
+<summary>Show solution</summary>
+
+```swift
+for shape in shapes {
+    print(shape.draw())
+}
+// Triangle
+// Triangle
+```
+
+Inside the loop `shape` is statically `any Shape`, not `Triangle`. The box hides the concrete type, so you may only touch what the `Shape` protocol promises — `draw()`. The `size` property belongs to `Triangle`, and reaching for it through the existential is a compile-time error (`value of type 'any Shape' has no member 'size'`). To use `size` you would have to cast back first with `as?`.
+
+</details>
+
+### Challenge 3: Write a default implementation
+
+Define a protocol `Greeter` with a single `name: String { get }` requirement and a protocol extension giving every conformer a `greeting() -> String` method that returns `"Hello, <name>!"`. Then make a `Robot` that uses the default and a `Pirate` that overrides `greeting()` to return `"Arr, I be <name>!"`.
+
+<details class="challenge">
+<summary>Show solution</summary>
+
+```swift
+protocol Greeter {
+    var name: String { get }
+}
+extension Greeter {
+    func greeting() -> String {
+        return "Hello, \(name)!"
+    }
+}
+struct Robot: Greeter {
+    var name: String
+}
+struct Pirate: Greeter {
+    var name: String
+    func greeting() -> String {
+        return "Arr, I be \(name)!"
+    }
+}
+print(Robot(name: "R2").greeting())      // Hello, R2!
+print(Pirate(name: "Redbeard").greeting()) // Arr, I be Redbeard!
+```
+
+`Robot` writes no `greeting()` at all, yet gets one for free from the protocol extension's default implementation, built on the `name` it promised. `Pirate` provides its *own* `greeting()`, and that wins over the default *here* because `greeting()` is called on the concrete `Pirate` type. Note the subtlety: `greeting()` lives only in a protocol extension, not as a `Greeter` requirement, so this override wins by static dispatch on the concrete type — call the same method through `any Greeter` and you'd get the extension's default instead. To make the override win at every call site, declare `greeting() -> String` as an actual requirement of `Greeter`.
+
+</details>
+
+## What's next
+
+We kept bumping into one wall: `any Shape` and `[any TextRepresentable]` *box* their values at a runtime cost, and a protocol with an `associatedtype` (which we deliberately skipped here) can't even be used as `any` without limits. The answer is **Generics** — the next article — where the *caller* picks one concrete type, the compiler specializes the code, and the box disappears. We've been writing `where Element: Equatable` and `Result<Success, Failure>` all along; #14 finally explains the machinery. After that, #15 covers **opaque types** (`some`) — the third door alongside `any` and generics.
+
+See you next week.
+
+<div class="pull-quote">
+A protocol is the smallest possible promise: "a value of this type can do <em>this</em>." From that one idea Swift builds delegation, equatability, existentials, and the protocol extensions that let behavior flow sideways across unrelated types. Inheritance asks what you <em>are</em>; a protocol asks only what you can <em>do</em> — and that question scales further.
+</div>
+
+## References
+
+- [The Swift Programming Language — Protocols](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/protocols)
+- [The Swift Programming Language — Opaque and Boxed Protocol Types](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/opaquetypes)
+- [The Swift Programming Language — Type Casting](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/typecasting)
+- [The Swift Programming Language — Extensions](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/extensions)
