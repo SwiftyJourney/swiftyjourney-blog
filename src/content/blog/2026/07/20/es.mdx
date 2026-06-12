@@ -336,7 +336,7 @@ Swift infiere `Item` a partir de los miembros existentes de `Array`. Tras esto, 
 ![El protocolo Container con un hueco abierto associatedtype Item arriba, que se resuelve hacia abajo en tres conformes: IntStack fija Item = Int, Stack&lt;Element&gt; fija Item = Element y Array infiere Item.](./resources/container-associatedtype.png)
 
 <Callout type="info" title="Por qué los tipos asociados rompen la caja any">
-Este es el cabo suelto del [#13](/es/blog/swift-cero-experto-protocolos): un protocolo con un `associatedtype` es un *protocolo genérico*, y no siempre puedes usarlo como un simple `any Container` — la caja no sabría qué es `Item`. La forma limpia de devolver uno es la palabra clave opaca `some` — que es exactamente lo que cubre el #15 a continuación. Los tipos asociados son la razón por la que `some` existe.
+Este es el cabo suelto del [#13](/es/blog/swift-cero-experto-protocolos): un protocolo con un `associatedtype` es un *protocolo genérico*, y no siempre puedes usarlo como un simple `any Container` — la caja no sabría qué es `Item`. La forma limpia de devolver uno es la palabra clave opaca `some` — que es exactamente lo que cubre el [#15](/es/blog/swift-cero-experto-tipos-opacos) a continuación. Los tipos asociados son la razón por la que `some` existe.
 </Callout>
 
 ### Restringir un tipo asociado
@@ -533,7 +533,7 @@ extension Container {
 - **Tipo genérico** — `struct Stack<Element>`; el marcador atraviesa propiedades almacenadas, parámetros y tipos de retorno; `[String]` es solo `Array<String>`
 - **Extender un tipo genérico** — sin lista de parámetros de tipo en la extensión; los nombres originales (`Element`) ya están en alcance
 - **Restricción de tipo** — `<T: SomeClass>` / `<T: Protocol>`; `findIndex(of:in:)` necesita `T: Equatable` para usar `==`
-- **Tipo asociado** — `associatedtype Item` vuelve genérico un protocolo; los conformadores lo rellenan (a menudo inferido); la razón por la que existe `some` (#15)
+- **Tipo asociado** — `associatedtype Item` vuelve genérico un protocolo; los conformadores lo rellenan (a menudo inferido); la razón por la que existe `some` ([#15](/es/blog/swift-cero-experto-tipos-opacos))
 - **Cláusula `where` genérica** — restringe o iguala tipos asociados: `allItemsMatch` necesita `C1.Item == C2.Item, C1.Item: Equatable`
 - **`where` restringida / contextual / de tipo asociado** — agrega requisitos a extensiones, métodos sueltos, o tipos asociados
 - **Subscript genérico** — `subscript<Indices: Sequence>(...) where ...` — los subscripts también reciben parámetros de tipo y cláusulas `where`
@@ -638,7 +638,7 @@ La primera llamada compara `1 == 1` → `true`; la segunda compara `"x" == "y"` 
 
 ## Lo que viene
 
-Ahora hemos visto las tres puertas para salir de "no quiero nombrar el tipo concreto". `any` (#13) lo encaja y lo paga en runtime. Los **genéricos** (este capítulo) dejan que *el llamador* lo nombre, sin caja. La tercera puerta son los **tipos opacos** — la palabra clave `some` — donde una *función* oculta un tipo concreto específico manteniéndolo plenamente concreto, y es la forma limpia de devolver un valor de un protocolo que tiene un `associatedtype`. Eso es el #15, la próxima semana.
+Ahora hemos visto las tres puertas para salir de "no quiero nombrar el tipo concreto". `any` (#13) lo encaja y lo paga en runtime. Los **genéricos** (este capítulo) dejan que *el llamador* lo nombre, sin caja. La tercera puerta son los **tipos opacos** — la palabra clave `some` — donde una *función* oculta un tipo concreto específico manteniéndolo plenamente concreto, y es la forma limpia de devolver un valor de un protocolo que tiene un `associatedtype`. Eso es el [#15](/es/blog/swift-cero-experto-tipos-opacos), la próxima semana.
 
 Nos vemos entonces.
 

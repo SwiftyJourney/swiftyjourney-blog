@@ -1,0 +1,500 @@
+---
+title: "Swift from Zero to Expert #15: Opaque & Boxed Protocol Types"
+description: "The third door out of 'I don't want to name the concrete type'. some hides one concrete type while keeping its identity — no box, compile-time. any erases the type into a runtime box. This is how you finally return a protocol that has an associatedtype."
+pubDate: 'Jul 27 2026'
+lang: 'en'
+translationKey: 'swift-zero-expert-opaque-types'
+slug: 'swift-zero-expert-opaque-types'
+tags: ['swift', 'swift-zero-expert', 'swift-fundamentals']
+---
+
+import Callout from '../../../../../components/Callout.astro';
+import InfoBox from '../../../../../components/InfoBox.astro';
+
+At the end of [#14](/en/blog/swift-zero-expert-generics) we counted three doors out of "I don't want to name the concrete type." `any` (from [#13](/en/blog/swift-zero-expert-protocols)) **boxes** the value and pays at runtime. **Generics** (#14) let the *caller* name one concrete type, with no box. This article opens the third door: **opaque types** — the `some` keyword — where a *function* hides one specific concrete type while keeping it fully concrete. And it closes the loose end #14 left dangling: how do you *return* a protocol that has an `associatedtype`? `some` is the answer.
+
+Swift gives you two ways to hide details about a value's type, and this chapter is about telling them apart: **opaque types** (`some`) and **boxed protocol types** (`any`). Both hide the concrete type from the *caller*. The difference — the whole chapter — is whether the *compiler* still knows it.
+
+<div class="pull-quote">
+<code>some</code> hides the type from <em>you</em> but not from the <em>compiler</em>: one concrete type, identity preserved, no box. <code>any</code> hides it from <em>both</em>: a runtime box that can hold a different concrete type from one moment to the next. Same goal, opposite mechanism.
+</div>
+
+## The problem that opaque types solve
+
+Picture a small module that draws ASCII-art shapes. The one thing every shape can do is `draw()` itself into a string — so that's the `Shape` protocol, and `Triangle` is a first conformer (exactly the protocol from [#13](/en/blog/swift-zero-expert-protocols)):
+
+```swift
+protocol Shape {
+    func draw() -> String
+}
+
+struct Triangle: Shape {
+    var size: Int
+    func draw() -> String {
+        var result: [String] = []
+        for length in 1...size {
+            result.append(String(repeating: "*", count: length))
+        }
+        return result.joined(separator: "\n")
+    }
+}
+let smallTriangle = Triangle(size: 3)
+print(smallTriangle.draw())
+// *
+// **
+// ***
+```
+
+Now use [the generics from #14](/en/blog/swift-zero-expert-generics) to build operations *on* shapes. A `FlippedShape<T: Shape>` wraps another shape and draws it upside down:
+
+```swift
+struct FlippedShape<T: Shape>: Shape {
+    var shape: T
+    func draw() -> String {
+        let lines = shape.draw().split(separator: "\n")
+        return lines.reversed().joined(separator: "\n")
+    }
+}
+let flippedTriangle = FlippedShape(shape: smallTriangle)
+print(flippedTriangle.draw())
+// ***
+// **
+// *
+```
+
+And a `JoinedShape<T: Shape, U: Shape>` stacks one shape on top of another:
+
+```swift
+struct JoinedShape<T: Shape, U: Shape>: Shape {
+    var top: T
+    var bottom: U
+    func draw() -> String {
+        return top.draw() + "\n" + bottom.draw()
+    }
+}
+let joinedTriangles = JoinedShape(top: smallTriangle, bottom: flippedTriangle)
+print(joinedTriangles.draw())
+// *
+// **
+// ***
+// ***
+// **
+// *
+```
+
+It works — but look at the *type* of `joinedTriangles`. It's `JoinedShape<Triangle, FlippedShape<Triangle>>`. Every transformation you apply gets stamped into the return type, and that type spells out the entire build recipe: a join, of a triangle, with a flip, of a triangle. Stack a few more operations and the type name balloons into something unreadable — and, worse, *public*.
+
+<Callout type="info" title="Why this leak matters">
+`JoinedShape` and `FlippedShape` are *implementation details* of the module. A caller asked for "a shape that's a triangle joined to its flip" — they should get back a `Shape`, full stop. Instead they get `JoinedShape<Triangle, FlippedShape<Triangle>>` welded into their code. Change *how* the module builds that shape and every caller's type signatures break. The detailed return type leaks the recipe and makes the API brittle.
+</Callout>
+
+![Nested generic wrappers Triangle inside FlippedShape&lt;Triangle&gt; inside JoinedShape&lt;Triangle, FlippedShape&lt;Triangle&gt;&gt;, the whole build recipe leaking into the public return type — it should just be Shape](./resources/leaky-return-type.png)
+
+The module's public interface should be *"joining and flipping return another `Shape`."* The wrapper types shouldn't be visible at all. That's exactly what an opaque return type buys you.
+
+## Returning an opaque type
+
+<Callout type="info" title="Definition: Opaque Type">
+A function that returns an **opaque type** hides its return value's type information. Instead of naming a concrete type, the return type is described only by the protocols it conforms to, written **`some ProtocolName`**. Opaque types **preserve type identity** — the compiler has access to the concrete type, but callers of the function don't.
+</Callout>
+
+Add a `Square`, then write a `makeTrapezoid()` that builds a trapezoid out of triangles and a square — and returns `some Shape`:
+
+```swift
+struct Square: Shape {
+    var size: Int
+    func draw() -> String {
+        let line = String(repeating: "*", count: size)
+        let result = Array<String>(repeating: line, count: size)
+        return result.joined(separator: "\n")
+    }
+}
+
+func makeTrapezoid() -> some Shape {
+    let top = Triangle(size: 2)
+    let middle = Square(size: 2)
+    let bottom = FlippedShape(shape: top)
+    let trapezoid = JoinedShape(
+        top: top,
+        bottom: JoinedShape(top: middle, bottom: bottom)
+    )
+    return trapezoid
+}
+let trapezoid = makeTrapezoid()
+print(trapezoid.draw())
+// *
+// **
+// **
+// **
+// **
+// *
+```
+
+The return type is `some Shape` — "some specific type that conforms to `Shape`, and I'm not telling you which." Inside, the trapezoid is really a `JoinedShape<Triangle, JoinedShape<Square, FlippedShape<Triangle>>>`. The caller never sees that. They get *a shape*. Rewrite `makeTrapezoid()` to build the same picture a different way — different wrapper types entirely — and the public return type stays `some Shape`. The recipe is sealed inside.
+
+<div class="pull-quote">
+An opaque type is the <em>reverse</em> of a generic. A generic lets the <em>caller</em> pick the concrete type; the function body must work for whatever comes in. <code>some</code> lets the <em>function</em> pick the concrete type; the caller must work with whatever comes out — without ever learning its name.
+</div>
+
+This mirror-image relationship is worth holding onto. With a generic `max<T>(_:_:)`, the caller's arguments decide `T`. With `func makeTrapezoid() -> some Shape`, the function's body decides the underlying type, and the caller is the one written "in a general way" — it can only lean on what `Shape` guarantees.
+
+You can combine `some` with generics, too. `flip` and `join` are generic *because their inputs are generic*, but they hide their `FlippedShape`/`JoinedShape` results behind `some Shape`:
+
+```swift
+func flip<T: Shape>(_ shape: T) -> some Shape {
+    return FlippedShape(shape: shape)
+}
+func join<T: Shape, U: Shape>(_ top: T, _ bottom: U) -> some Shape {
+    JoinedShape(top: top, bottom: bottom)
+}
+
+let opaqueJoinedTriangles = join(smallTriangle, flip(smallTriangle))
+print(opaqueJoinedTriangles.draw())
+// *
+// **
+// ***
+// ***
+// **
+// *
+```
+
+`opaqueJoinedTriangles` draws *exactly* the same picture as the earlier `joinedTriangles`. The only difference is what the caller can see: `joinedTriangles` had the type `JoinedShape<Triangle, FlippedShape<Triangle>>` written across it; `opaqueJoinedTriangles` is just `some Shape`. The wrapper types are hidden.
+
+### The one rule: every return path, the same type
+
+There's a single rule that governs `some`, and it's strict: **all return paths of an opaque function must return the *same* underlying concrete type.** The compiler knows the concrete type precisely — so you don't get to pick a different one on different branches. Here's the *invalid* version of `flip` that tries to special-case squares:
+
+```swift
+func invalidFlip<T: Shape>(_ shape: T) -> some Shape {
+    if shape is Square {
+        return shape // Error: Return types don't match.
+    }
+    return FlippedShape(shape: shape) // Error: Return types don't match.
+}
+```
+
+Called with a `Square` this returns a `Square`; otherwise a `FlippedShape`. *Two different underlying types from one opaque function* — and that's a compile error. The fix is to push the special case *into* `FlippedShape.draw()`, so the function always hands back a `FlippedShape`:
+
+```swift
+struct FlippedShape<T: Shape>: Shape {
+    var shape: T
+    func draw() -> String {
+        if shape is Square {
+            return shape.draw()
+        }
+        let lines = shape.draw().split(separator: "\n")
+        return lines.reversed().joined(separator: "\n")
+    }
+}
+```
+
+<Callout type="info" title="Generics are still allowed — one type, not one branch">
+"Same type" doesn't mean "no generics." The underlying type may *depend* on the function's type parameters, as long as it resolves to a single type per call. This compiles fine:
+
+```swift
+func `repeat`<T: Shape>(shape: T, count: Int) -> some Collection {
+    return Array<T>(repeating: shape, count: count)
+}
+```
+
+The underlying type is always `[T]` — one type, parameterized. The rule forbids *branching* to two different types, not *parameterizing* one.
+</Callout>
+
+![The caller sees the opaque pill 'some Shape' while the compiler sees the real JoinedShape&lt;Triangle, JoinedShape&lt;Square, FlippedShape&lt;Triangle&gt;&gt;&gt;; an inset shows invalidFlip's two return paths — Square vs FlippedShape — joined to a compile error: return types must match](./resources/some-identity-one-rule.png)
+
+## Boxed protocol types
+
+Now the other door. A **boxed protocol type** is what you write with `any` — the existential from [#13](/en/blog/swift-zero-expert-protocols).
+
+<Callout type="info" title="Definition: Boxed Protocol Type (Existential)">
+A **boxed protocol type**, written **`any ProtocolName`**, can store an instance of *any* type that conforms to the protocol. The name *existential* comes from "there exists a type *T* such that *T* conforms to the protocol." Boxed protocol types do **not** preserve type identity — the value's specific type isn't known until runtime, and it can change over the value's lifetime as different values are stored.
+</Callout>
+
+A `VerticalShapes` that holds an `[any Shape]` can mix concrete types freely — a triangle here, a square there:
+
+```swift
+struct VerticalShapes: Shape {
+    var shapes: [any Shape]
+    func draw() -> String {
+        return shapes.map { $0.draw() }.joined(separator: "\n\n")
+    }
+}
+
+let largeTriangle = Triangle(size: 5)
+let largeSquare = Square(size: 5)
+let vertical = VerticalShapes(shapes: [largeTriangle, largeSquare])
+print(vertical.draw())
+```
+
+Each element of `[any Shape]` can be a *different* type, decided at runtime, as long as it conforms to `Shape`. To make that work, Swift wraps each value in a **box** — a level of indirection it adds when necessary, and that indirection has a performance cost. Inside `VerticalShapes` you can call `draw()` because `Shape` requires it; reaching for a triangle's `size` is an error, because the box only exposes the protocol's surface.
+
+<Callout type="info" title="any can change its mind; some can't">
+A single `var s: any Shape` can hold a `Triangle` now and a `Square` a line later — the box is happy to swap its contents. A `some Shape` is pinned to *one* underlying type for good. That mutability is the visible face of the deeper split: `any` erased the type, so there's nothing to keep stable; `some` preserved it, so it *can't* change.
+</Callout>
+
+When you genuinely know what's in the box, an `as?` cast (the [downcast from #12/#13](/en/blog/swift-zero-expert-protocols)) gets you back to the concrete type:
+
+```swift
+if let downcastTriangle = vertical.shapes[0] as? Triangle {
+    print(downcastTriangle.size)
+}
+// Prints "5".
+```
+
+That cast is the tell. With `any`, peeling back to the concrete type is a *runtime* question — `as?` can fail and hands you an optional. With `some`, there's no cast to write: the compiler knew the type all along.
+
+![On the left, any Shape as a box with an indirection arrow into swappable contents — Triangle now, Square later — exposing only draw() with size hidden, labeled runtime, erased, boxed, can change; on the right, some Shape as a single sealed concrete type the compiler tracks, no box, identity preserved](./resources/any-box-vs-some.png)
+
+## some vs any: the differences that matter
+
+Returning `some Shape` *looks* almost identical to returning `any Shape`. The split is whether **type identity** survives. An opaque type refers to *one* specific type the caller can't see; a boxed protocol type can refer to *any* conforming type. Here's the same `flip` written with a boxed return type — note it returns `Shape` boxed (`any Shape`), not `some Shape`:
+
+```swift
+func protoFlip<T: Shape>(_ shape: T) -> any Shape {
+    return FlippedShape(shape: shape)
+}
+```
+
+Because the contract is only "returns *something* `Shape`," `protoFlip` is free to return different types on different branches — the exact thing `invalidFlip` was forbidden from doing:
+
+```swift
+func protoFlip<T: Shape>(_ shape: T) -> any Shape {
+    if shape is Square {
+        return shape
+    }
+    return FlippedShape(shape: shape)
+}
+```
+
+That flexibility is real, but it costs you. Because the concrete type is erased, **operations that depend on type information disappear**. Two results of `protoFlip` can't be compared with `==`, even if you add `==` to `Shape`:
+
+```swift
+let protoFlippedTriangle = protoFlip(smallTriangle)
+let sameThing = protoFlip(smallTriangle)
+protoFlippedTriangle == sameThing  // Error
+```
+
+The deeper reason: an `==` for `Shape` would need to know both sides are the *same* concrete type (`Self`), and that `Self` requirement is exactly what the box erases. The box also doesn't *statically* conform to `Shape`: a bare `any Shape` can't be composed where a static `Shape` conformance is required (say, as the `T` constraint inside another wrapper that stores `var shape: T`). Passing it to a generic `<T: Shape>` parameter, though, *does* work — Swift implicitly opens the existential, so `protoFlip(protoFlip(smallTriangle))` actually compiles, with the inner box opened back into a concrete type for the outer call. Swap to `some Shape` and the identity-dependent operations (`==`, inferring an `associatedtype`) come back too, because the underlying type is preserved.
+
+Here's the contrast distilled:
+
+| | `some Shape` (opaque) | `any Shape` (boxed) |
+| --- | --- | --- |
+| **Type identity** | preserved — one fixed concrete type | erased — concrete type hidden, even from the compiler |
+| **How many types** | exactly one underlying type | heterogeneous — can hold different types over its lifetime |
+| **Box / indirection** | no box, no indirection | boxed; a level of indirection with a runtime cost |
+| **Dispatch / timing** | compile-time, static-dispatch friendly | runtime, dynamic |
+| **Position** | reverse-generic (function decides, caller can't see) | value-level (a box you store and pass around) |
+| **`Self` / associatedtype returns** | works as a return type | can't, or needs care |
+
+<div class="pull-quote">
+The trade is identity for flexibility. <code>any</code> will hold anything, change at any time, and box it for the privilege. <code>some</code> holds exactly one thing, forever, with no box — and in exchange keeps every operation that needs to know the real type.
+</div>
+
+### The reason `some` exists: returning an associatedtype protocol
+
+This is the loose end from [#14](/en/blog/swift-zero-expert-generics). Recall the `Container` protocol with its `associatedtype Item`:
+
+```swift
+protocol Container {
+    associatedtype Item
+    var count: Int { get }
+    subscript(i: Int) -> Item { get }
+}
+extension Array: Container { }
+```
+
+Returning `Container` (i.e. `any Container`) is *allowed*, but it doesn't get you what you want — because it has an associated type, the box erases `Item` down to `Any`, so you can't recover the element type statically. And you can't push it into a generic return position either, because there isn't enough information *outside* the function body to infer the type:
+
+```swift
+// any Container is allowed, but Item is erased to Any — you can't recover the element type statically.
+func makeProtocolContainer<T>(item: T) -> Container {
+    return [item]
+}
+
+// Error: Not enough information to infer C.
+func makeProtocolContainer<T, C: Container>(item: T) -> C {
+    return [item]
+}
+```
+
+`some Container` is the clean way out. It says "I return a container, but I won't name its type" — and because identity is preserved, the compiler can still infer the associated `Item`:
+
+```swift
+func makeOpaqueContainer<T>(item: T) -> some Container {
+    return [item]
+}
+let opaqueContainer = makeOpaqueContainer(item: 12)
+let twelve = opaqueContainer[0]
+print(type(of: twelve))
+// Prints "Int".
+```
+
+The underlying container is `[T]`; with `T == Int` the `Item` resolves to `Int`, so `twelve` is an `Int` — the subscript's return type flowed all the way through, even though the caller never saw `[Int]`. (`type(of:)` is Swift's built-in that reports a value's actual runtime type — here it confirms the compiler still tracks the concrete `Int` behind `some Container`.) *This* is the answer #14 promised: `some` is how you hand back a protocol that has an `associatedtype`. Associated types are the reason `some` exists.
+
+![makeOpaqueContainer(item: 12) returns some Container; the underlying type is [Int] so Item is inferred as Int, and opaqueContainer[0] is Int — the subscript's return type flows all the way to the caller; contrasted with any Container, where the box can't know Item and won't compile](./resources/associatedtype-flow.png)
+
+## Opaque parameter types
+
+There's one more place `some` shows up — and it means something slightly different there. You can write `some` on a *parameter* type, where it's **shorthand sugar for a generic**, not an opaque return. These two functions are equivalent:
+
+```swift
+func drawTwiceGeneric<SomeShape: Shape>(_ shape: SomeShape) -> String {
+    let drawn = shape.draw()
+    return drawn + "\n" + drawn
+}
+
+func drawTwiceSome(_ shape: some Shape) -> String {
+    let drawn = shape.draw()
+    return drawn + "\n" + drawn
+}
+```
+
+`some Shape` in parameter position creates an unnamed generic type parameter constrained to `Shape` — exactly what `<SomeShape: Shape>` does, just without giving the type a name you could refer to elsewhere. Write `some` on more than one parameter and each is an *independent* generic:
+
+```swift
+func combine(shape s1: some Shape, with s2: some Shape) -> String {
+    return s1.draw() + "\n" + s2.draw()
+}
+
+combine(shape: smallTriangle, with: trapezoid)
+```
+
+`s1` and `s2` must each conform to `Shape`, but they needn't be the *same* type — so a triangle and a trapezoid are both fine. This lightweight syntax can't carry a generic `where` clause or same-type (`==`) constraints; reach for the named `<T: Shape>` form when you need those.
+
+<Callout type="warning" title="some changes meaning by position">
+`some` in **return** position is an opaque type: the *function* fixes one hidden concrete type, the caller can't see it. `some` in **parameter** position is generics sugar: the *caller* fixes the type, exactly like `<T: Shape>`. Same keyword, mirror-image roles — and that mirror is the same one between opaque types and generics from the start of this chapter. And remember the contrast with `any`: `func f(_ p: some Shape)` is one statically-known type chosen by the caller (no box); `func f(_ p: any Shape)` takes a runtime box that can be any conformer.
+</Callout>
+
+## Under the hood: `some` is compile-time, `any` is runtime
+
+Strip away the syntax and the whole chapter reduces to *when* the concrete type is known.
+
+- **`some` = compile time.** One concrete type, fixed for good, identity preserved. No box, no indirection. The compiler knows the real type, so it can specialize and dispatch statically — and keep operations (like `==`, or inferring an `associatedtype`) that need the real type. The caller is kept in the dark; the compiler is not.
+- **`any` = runtime.** A box, an existential. The concrete type is erased — unknown until runtime, free to change as you store new values. The flexibility (heterogeneous collections, branch-dependent returns) is paid for with a level of indirection and the loss of type-specific operations.
+
+That's the same axis [#13](/en/blog/swift-zero-expert-protocols) and [#14](/en/blog/swift-zero-expert-generics) have been circling. `any` boxes and pays at runtime. Generics let the caller name the type with no box. `some` lets the function name the type with no box. Three doors — and now you've walked through all of them.
+
+## Recap
+
+![Three-door recap: door 1 'any (existential, #13)' a runtime box with type erased; door 2 'generics (#14)' where the caller picks the concrete type with no box; door 3 'some (#15)' where the function picks the concrete type, hidden from the caller, no box; below, a some-vs-any summary — identity preserved vs erased, one type vs heterogeneous, no box vs boxed, compile-time vs runtime](./resources/three-doors-recap.png)
+
+- **The problem** — generic wrappers like `FlippedShape<Triangle>` and `JoinedShape<Triangle, FlippedShape<Triangle>>` leak the build recipe into the public return type, making the API brittle
+- **Opaque type** — `func makeTrapezoid() -> some Shape` returns one specific concrete type the caller can't see; the reverse of a generic (function picks the type, not the caller)
+- **The one rule** — every return path must produce the *same* underlying type; `invalidFlip` returning `Square` on one branch and `FlippedShape` on another is a compile error
+- **Identity preserved** — with `some`, the compiler knows the concrete type; it's hidden from the caller, not erased
+- **Boxed protocol type** — `any Shape` is an existential box that can hold different conforming types over its lifetime, at the cost of runtime indirection
+- **some vs any** — identity preserved vs erased; one type vs heterogeneous; no box vs boxed; compile-time vs runtime; reverse-generic position vs value-level
+- **Returning an associatedtype protocol** — you can't return `any Container` (the box can't know `Item`), but `some Container` works and the `Item` is still inferred — the answer to #14's open question
+- **Opaque parameter types** — `func f(_ p: some Shape)` is sugar for `<T: Shape>` (caller picks), not an opaque return; contrast `func f(_ p: any Shape)` (runtime box)
+- **Under the hood** — `some` = compile-time, one type, no box, static-dispatch friendly; `any` = runtime existential box, dynamic
+
+## Challenges
+
+Open a playground and try each one before opening the solution.
+
+### Challenge 1: Why won't it compile?
+
+This function is meant to return one hidden shape type, but it doesn't build. Explain why, and describe the fix.
+
+```swift
+protocol Shape { func draw() -> String }
+struct Triangle: Shape { var size: Int; func draw() -> String { "△" } }
+struct Square: Shape { var size: Int; func draw() -> String { "□" } }
+
+func pick(big: Bool) -> some Shape {
+    if big {
+        return Square(size: 10)
+    } else {
+        return Triangle(size: 1)
+    }
+}
+```
+
+<details class="challenge">
+<summary>Show solution</summary>
+
+It fails because the two return paths produce **different** underlying types — `Square` on one branch, `Triangle` on the other. An opaque `some Shape` function must return a *single* concrete type from every path; the compiler tracks that one type precisely and won't accept two. (`error: function declares an opaque return type 'some Shape', but the return statements in its body do not have matching underlying types`.)
+
+The fix depends on intent. If callers genuinely need *either* type chosen at runtime, you don't want an opaque type at all — return the boxed `any Shape`, which is allowed to hold different concrete types:
+
+```swift
+func pick(big: Bool) -> any Shape {
+    return big ? Square(size: 10) : Triangle(size: 1)
+}
+```
+
+If instead you want one fixed hidden type, make every path return the same type. The branch-on-type belongs *inside* one concrete type, not across the return statements — the same move that fixed `invalidFlip`.
+
+</details>
+
+### Challenge 2: Read the identity
+
+Without running it, what does this print — and why does it work with `some` but would fail with `any`?
+
+```swift
+protocol Container {
+    associatedtype Item
+    var count: Int { get }
+    subscript(i: Int) -> Item { get }
+}
+extension Array: Container {}
+
+func wrap<T>(_ value: T) -> some Container {
+    return [value, value, value]
+}
+
+let c = wrap("hi")
+print(c.count)
+print(type(of: c[0]))
+```
+
+<details class="challenge">
+<summary>Show solution</summary>
+
+```
+3
+String
+```
+
+`wrap("hi")` builds `["hi", "hi", "hi"]`, so `count` is `3`, and each element is a `String`. The interesting part is *why this compiles at all*. `Container` has an `associatedtype Item`. Returning `-> Container` (i.e. `-> any Container`) is *allowed*, but the box erases `Item` to `Any`, so `c[0]` would come back as `Any` and you'd lose the static element type. `some Container` instead **preserves type identity**: the underlying type is `[String]`, so the compiler infers `Item == String`, and `c[0]` is statically a `String`. That's why `type(of: c[0])` prints `String` and not the erased `Any`. Opaque types are the only way to return an associated-type protocol while keeping its `Item` known.
+
+</details>
+
+### Challenge 3: some, any, or generic?
+
+For each parameter declaration below, say whether it means the same as a generic `<T: Shape>`, and whether it boxes the value.
+
+```swift
+func a(_ p: some Shape) { print(p.draw()) }
+func b(_ p: any Shape)  { print(p.draw()) }
+func c<T: Shape>(_ p: T) { print(p.draw()) }
+```
+
+<details class="challenge">
+<summary>Show solution</summary>
+
+`a` and `c` are **equivalent**. `some Shape` in *parameter* position is just shorthand sugar for an unnamed generic type parameter constrained to `Shape` — exactly what `<T: Shape>` declares, only without a name you could reuse elsewhere. The caller picks one concrete type, the compiler knows it statically, and there's **no box**.
+
+`b` is different. `any Shape` is a *boxed protocol type* — an existential. The caller can pass any conformer, the concrete type is erased to runtime, and the value carries a **box** with its level of indirection. You'd reach for `b` only when you genuinely need to accept differently-typed shapes through one parameter (e.g. iterating an `[any Shape]`); otherwise `a`/`c` are cheaper.
+
+The keyword `some` flips meaning by position: opaque (function picks) on a *return* type, generic sugar (caller picks) on a *parameter*.
+
+</details>
+
+## What's next
+
+That closes the protocols-and-abstraction arc: a protocol is a contract ([#13](/en/blog/swift-zero-expert-protocols)), generics let the caller abstract over types ([#14](/en/blog/swift-zero-expert-generics)), and opaque types let a function abstract over its own return type (#15). You now have all three doors — `any`, generic `<T>`, and `some` — and, just as importantly, the judgement for *which* to reach for: box only when you truly need heterogeneity, otherwise keep the type and lose the box.
+
+See you next week.
+
+<div class="pull-quote">
+<code>any</code>, <code>&lt;T&gt;</code>, <code>some</code> — three ways to say "I'd rather not name the type," each making a different promise. <code>any</code>: "it could be anything, and I'll pay the box." Generic: "<em>you</em> name it." <code>some</code>: "<em>I</em> know it, you don't, and there's no box." Knowing the difference is knowing where Swift spends — and saves — at runtime.
+</div>
+
+## References
+
+- [The Swift Programming Language — Opaque and Boxed Protocol Types](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/opaquetypes)
+- [The Swift Programming Language — Generics](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/generics)
+- [The Swift Programming Language — Protocols](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/protocols)
+- [The Swift Programming Language — Type Casting](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/typecasting)

@@ -336,7 +336,7 @@ Swift infers `Item` from `Array`'s existing members. After this, any `Array` is 
 ![The Container protocol with an open associatedtype Item slot at the top, resolving down to three conformers: IntStack sets Item = Int, Stack&lt;Element&gt; sets Item = Element, and Array has Item inferred.](./resources/container-associatedtype.png)
 
 <Callout type="info" title="Why associated types break the any box">
-This is the loose end from [#13](/en/blog/swift-zero-expert-protocols): a protocol with an `associatedtype` is a *generic protocol*, and you can't always use it as a plain `any Container` — the box wouldn't know what `Item` is. The clean way to hand one back is the opaque `some` keyword — which is exactly what #15 covers next. Associated types are the reason `some` exists.
+This is the loose end from [#13](/en/blog/swift-zero-expert-protocols): a protocol with an `associatedtype` is a *generic protocol*, and you can't always use it as a plain `any Container` — the box wouldn't know what `Item` is. The clean way to hand one back is the opaque `some` keyword — which is exactly what [#15](/en/blog/swift-zero-expert-opaque-types) covers next. Associated types are the reason `some` exists.
 </Callout>
 
 ### Constraining an associated type
@@ -533,7 +533,7 @@ extension Container {
 - **Generic type** — `struct Stack<Element>`; the placeholder threads through stored properties, parameters, and return types; `[String]` is just `Array<String>`
 - **Extending a generic type** — no type-parameter list on the extension; the original names (`Element`) are already in scope
 - **Type constraint** — `<T: SomeClass>` / `<T: Protocol>`; `findIndex(of:in:)` needs `T: Equatable` to use `==`
-- **Associated type** — `associatedtype Item` makes a protocol generic; conformers fill it in (often inferred); the reason `some` (#15) exists
+- **Associated type** — `associatedtype Item` makes a protocol generic; conformers fill it in (often inferred); the reason `some` ([#15](/en/blog/swift-zero-expert-opaque-types)) exists
 - **Generic `where` clause** — constrains or equates associated types: `allItemsMatch` needs `C1.Item == C2.Item, C1.Item: Equatable`
 - **Constrained / contextual / associated-type `where`** — add requirements to extensions, single methods, or associated types
 - **Generic subscript** — `subscript<Indices: Sequence>(...) where ...` — subscripts get type parameters and `where` clauses too
@@ -638,7 +638,7 @@ The first call compares `1 == 1` → `true`; the second compares `"x" == "y"` �
 
 ## What's next
 
-We've now seen all three doors out of "I don't want to name the concrete type." `any` (#13) boxes it and pays at runtime. **Generics** (this chapter) let the *caller* name it, with no box. The third door is **opaque types** — the `some` keyword — where a *function* hides one specific concrete type while keeping it fully concrete, and it's the clean way to return a value of a protocol that has an `associatedtype`. That's #15, next week.
+We've now seen all three doors out of "I don't want to name the concrete type." `any` (#13) boxes it and pays at runtime. **Generics** (this chapter) let the *caller* name it, with no box. The third door is **opaque types** — the `some` keyword — where a *function* hides one specific concrete type while keeping it fully concrete, and it's the clean way to return a value of a protocol that has an `associatedtype`. That's [#15](/en/blog/swift-zero-expert-opaque-types), next week.
 
 See you then.
 
